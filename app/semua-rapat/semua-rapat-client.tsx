@@ -50,6 +50,8 @@ interface SemuaRapatClientProps {
   lockedBiroCode?: string;
   currentUserBiroName?: string;
   currentUserRole?: string;
+  lockedTeamCode?: string;
+  lockedTeamName?: string;
 }
 
 function normalizeBiroCode(c?: string | null): string {
@@ -69,6 +71,8 @@ export function SemuaRapatClient({
   lockedBiroCode,
   currentUserBiroName,
   currentUserRole,
+  lockedTeamCode,
+  lockedTeamName,
 }: SemuaRapatClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -76,9 +80,13 @@ export function SemuaRapatClient({
   const userRole = currentUserRole || session?.user?.role || 'STAFF';
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
   const isAdmin = userRole === 'ADMIN';
+  const isStaff = userRole === 'STAFF';
   const isPrivileged = isSuperAdmin || isAdmin;
   const canCreate = isPrivileged;
   const canDeleteAll = isPrivileged;
+
+  const effectiveLockedTeamCode = lockedTeamCode || (isStaff && session?.user?.teamCode ? session.user.teamCode : undefined);
+  const effectiveLockedTeamName = lockedTeamName || (isStaff && session?.user?.teamName ? session.user.teamName : undefined);
 
   const birosList = availableBiros && availableBiros.length > 0 ? availableBiros : BIRO_LIST;
 
@@ -99,7 +107,11 @@ export function SemuaRapatClient({
   const statusParam = searchParams.get('status') as string | null;
   const kategoriParam = searchParams.get('kategori') as string | null;
   const rawTimParam = searchParams.get('tim') || searchParams.get('biro');
-  const timParam = rawTimParam && rawTimParam !== 'ALL' && rawTimParam !== 'IKK' && rawTimParam !== 'BIRO-IKK' ? rawTimParam.toUpperCase() : null;
+  const timParam = effectiveLockedTeamCode
+    ? effectiveLockedTeamCode.toUpperCase()
+    : rawTimParam && rawTimParam !== 'ALL' && rawTimParam !== 'IKK' && rawTimParam !== 'BIRO-IKK'
+      ? rawTimParam.toUpperCase()
+      : null;
   const monthParam = searchParams.get('bulan') || searchParams.get('month');
   const yearParam = searchParams.get('tahun') || searchParams.get('year');
   const dayParam = searchParams.get('hari') || searchParams.get('day');
@@ -136,11 +148,14 @@ export function SemuaRapatClient({
 
   // Meetings filtered by the selected Tim (Investasi, Kerja Sama, Komunikasi)
   const teamFilteredMeetings = useMemo(() => {
+    if (effectiveLockedTeamCode) {
+      return meetingsList.filter((m) => isMatchTeam(m, effectiveLockedTeamCode));
+    }
     if (!timParam) {
       return meetingsList;
     }
     return meetingsList.filter((m) => isMatchTeam(m, timParam));
-  }, [meetingsList, timParam]);
+  }, [meetingsList, timParam, effectiveLockedTeamCode]);
 
   // Meetings filtered by Tim AND Date/Month/Day/Year AND Search Filter AND Category
   const fullyFilteredMeetings = useMemo(() => {
@@ -364,8 +379,10 @@ export function SemuaRapatClient({
     const params = new URLSearchParams(searchParams.toString());
     params.delete('status');
     params.delete('kategori');
-    params.delete('tim');
-    params.delete('biro');
+    if (!effectiveLockedTeamCode) {
+      params.delete('tim');
+      params.delete('biro');
+    }
     params.delete('tahun');
     params.delete('year');
     params.delete('bulan');
@@ -420,6 +437,7 @@ export function SemuaRapatClient({
   ];
 
   const handleSelectTeam = (val: string) => {
+    if (effectiveLockedTeamCode) return;
     const params = new URLSearchParams(searchParams.toString());
     params.delete('biro');
     if (val === 'ALL' || !val) {
@@ -516,7 +534,12 @@ export function SemuaRapatClient({
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-[#F0F9FA] text-[#215865] border border-[#BCE3EB]">
-              {lockedBiroCode ? (
+              {effectiveLockedTeamCode ? (
+                <>
+                  <Layers className="w-3.5 h-3.5 text-[#31889C]" />
+                  Tim {effectiveLockedTeamName || effectiveLockedTeamCode}
+                </>
+              ) : lockedBiroCode ? (
                 <>
                   <Building2 className="w-3.5 h-3.5 text-[#31889C]" />
                   Biro {lockedBiroCode}
@@ -530,19 +553,23 @@ export function SemuaRapatClient({
             </span>
             <span className="text-[12px] text-slate-300 hidden sm:inline">•</span>
             <span className="text-[12px] font-medium text-slate-500">
-              Total <strong>{meetingsList.length}</strong> Risalah Terdaftar
+              Total <strong>{teamFilteredMeetings.length}</strong> Risalah Terdaftar
             </span>
           </div>
 
           <h1 className="text-[22px] sm:text-[24px] font-extrabold text-slate-900 mt-1.5 tracking-tight">
-            {lockedBiroCode
-              ? `Risalah Rapat — ${currentUserBiroName || `Biro ${lockedBiroCode}`}`
-              : 'Daftar Risalah Rapat KEK RI'}
+            {effectiveLockedTeamCode
+              ? `Risalah Rapat — Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}`
+              : lockedBiroCode
+                ? `Risalah Rapat — ${currentUserBiroName || `Biro ${lockedBiroCode}`}`
+                : 'Daftar Risalah Rapat KEK RI'}
           </h1>
           <p className="text-[13px] text-slate-500 mt-1 max-w-2xl leading-relaxed">
-            {lockedBiroCode
-              ? `Arsip lengkap agenda, risalah keputusan, dan status tindak lanjut khusus penugasan ${currentUserBiroName || `Biro ${lockedBiroCode}`}.`
-              : 'Pusat kendali agenda sidang, perumusan notula keputusan, dan pemantauan tindak lanjut seluruh Biro KEK.'}
+            {effectiveLockedTeamCode
+              ? `Arsip lengkap agenda, risalah keputusan, dan status tindak lanjut khusus penugasan Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}.`
+              : lockedBiroCode
+                ? `Arsip lengkap agenda, risalah keputusan, dan status tindak lanjut khusus penugasan ${currentUserBiroName || `Biro ${lockedBiroCode}`}.`
+                : 'Pusat kendali agenda sidang, perumusan notula keputusan, dan pemantauan tindak lanjut seluruh Biro KEK.'}
           </p>
         </div>
 
@@ -612,99 +639,112 @@ export function SemuaRapatClient({
 
           {/* 2. Kelompok Filter Dropdown & Aksi */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Dropdown: Tim Kerja */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setOpenDropdown(openDropdown === 'TIM' ? null : 'TIM')}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all cursor-pointer border select-none",
-                  timParam
-                    ? "bg-[#F0F9FA] border-[#31889C] text-[#164E59] shadow-2xs font-bold"
-                    : openDropdown === 'TIM'
-                      ? "bg-slate-100 border-slate-300 text-slate-900"
-                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                )}
-                title="Filter berdasarkan Tim Kerja"
+            {/* Dropdown / Badge: Tim Kerja */}
+            {effectiveLockedTeamCode ? (
+              <div
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold bg-[#F0F9FA] border border-[#31889C] text-[#164E59] shadow-2xs select-none"
+                title={`Daftar rapat dibatasi khusus penugasan Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}`}
               >
-                <Layers className={cn("w-3.5 h-3.5 shrink-0", timParam ? "text-[#31889C]" : "text-slate-500")} />
-                <span className="truncate max-w-[120px]">{selectedTeamLabel}</span>
-                <span
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5",
-                    timParam ? "bg-[#31889C] text-white" : "bg-slate-100 text-slate-600"
-                  )}
-                >
-                  {timParam ? meetingsList.filter((m) => isMatchTeam(m, timParam)).length : meetingsList.length}
+                <Layers className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
+                <span className="truncate max-w-[130px]">Tim {effectiveLockedTeamName || effectiveLockedTeamCode}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 bg-[#31889C] text-white">
+                  {teamFilteredMeetings.length}
                 </span>
-                <ChevronDown
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenDropdown(openDropdown === 'TIM' ? null : 'TIM')}
                   className={cn(
-                    "w-3 h-3 transition-transform text-slate-400",
-                    openDropdown === 'TIM' && "rotate-180 text-[#31889C]"
+                    "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all cursor-pointer border select-none",
+                    timParam
+                      ? "bg-[#F0F9FA] border-[#31889C] text-[#164E59] shadow-2xs font-bold"
+                      : openDropdown === 'TIM'
+                        ? "bg-slate-100 border-slate-300 text-slate-900"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                   )}
-                />
-              </button>
-
-              {openDropdown === 'TIM' && (
-                <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                    Pilih Tim Kerja
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleSelectTeam('ALL');
-                      setOpenDropdown(null);
-                    }}
+                  title="Filter berdasarkan Tim Kerja"
+                >
+                  <Layers className={cn("w-3.5 h-3.5 shrink-0", timParam ? "text-[#31889C]" : "text-slate-500")} />
+                  <span className="truncate max-w-[120px]">{selectedTeamLabel}</span>
+                  <span
                     className={cn(
-                      "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
-                      !timParam ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                      "text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5",
+                      timParam ? "bg-[#31889C] text-white" : "bg-slate-100 text-slate-600"
                     )}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      <span>Semua Tim</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
-                        {meetingsList.length}
+                    {timParam ? meetingsList.filter((m) => isMatchTeam(m, timParam)).length : meetingsList.length}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3 h-3 transition-transform text-slate-400",
+                      openDropdown === 'TIM' && "rotate-180 text-[#31889C]"
+                    )}
+                  />
+                </button>
+
+                {openDropdown === 'TIM' && (
+                  <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                      Pilih Tim Kerja
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSelectTeam('ALL');
+                        setOpenDropdown(null);
+                      }}
+                      className={cn(
+                        "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
+                        !timParam ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        <span>Semua Tim</span>
                       </span>
-                      {!timParam && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
-                    </span>
-                  </button>
-                  <div className="my-1 border-t border-slate-100" />
-                  {ikkTeamsList.map((t) => {
-                    const isSelected = timParam === t.code;
-                    const countForTeam = meetingsList.filter((m) => isMatchTeam(m, t.code)).length;
-                    return (
-                      <button
-                        key={t.code}
-                        type="button"
-                        onClick={() => {
-                          handleSelectTeam(t.code);
-                          setOpenDropdown(null);
-                        }}
-                        className={cn(
-                          "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
-                          isSelected ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
-                        )}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className={cn("w-1.5 h-1.5 rounded-full", isSelected ? "bg-[#31889C]" : "bg-slate-300")} />
-                          <span>{t.name}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                          {meetingsList.length}
                         </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
-                            {countForTeam}
+                        {!timParam && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                      </span>
+                    </button>
+                    <div className="my-1 border-t border-slate-100" />
+                    {ikkTeamsList.map((t) => {
+                      const isSelected = timParam === t.code;
+                      const countForTeam = meetingsList.filter((m) => isMatchTeam(m, t.code)).length;
+                      return (
+                        <button
+                          key={t.code}
+                          type="button"
+                          onClick={() => {
+                            handleSelectTeam(t.code);
+                            setOpenDropdown(null);
+                          }}
+                          className={cn(
+                            "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
+                            isSelected ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                          )}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={cn("w-1.5 h-1.5 rounded-full", isSelected ? "bg-[#31889C]" : "bg-slate-300")} />
+                            <span>{t.name}</span>
                           </span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                              {countForTeam}
+                            </span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Dropdown: Status Rapat */}
             <div className="relative">
@@ -1111,7 +1151,7 @@ export function SemuaRapatClient({
       <MeetingTable
         initialMeetings={meetingsList}
         filterStatus={statusParam}
-        filterBiro={timParam || (lockedBiroCode ? (lockedBiroCode as BiroCode) : null)}
+        filterBiro={effectiveLockedTeamCode || timParam || (lockedBiroCode ? (lockedBiroCode as BiroCode) : null)}
         filterMonth={monthParam}
         filterYear={yearParam}
         filterDayOfWeek={dayParam}

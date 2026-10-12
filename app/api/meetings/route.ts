@@ -25,8 +25,14 @@ export async function GET(request: NextRequest) {
       ? currentUser.biroCode
       : biro;
 
+    const isStaff = currentUser?.role === 'STAFF';
+    const effectiveTeam = isStaff && currentUser?.teamCode ? currentUser.teamCode : undefined;
+    const effectiveTeamId = isStaff && currentUser?.teamId ? currentUser.teamId : undefined;
+
     const meetings = await getMeetingsFromDb({
       biroCode: effectiveBiro,
+      teamCode: effectiveTeam,
+      teamId: effectiveTeamId,
       status: status,
     });
 

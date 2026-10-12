@@ -66,6 +66,19 @@ export default async function MeetingDetailPage({ params, searchParams }: Meetin
     }
   }
 
+  // Team Access Control: Staff can only view meetings of their own work team
+  if (currentUser?.role === 'STAFF' && currentUser?.teamCode) {
+    const userTeam = currentUser.teamCode.toUpperCase();
+    const isSameTeam =
+      meeting.primaryTeam?.code?.toUpperCase() === userTeam ||
+      meeting.primaryTeamId === currentUser.teamId ||
+      meeting.meetingNumber?.toUpperCase().startsWith(`${userTeam}-`);
+
+    if (!isSameTeam) {
+      redirect('/semua-rapat?denied=true');
+    }
+  }
+
   return (
     <MeetingDetailView
       meeting={meeting}

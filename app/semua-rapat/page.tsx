@@ -17,8 +17,18 @@ export default async function SemuaRapatPage() {
   // Strict Bureau Scoping: Non-admin users only see meetings for their own bureau
   const userBiroCode = !isPrivileged && currentUser?.biroCode ? currentUser.biroCode : undefined;
 
+  // Strict Team Scoping: Staff only sees meetings for their own assigned work team
+  const isStaff = currentUser?.role === 'STAFF';
+  const userTeamCode = isStaff && currentUser?.teamCode ? currentUser.teamCode : undefined;
+  const userTeamName = isStaff && currentUser?.teamName ? currentUser.teamName : undefined;
+  const userTeamId = isStaff && currentUser?.teamId ? currentUser.teamId : undefined;
+
   const [meetings, dbBiros] = await Promise.all([
-    getMeetingsFromDb(userBiroCode ? { biroCode: userBiroCode } : undefined),
+    getMeetingsFromDb({
+      biroCode: userBiroCode,
+      teamCode: userTeamCode,
+      teamId: userTeamId,
+    }),
     getOfficialBiros(),
   ]);
 
@@ -32,6 +42,8 @@ export default async function SemuaRapatPage() {
         lockedBiroCode={userBiroCode}
         currentUserBiroName={currentUser?.biroName}
         currentUserRole={currentUser?.role}
+        lockedTeamCode={userTeamCode}
+        lockedTeamName={userTeamName}
       />
     </Suspense>
   );

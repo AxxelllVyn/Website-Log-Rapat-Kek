@@ -296,21 +296,41 @@ export async function getActionItemsFromDb(filters?: {
 export async function getMeetingsFromDb(filters?: {
   biroCode?: string | null;
   status?: MeetingStatus | null;
+  teamCode?: string | null;
+  teamId?: string | null;
 }): Promise<Meeting[]> {
   try {
     return await withDbRetry(async () => {
-      const whereClause: any = {};
+      const andConditions: any[] = [];
 
       if (filters?.biroCode) {
-        whereClause.OR = [
-          { primaryBiro: { code: filters.biroCode.toUpperCase() } },
-          { meetingBiros: { some: { biro: { code: filters.biroCode.toUpperCase() } } } },
+        andConditions.push({
+          OR: [
+            { primaryBiro: { code: filters.biroCode.toUpperCase() } },
+            { meetingBiros: { some: { biro: { code: filters.biroCode.toUpperCase() } } } },
+          ],
+        });
+      }
+
+      if (filters?.teamCode) {
+        const tCode = filters.teamCode.toUpperCase();
+        const teamOrs: any[] = [
+          { primaryTeam: { code: tCode } },
+          { meetingNumber: { startsWith: `${tCode}-` } },
         ];
+        if (filters.teamId) {
+          teamOrs.push({ primaryTeamId: filters.teamId });
+        }
+        andConditions.push({ OR: teamOrs });
+      } else if (filters?.teamId) {
+        andConditions.push({ primaryTeamId: filters.teamId });
       }
 
       if (filters?.status) {
-        whereClause.status = filters.status;
+        andConditions.push({ status: filters.status });
       }
+
+      const whereClause: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
       const meetings = await prisma.meeting.findMany({
         where: whereClause,
