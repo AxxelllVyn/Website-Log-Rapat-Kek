@@ -18,7 +18,6 @@ import {
   Calendar,
   Building2,
   Layers,
-  HelpCircle,
   CalendarDays,
   Clock,
   RotateCcw,
@@ -31,7 +30,6 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { deleteAllMeetingsAction } from '@/app/actions/meeting-actions';
 import { UploadMeetingDialog } from '@/components/meeting/upload-meeting-dialog';
-import { MeetingStatusGuideDialog } from '@/components/meeting/meeting-status-guide-dialog';
 import { toast } from '@/components/providers/toast-provider';
 import {
   parseMonthFilterIndex,
@@ -93,7 +91,6 @@ export function SemuaRapatClient({
 
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isStatusGuideOpen, setIsStatusGuideOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState('');
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
@@ -965,16 +962,6 @@ export function SemuaRapatClient({
               )}
             </div>
 
-            {/* Tombol Panduan Status */}
-            <button
-              type="button"
-              onClick={() => setIsStatusGuideOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-[12px] font-medium transition-all cursor-pointer shadow-2xs"
-              title="Panduan alur status risalah"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-[#31889C]" />
-              <span className="hidden sm:inline">Panduan</span>
-            </button>
 
             {/* Tombol Reset Cepat (Jika ada filter aktif) */}
             {hasAnyActiveFilter && (
@@ -1119,10 +1106,6 @@ export function SemuaRapatClient({
 
       </div>
 
-      <MeetingStatusGuideDialog
-        isOpen={isStatusGuideOpen}
-        onClose={() => setIsStatusGuideOpen(false)}
-      />
 
       {/* Meeting Table */}
       <MeetingTable

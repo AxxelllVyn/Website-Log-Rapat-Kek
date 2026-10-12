@@ -13,9 +13,11 @@ import {
   Building2,
   ChevronRight,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import { MeetingStatus } from '@/lib/types';
 import { MeetingStatusBadge } from './meeting-status-badge';
+import { normalizeProgressStatus } from '@/lib/meeting-status';
 import { cn, parseMeetingDate, MONTH_SHORT_INDONESIA } from '@/lib/utils';
 
 export interface MeetingOptionItem {
@@ -24,6 +26,13 @@ export interface MeetingOptionItem {
   title: string;
   date: string | Date;
   status: string;
+  progressStatus?: string | null;
+  primaryTeamId?: string | null;
+  primaryTeam?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
   primaryBiro?: {
     code: string;
     name?: string;
@@ -38,22 +47,78 @@ interface PreviousMeetingSelectorProps {
   disabled?: boolean;
 }
 
-const BIRO_OPTIONS = [
-  { code: 'ALL', label: 'Semua Biro' },
-  { code: 'BPPK', label: 'BPPK' },
-  { code: 'PKKEK', label: 'PKKEK' },
-  { code: 'IKK', label: 'IKK' },
-  { code: 'HSDMO', label: 'HSDMO' },
-  { code: 'UK', label: 'UK' },
+const TEAM_OPTIONS = [
+  { code: 'ALL', label: 'Semua Tim' },
+  { code: 'INV', label: 'Tim Investasi' },
+  { code: 'KS', label: 'Tim Kerja Sama' },
+  { code: 'KOM', label: 'Tim Komunikasi' },
 ];
 
-const BIRO_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  BPPK: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  PKKEK: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  IKK: { bg: 'bg-teal-50', text: 'text-[#1E6B7B]', border: 'border-teal-200' },
-  HSDMO: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  UK: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+const TEAM_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  INV: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  KS: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  KOM: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
 };
+
+const STATUS_OPTIONS: { code: string; label: string; dot: string }[] = [
+  { code: 'ALL', label: 'Semua Status', dot: 'bg-slate-400' },
+  { code: 'Belum Dimulai', label: 'Belum Dimulai', dot: 'bg-sky-500' },
+  { code: 'Dalam Proses', label: 'Dalam Proses', dot: 'bg-amber-500' },
+  { code: 'Selesai', label: 'Selesai', dot: 'bg-emerald-500' },
+];
+
+function getMeetingTeamCode(m: MeetingOptionItem): 'INV' | 'KS' | 'KOM' | null {
+  const tc = m.primaryTeam?.code?.toUpperCase();
+  const tid = (m.primaryTeam?.id || m.primaryTeamId)?.toUpperCase();
+  const tname = m.primaryTeam?.name?.toLowerCase() || '';
+  const num = m.meetingNumber?.toUpperCase() || '';
+
+  if (
+    tc === 'INV' ||
+    tid === 'TIM-001' ||
+    tname.includes('investasi') ||
+    num.includes('-INV') ||
+    num.includes('/INV/') ||
+    num.includes('/INV') ||
+    num.includes('INV-') ||
+    num.includes('/TIM-001')
+  ) {
+    return 'INV';
+  }
+  if (
+    tc === 'KS' ||
+    tid === 'TIM-003' ||
+    tname.includes('kerja sama') ||
+    tname.includes('kerjasama') ||
+    num.includes('-KS') ||
+    num.includes('/KS/') ||
+    num.includes('/KS') ||
+    num.includes('KS-') ||
+    num.includes('/TIM-003')
+  ) {
+    return 'KS';
+  }
+  if (
+    tc === 'KOM' ||
+    tid === 'TIM-002' ||
+    tname.includes('komunikasi') ||
+    num.includes('-KOM') ||
+    num.includes('/KOM/') ||
+    num.includes('/KOM') ||
+    num.includes('KOM-') ||
+    num.includes('/TIM-002')
+  ) {
+    return 'KOM';
+  }
+  return null;
+}
+
+function getMeetingProgress(m: MeetingOptionItem): 'Belum Dimulai' | 'Dalam Proses' | 'Selesai' {
+  if (m.progressStatus) {
+    return normalizeProgressStatus(m.progressStatus) as 'Belum Dimulai' | 'Dalam Proses' | 'Selesai';
+  }
+  return normalizeProgressStatus(m.status) as 'Belum Dimulai' | 'Dalam Proses' | 'Selesai';
+}
 
 function formatMeetingDateDisplay(dateVal?: string | Date | null): string {
   if (!dateVal) return '-';
@@ -73,7 +138,7 @@ export function PreviousMeetingSelector({
 }: PreviousMeetingSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBiro, setSelectedBiro] = useState('ALL');
+  const [selectedTeam, setSelectedTeam] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
@@ -83,16 +148,18 @@ export function PreviousMeetingSelector({
     return availableMeetings.find((m) => m.id === value) || null;
   }, [value, availableMeetings]);
 
-  // Counts by Biro
-  const biroCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: availableMeetings.length };
-    BIRO_OPTIONS.forEach((b) => {
-      if (b.code !== 'ALL') counts[b.code] = 0;
-    });
+  // Counts by Team
+  const teamCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: availableMeetings.length,
+      INV: 0,
+      KS: 0,
+      KOM: 0,
+    };
     availableMeetings.forEach((m) => {
-      const code = m.primaryBiro?.code?.toUpperCase();
+      const code = getMeetingTeamCode(m);
       if (code && counts[code] !== undefined) {
-        counts[code] = (counts[code] || 0) + 1;
+        counts[code] = counts[code] + 1;
       }
     });
     return counts;
@@ -102,21 +169,25 @@ export function PreviousMeetingSelector({
   const filteredMeetings = useMemo(() => {
     let result = availableMeetings.filter((m) => {
       const q = searchQuery.trim().toLowerCase();
+      const teamCode = getMeetingTeamCode(m);
+      const teamName =
+        teamCode === 'INV' ? 'investasi' : teamCode === 'KS' ? 'kerja sama' : teamCode === 'KOM' ? 'komunikasi' : '';
+      const prog = getMeetingProgress(m);
+
       const matchesSearch =
         !q ||
         m.title.toLowerCase().includes(q) ||
         m.meetingNumber.toLowerCase().includes(q) ||
+        teamName.includes(q) ||
         (m.primaryBiro?.code && m.primaryBiro.code.toLowerCase().includes(q));
 
-      const matchesBiro =
-        selectedBiro === 'ALL' ||
-        m.primaryBiro?.code?.toUpperCase() === selectedBiro;
+      const matchesTeam =
+        selectedTeam === 'ALL' || teamCode === selectedTeam;
 
       const matchesStatus =
-        selectedStatus === 'ALL' ||
-        m.status.toUpperCase() === selectedStatus.toUpperCase();
+        selectedStatus === 'ALL' || prog === selectedStatus;
 
-      return matchesSearch && matchesBiro && matchesStatus;
+      return matchesSearch && matchesTeam && matchesStatus;
     });
 
     // Sort by date
@@ -127,14 +198,14 @@ export function PreviousMeetingSelector({
     });
 
     return result;
-  }, [availableMeetings, searchQuery, selectedBiro, selectedStatus, sortOrder]);
+  }, [availableMeetings, searchQuery, selectedTeam, selectedStatus, sortOrder]);
 
   const hasActiveFilters =
-    searchQuery.trim() !== '' || selectedBiro !== 'ALL' || selectedStatus !== 'ALL';
+    searchQuery.trim() !== '' || selectedTeam !== 'ALL' || selectedStatus !== 'ALL';
 
   const resetFilters = () => {
     setSearchQuery('');
-    setSelectedBiro('ALL');
+    setSelectedTeam('ALL');
     setSelectedStatus('ALL');
   };
 
@@ -157,18 +228,33 @@ export function PreviousMeetingSelector({
               <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                 {currentSelectedMeeting.meetingNumber}
               </span>
-              {currentSelectedMeeting.primaryBiro && (
-                <span
-                  className={cn(
-                    'text-[11px] font-bold px-2 py-0.5 rounded-md border',
-                    BIRO_COLORS[currentSelectedMeeting.primaryBiro.code]?.bg || 'bg-slate-100',
-                    BIRO_COLORS[currentSelectedMeeting.primaryBiro.code]?.text || 'text-slate-700',
-                    BIRO_COLORS[currentSelectedMeeting.primaryBiro.code]?.border || 'border-slate-200'
-                  )}
-                >
-                  Biro {currentSelectedMeeting.primaryBiro.code}
-                </span>
-              )}
+              {(() => {
+                const teamCode = getMeetingTeamCode(currentSelectedMeeting);
+                const teamStyle = teamCode ? TEAM_COLORS[teamCode] : null;
+                const teamName =
+                  teamCode === 'INV'
+                    ? 'Tim Investasi'
+                    : teamCode === 'KS'
+                    ? 'Tim Kerja Sama'
+                    : teamCode === 'KOM'
+                    ? 'Tim Komunikasi'
+                    : currentSelectedMeeting.primaryTeam?.name
+                    ? `Tim ${currentSelectedMeeting.primaryTeam.name}`
+                    : null;
+                if (!teamName) return null;
+                return (
+                  <span
+                    className={cn(
+                      'text-[11px] font-bold px-2 py-0.5 rounded-md border',
+                      teamStyle?.bg || 'bg-teal-50',
+                      teamStyle?.text || 'text-[#1E6B7B]',
+                      teamStyle?.border || 'border-teal-200'
+                    )}
+                  >
+                    {teamName}
+                  </span>
+                );
+              })()}
               {currentSelectedMeeting.date && (
                 <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-slate-400" />
@@ -176,12 +262,11 @@ export function PreviousMeetingSelector({
                 </span>
               )}
             </div>
-            {currentSelectedMeeting.status && (
-              <MeetingStatusBadge
-                status={currentSelectedMeeting.status as MeetingStatus}
-                className="shrink-0"
-              />
-            )}
+            <MeetingStatusBadge
+              status={currentSelectedMeeting.status as MeetingStatus}
+              progressStatus={currentSelectedMeeting.progressStatus || normalizeProgressStatus(currentSelectedMeeting.status)}
+              className="shrink-0"
+            />
           </div>
 
           {/* Full meeting title */}
@@ -234,7 +319,7 @@ export function PreviousMeetingSelector({
                 -- Bukan Rapat Lanjutan (Rapat Mandiri) --
               </p>
               <p className="text-[11px] text-slate-400 truncate">
-                Klik untuk mencari &amp; memfilter rapat terdahulu
+                Klik untuk mencari &amp; memfilter rapat terdahulu berdasarkan tim kerja
               </p>
             </div>
           </div>
@@ -269,7 +354,7 @@ export function PreviousMeetingSelector({
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Cari berdasarkan judul, nomor rapat, atau filter biro untuk menghubungkan tindak lanjut
+                    Cari berdasarkan judul, nomor rapat, atau filter tim kerja untuk menghubungkan tindak lanjut
                   </p>
                 </div>
               </div>
@@ -292,7 +377,7 @@ export function PreviousMeetingSelector({
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari berdasarkan judul agenda, nomor rapat, atau biro..."
+                  placeholder="Cari berdasarkan judul agenda, nomor rapat, atau tim kerja..."
                   className="w-full pl-10 pr-9 h-[40px] rounded-xl bg-white border border-slate-300 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] shadow-2xs"
                 />
                 {searchQuery && (
@@ -306,28 +391,28 @@ export function PreviousMeetingSelector({
                 )}
               </div>
 
-              {/* Biro Tabs Filter */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+              {/* Tim Kerja Tabs Filter */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs [scrollbar-width:none]">
                 <span className="text-slate-400 font-semibold text-[11px] shrink-0 mr-1 flex items-center gap-1">
-                  <Building2 className="w-3.5 h-3.5" />
-                  Biro:
+                  <Users className="w-3.5 h-3.5" />
+                  Tim Kerja:
                 </span>
-                {BIRO_OPTIONS.map((biro) => {
-                  const isActive = selectedBiro === biro.code;
-                  const count = biroCounts[biro.code] ?? 0;
+                {TEAM_OPTIONS.map((team) => {
+                  const isActive = selectedTeam === team.code;
+                  const count = teamCounts[team.code] ?? 0;
                   return (
                     <button
-                      key={biro.code}
+                      key={team.code}
                       type="button"
-                      onClick={() => setSelectedBiro(biro.code)}
+                      onClick={() => setSelectedTeam(team.code)}
                       className={cn(
                         'px-2.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border text-xs',
                         isActive
-                          ? 'bg-[#1E6B7B] text-white border-[#175360] shadow-2xs'
+                          ? 'bg-[#1E6B7B] text-white border-[#175360] shadow-2xs font-bold'
                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-800'
                       )}
                     >
-                      <span>{biro.label}</span>
+                      <span>{team.label}</span>
                       <span
                         className={cn(
                           'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
@@ -343,22 +428,23 @@ export function PreviousMeetingSelector({
 
               {/* Secondary Filters: Status & Urutan */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-slate-600">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-slate-400 font-semibold text-[11px]">Status:</span>
-                  <div className="flex items-center gap-1">
-                    {['ALL', 'FINAL', 'APPROVED', 'REVIEW', 'DRAFT'].map((st) => (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {STATUS_OPTIONS.map((st) => (
                       <button
-                        key={st}
+                        key={st.code}
                         type="button"
-                        onClick={() => setSelectedStatus(st)}
+                        onClick={() => setSelectedStatus(st.code)}
                         className={cn(
-                          'px-2 py-0.5 rounded-md font-medium text-[11px] transition-colors border cursor-pointer',
-                          selectedStatus === st
-                            ? 'bg-slate-800 text-white border-slate-800'
+                          'px-2.5 py-1 rounded-md font-medium text-[11px] transition-colors border cursor-pointer flex items-center gap-1.5',
+                          selectedStatus === st.code
+                            ? 'bg-slate-800 text-white border-slate-800 shadow-2xs font-bold'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                         )}
                       >
-                        {st === 'ALL' ? 'Semua Status' : st}
+                        <span className={cn('w-2 h-2 rounded-full shrink-0', st.dot)} />
+                        <span>{st.label}</span>
                       </button>
                     ))}
                   </div>
@@ -444,7 +530,7 @@ export function PreviousMeetingSelector({
                     Tidak ada rapat yang sesuai dengan filter
                   </p>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Coba sesuaikan kata kunci pencarian atau ubah filter biro &amp; status di atas.
+                    Coba sesuaikan kata kunci pencarian atau ubah filter tim kerja &amp; status di atas.
                   </p>
                   {hasActiveFilters && (
                     <button
@@ -461,8 +547,18 @@ export function PreviousMeetingSelector({
                 <div className="space-y-2">
                   {filteredMeetings.map((m) => {
                     const isSelected = m.id === value;
-                    const biroCode = m.primaryBiro?.code?.toUpperCase() || '';
-                    const biroStyle = BIRO_COLORS[biroCode];
+                    const teamCode = getMeetingTeamCode(m);
+                    const teamStyle = teamCode ? TEAM_COLORS[teamCode] : null;
+                    const teamName =
+                      teamCode === 'INV'
+                        ? 'Tim Investasi'
+                        : teamCode === 'KS'
+                        ? 'Tim Kerja Sama'
+                        : teamCode === 'KOM'
+                        ? 'Tim Komunikasi'
+                        : m.primaryTeam?.name
+                        ? `Tim ${m.primaryTeam.name}`
+                        : null;
 
                     return (
                       <div
@@ -480,16 +576,16 @@ export function PreviousMeetingSelector({
                             <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                               {m.meetingNumber}
                             </span>
-                            {m.primaryBiro && (
+                            {teamName && (
                               <span
                                 className={cn(
                                   'text-[10.5px] font-bold px-2 py-0.5 rounded-md border',
-                                  biroStyle?.bg || 'bg-slate-100',
-                                  biroStyle?.text || 'text-slate-700',
-                                  biroStyle?.border || 'border-slate-200'
+                                  teamStyle?.bg || 'bg-slate-100',
+                                  teamStyle?.text || 'text-slate-700',
+                                  teamStyle?.border || 'border-slate-200'
                                 )}
                               >
-                                Biro {m.primaryBiro.code}
+                                {teamName}
                               </span>
                             )}
                             {m.date && (
@@ -501,12 +597,11 @@ export function PreviousMeetingSelector({
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
-                            {m.status && (
-                              <MeetingStatusBadge
-                                status={m.status as MeetingStatus}
-                                className="scale-90 origin-right"
-                              />
-                            )}
+                            <MeetingStatusBadge
+                              status={m.status as MeetingStatus}
+                              progressStatus={m.progressStatus || normalizeProgressStatus(m.status)}
+                              className="scale-90 origin-right"
+                            />
                             {isSelected ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-[#1E6B7B] text-white">
                                 <Check className="w-3 h-3" />
