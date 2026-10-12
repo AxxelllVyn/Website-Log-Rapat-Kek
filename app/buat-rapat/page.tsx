@@ -38,12 +38,9 @@ import {
   previewNextMeetingNumberAction,
 } from '@/app/actions/meeting-actions';
 import {
-  saveMinutesAndActionsToMeetingAction,
   uploadInvitationFileAction,
   uploadGenericMeetingFileAction,
 } from '@/app/actions/meeting-upload-actions';
-import { UploadMeetingDialog } from '@/components/meeting/upload-meeting-dialog';
-import { ExtractedMeetingData } from '@/lib/meeting-extractor';
 import { toast } from '@/components/providers/toast-provider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -148,10 +145,6 @@ export default function BuatRapatPage() {
       ) || null
     );
   }, [session]);
-
-  // AI Extraction dialog state
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [pendingMinutes, setPendingMinutes] = useState<ExtractedMeetingData | null>(null);
 
   // Today string for date input
   const todayStr = (() => {
@@ -266,9 +259,6 @@ export default function BuatRapatPage() {
 
   // Handle URL query parameters
   useEffect(() => {
-    if (searchParams.get('upload') === 'true') {
-      setIsUploadDialogOpen(true);
-    }
     const prevId = searchParams.get('previousMeetingId');
     const paramTitle = searchParams.get('title');
     const paramTim = searchParams.get('tim');
@@ -331,17 +321,6 @@ export default function BuatRapatPage() {
             size: res.data.size,
           });
           toast.success(`Surat undangan "${res.data.name}" berhasil diunggah!`);
-
-          // If AI extraction detected details
-          if (res.data.extracted) {
-            if (!title && res.data.extracted.title) setTitle(res.data.extracted.title);
-            if (res.data.extracted.date && res.data.extracted.date >= todayStr) {
-              setDate(res.data.extracted.date);
-            }
-            if (res.data.matchedUserIds && res.data.matchedUserIds.length > 0) {
-              setSelectedUserIds((prev) => Array.from(new Set([...prev, ...res.data!.matchedUserIds!])));
-            }
-          }
         } else {
           toast.error(res.error || 'Gagal mengunggah surat undangan');
         }
@@ -447,14 +426,6 @@ export default function BuatRapatPage() {
       });
 
       if (res.success && res.data) {
-        if (pendingMinutes) {
-          try {
-            await saveMinutesAndActionsToMeetingAction(res.data.id, pendingMinutes);
-          } catch (mErr) {
-            console.warn('Auto-save minutes skipped:', mErr);
-          }
-        }
-
         toast.success(
           `Rapat "${title}" (${res.data.meetingNumber}) berhasil dijadwalkan dengan status Sedang Berlangsung!`
         );
@@ -505,29 +476,8 @@ export default function BuatRapatPage() {
               Lengkapi data rapat koordinasi dengan nomor registrasi tim, kategori naskah, lampiran berkas, dan pemetaan peserta. Status rapat otomatis diset Sedang Berlangsung dan dipantau terpusat di Tindak Lanjut.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsUploadDialogOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-[#175360] hover:bg-[#F0F8FA] font-bold text-sm transition-all shadow-md shrink-0 cursor-pointer hover:scale-105 active:scale-95"
-          >
-            <UploadCloud className="w-4 h-4 text-[#1E6B7B]" />
-            <span>Ekstrak Otomatis AI</span>
-          </button>
         </div>
       </div>
-
-      <UploadMeetingDialog
-        isOpen={isUploadDialogOpen}
-        onClose={() => setIsUploadDialogOpen(false)}
-        onApplyToForm={(extractedData, matchedIds) => {
-          if (extractedData.title) setTitle(extractedData.title);
-          if (extractedData.date && extractedData.date >= todayStr) setDate(extractedData.date);
-          if (matchedIds && matchedIds.length > 0) setSelectedUserIds(matchedIds);
-          if (extractedData.attendees) setAttendees(extractedData.attendees);
-          setPendingMinutes(extractedData);
-          toast.success('Informasi dari dokumen berhasil diterapkan ke formulir!');
-        }}
-      />
 
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">

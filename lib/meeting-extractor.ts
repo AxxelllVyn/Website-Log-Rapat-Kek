@@ -393,93 +393,11 @@ export function extractMeetingFromText(text: string): ExtractedMeetingData {
 }
 
 /**
- * Hybrid Extractor: Tries Gemini API if GEMINI_API_KEY is configured in env,
- * otherwise falls back seamlessly to the smart Indonesian rule engine.
+ * Local Rule Engine: Parses meeting text deterministically without external AI APIs
+ * to ensure strict compliance with government data protection and security regulations.
  */
 export async function extractMeetingDocumentSmart(rawText: string): Promise<ExtractedMeetingData> {
-  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-
-  if (geminiApiKey) {
-    try {
-      const prompt = `Anda adalah asisten AI profesional untuk Sekretariat Dewan Nasional Kawasan Ekonomi Khusus (KEK) Republik Indonesia.
-Tolong ekstrak teks notula/dokumen rapat berikut menjadi JSON terstruktur persis dengan schema:
-{
-  "title": "string (Judul rapat lengkap)",
-  "biroCode": "IKK | PKS | PPT | KSK (pilih salah satu biro KEK yang paling sesuai)",
-  "date": "YYYY-MM-DD (tanggal rapat)",
-  "startTime": "HH:MM (waktu mulai, misal 09:00)",
-  "endTime": "HH:MM (waktu selesai, misal 12:00)",
-  "location": "string (lokasi rapat/zoom)",
-  "classification": "STRATEGIS | REGULER | DARURAT",
-  "meetingNumber": "string atau null (nomor undangan bila ada)",
-  "chairpersonName": "string atau null (nama pimpinan rapat)",
-  "secretaryName": "string atau null (nama notulis)",
-  "attendees": "string (nama peserta dipisahkan koma)",
-  "agendaText": "string (daftar agenda bernomor)",
-  "discussionText": "string (pembahasan rinci)",
-  "decisionsText": "string (poin keputusan)",
-  "conclusionText": "string (kesimpulan & penutup)",
-  "actionItems": [
-    {
-      "title": "string (judul tugas tindak lanjut)",
-      "picBiroCode": "IKK | PKS | PPT | KSK",
-      "dueDate": "YYYY-MM-DD",
-      "priority": "LOW | MEDIUM | HIGH | URGENT"
-    }
-  ]
-}
-
-Hanya kembalikan JSON valid tanpa markdown formatting backtick.
-
-Teks dokumen rapat:
-${rawText.slice(0, 15000)}`;
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-          }),
-        }
-      );
-
-      if (res.ok) {
-        const json = await res.json();
-        const outputText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (outputText) {
-          const parsed = JSON.parse(outputText);
-          return {
-            title: parsed.title || 'Rapat Koordinasi KEK',
-            biroCode: parsed.biroCode || 'IKK',
-            date: parsed.date || new Date().toISOString().split('T')[0],
-            startTime: parsed.startTime || '09:00',
-            endTime: parsed.endTime || '12:00',
-            location: parsed.location || 'Ruang Rapat Gedung Posko KEK & Hybrid Zoom',
-            classification: parsed.classification || 'STRATEGIS',
-            meetingNumber: parsed.meetingNumber || undefined,
-            chairpersonName: parsed.chairpersonName || undefined,
-            secretaryName: parsed.secretaryName || undefined,
-            attendees: parsed.attendees || 'Staf dan Pejabat Terkait',
-            agendaText: parsed.agendaText || '',
-            discussionText: parsed.discussionText || '',
-            decisionsText: parsed.decisionsText || '',
-            conclusionText: parsed.conclusionText || '',
-            agendaJson: textToTipTapDoc(parsed.agendaText || 'Agenda Rapat'),
-            discussionJson: textToTipTapDoc(parsed.discussionText || 'Pembahasan'),
-            decisionsJson: textToTipTapDoc(parsed.decisionsText || 'Keputusan'),
-            conclusionJson: textToTipTapDoc(parsed.conclusionText || 'Kesimpulan'),
-            actionItems: parsed.actionItems || [],
-          };
-        }
-      }
-    } catch (aiErr) {
-      console.warn('Gemini extraction failed, falling back to local NLP engine:', aiErr);
-    }
-  }
-
-  // Default: Smart Indonesian NLP Rule Engine
+  // Pure local deterministic parser - no external AI cloud calls
   return extractMeetingFromText(rawText);
 }
+

@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   Check,
   X,
-  UploadCloud,
   Sparkles,
   Calendar,
   Building2,
@@ -29,7 +28,6 @@ import {
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { deleteAllMeetingsAction } from '@/app/actions/meeting-actions';
-import { UploadMeetingDialog } from '@/components/meeting/upload-meeting-dialog';
 import { toast } from '@/components/providers/toast-provider';
 import {
   parseMonthFilterIndex,
@@ -97,7 +95,6 @@ export function SemuaRapatClient({
     setMeetingsList(initialMeetings.filter((m) => !deletedIds.has(m.id)));
   }, [initialMeetings, deletedIds]);
 
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState('');
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -589,16 +586,6 @@ export function SemuaRapatClient({
 
           {canCreate && (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsUploadDialogOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#31889C]/30 bg-[#F0F9FA] text-[#1B5260] font-semibold text-[12.5px] hover:bg-[#E8F5F7] shadow-2xs transition-all cursor-pointer"
-                title="Unggah berkas Word, PDF, atau Teks untuk otomatis membuat rapat dan notula"
-              >
-                <UploadCloud className="w-4 h-4 text-[#31889C]" />
-                <span>⚡ Unggah Dokumen</span>
-              </button>
-
               <Link
                 href="/buat-rapat"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#31889C] text-white font-semibold text-[12.5px] hover:bg-[#266F80] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
@@ -639,19 +626,8 @@ export function SemuaRapatClient({
 
           {/* 2. Kelompok Filter Dropdown & Aksi */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Dropdown / Badge: Tim Kerja */}
-            {effectiveLockedTeamCode ? (
-              <div
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold bg-[#F0F9FA] border border-[#31889C] text-[#164E59] shadow-2xs select-none"
-                title={`Daftar rapat dibatasi khusus penugasan Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}`}
-              >
-                <Layers className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
-                <span className="truncate max-w-[130px]">Tim {effectiveLockedTeamName || effectiveLockedTeamCode}</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5 bg-[#31889C] text-white">
-                  {teamFilteredMeetings.length}
-                </span>
-              </div>
-            ) : (
+            {/* Dropdown Tim Kerja (Hanya untuk Admin / Super Admin / Pimpinan - Disembunyikan untuk Staf) */}
+            {!effectiveLockedTeamCode && (
               <div className="relative">
                 <button
                   type="button"
@@ -1243,11 +1219,6 @@ export function SemuaRapatClient({
         </div>
       )}
 
-      {/* Upload Meeting Document Dialog */}
-      <UploadMeetingDialog
-        isOpen={isUploadDialogOpen}
-        onClose={() => setIsUploadDialogOpen(false)}
-      />
     </div>
   );
 }

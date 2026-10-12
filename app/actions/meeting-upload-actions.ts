@@ -483,42 +483,12 @@ export async function uploadInvitationFileAction(
 
     const publicUrl = `/uploads/invitations/${finalFileName}`;
 
-    // Smart data extraction if file contains readable text
-    let extracted: ExtractedMeetingData | undefined;
-    let matchedUserIds: string[] | undefined;
-
-    if (['pdf', 'docx', 'doc', 'txt'].includes(ext)) {
-      try {
-        const rawText = await extractTextFromBuffer(buffer, file.name, file.type);
-        if (rawText && rawText.trim().length >= 20) {
-          extracted = await extractMeetingDocumentSmart(rawText);
-
-          const activeUsers = await prisma.user.findMany({
-            where: { isActive: true },
-            select: { id: true, name: true },
-          });
-          const attendeesLower = (
-            (extracted.attendees || '') +
-            ' ' +
-            (extracted.chairpersonName || '')
-          ).toLowerCase();
-          matchedUserIds = activeUsers
-            .filter((u) => attendeesLower.includes(u.name.toLowerCase()))
-            .map((u) => u.id);
-        }
-      } catch (parseErr) {
-        console.warn('Smart extraction skipped for invitation doc:', parseErr);
-      }
-    }
-
     return {
       success: true,
       data: {
         url: publicUrl,
         name: originalName,
         size: file.size,
-        extracted,
-        matchedUserIds,
       },
     };
   } catch (error: any) {

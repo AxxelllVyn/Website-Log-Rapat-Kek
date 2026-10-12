@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { SignatureDialog } from './signature-dialog';
 import { updateMeetingNumberAction } from '@/app/actions/meeting-actions';
-import { UploadMeetingDialog } from '@/components/meeting/upload-meeting-dialog';
 import { toast } from '@/components/providers/toast-provider';
 
 interface MeetingMinutesEditorProps {
@@ -132,7 +131,6 @@ export function MeetingMinutesEditor({
   const [documentNumber, setDocumentNumber] = useState<string>(initialDocumentNumber);
   const [invitationNumber, setInvitationNumber] = useState<string>(initialInvitationNumber);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
-  const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
 
   // Inisialisasi Data Naskah Dinas: Nota Dinas
   const initialNota = (initialMinutes?.conclusion as any)?.notaDinas || {};
@@ -186,33 +184,6 @@ export function MeetingMinutesEditor({
   const [ndSignatureMode, setNdSignatureMode] = useState<'placeholder' | 'image'>(
     initialNota.signatureMode || (initialSignatureImage ? 'image' : 'placeholder')
   );
-
-  const handleApplyExtractedDocToEditor = (extractedData: any) => {
-    if (extractedData.agendaJson) {
-      setAgenda(extractedData.agendaJson);
-    }
-    if (extractedData.discussionJson) {
-      setDiscussion(extractedData.discussionJson);
-    }
-    if (extractedData.decisionsJson) {
-      setDecisions(extractedData.decisionsJson);
-    }
-    if (extractedData.conclusionJson) {
-      setConclusion(extractedData.conclusionJson);
-    }
-    if (extractedData.chairpersonName) {
-      setChairpersonName(extractedData.chairpersonName);
-    }
-    if (extractedData.secretaryName) {
-      setSignerName(extractedData.secretaryName);
-    }
-    if (extractedData.meetingNumber) {
-      setInvitationNumber(extractedData.meetingNumber);
-      setDocumentNumber(extractedData.meetingNumber);
-      setNdDocumentNumber(extractedData.meetingNumber);
-    }
-    hasChangesRef.current = true;
-  };
 
   const [activeTab, setActiveTab] = useState<'all' | 'agenda' | 'discussion' | 'conclusion' | 'decisions' | 'closer'>('all');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | 'idle'>('idle');
@@ -1412,15 +1383,6 @@ export function MeetingMinutesEditor({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsUploadDocOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#31889C] bg-[#31889C] hover:bg-[#266F80] text-white font-semibold text-[12px] transition-all cursor-pointer shadow-xs"
-                title="Unggah berkas Word (.docx), PDF (.pdf), atau Teks (.txt) untuk otomatis mengisi risalah notula"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>✨ Ekstrak dari Berkas</span>
-              </button>
 
               <button
                 type="button"
@@ -2005,13 +1967,6 @@ export function MeetingMinutesEditor({
           hasChangesRef.current = true;
         }}
         currentSignature={signatureImage}
-      />
-
-      {/* Upload Meeting Document Dialog */}
-      <UploadMeetingDialog
-        isOpen={isUploadDocOpen}
-        onClose={() => setIsUploadDocOpen(false)}
-        onApplyToForm={handleApplyExtractedDocToEditor}
       />
 
       {/* Bottom Save Bar */}
