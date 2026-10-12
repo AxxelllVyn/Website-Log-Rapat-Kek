@@ -41,6 +41,7 @@ import { toast } from '@/components/providers/toast-provider';
 
 interface ActionItemListProps {
   meetingId: string;
+  currentMeeting?: any;
   initialItems: ActionItem[];
   availableBiros?: { id: string; code: string; shortName: string; name: string }[];
   availableUsers?: { id: string; name: string; email?: string; biroId?: string; teamId?: string | null }[];
@@ -49,6 +50,7 @@ interface ActionItemListProps {
 
 export function ActionItemList({
   meetingId,
+  currentMeeting,
   initialItems = [],
   availableBiros = [],
   availableUsers = [],
@@ -628,49 +630,21 @@ export function ActionItemList({
                     )}
                   </div>
 
-                  {/* Progress Bar & Akuntabilitas (Opsi A) */}
+                  {/* Footer Status & Aksi (Tanpa Persentase Capaian) */}
                   <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    {/* Visual Progress Bar */}
-                    <div className="flex items-center gap-2.5 min-w-[220px]">
-                      <div className="w-24 sm:w-28 bg-slate-100 h-2 rounded-full overflow-hidden shrink-0">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            item.status === 'COMPLETED'
-                              ? 'bg-[#7CC563]'
-                              : isItemOverdue
-                              ? 'bg-rose-500'
-                              : 'bg-[#31889C]'
-                          }`}
-                          style={{
-                            width: `${
-                              item.latestProgress !== undefined && item.latestProgress !== null
-                                ? item.latestProgress
-                                : item.status === 'COMPLETED'
-                                ? 100
-                                : item.status === 'IN_PROGRESS'
-                                ? 50
-                                : 0
-                            }%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-[12px] font-black text-slate-700 shrink-0">
-                        {item.latestProgress !== undefined && item.latestProgress !== null
-                          ? item.latestProgress
-                          : item.status === 'COMPLETED'
-                          ? 100
-                          : item.status === 'IN_PROGRESS'
-                          ? 50
-                          : 0}
-                        %
-                      </span>
-                      {item.latestLogNote && (
-                        <span
-                          className="text-[11px] text-slate-500 truncate max-w-[260px] hidden sm:inline"
-                          title={item.latestLogNote}
-                        >
-                          &bull; {cleanTextWithoutLink(item.latestLogNote)}
-                        </span>
+                    {/* Catatan Terbaru */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      {item.latestLogNote ? (
+                        <div className="flex items-center gap-1.5 text-[11.5px] text-slate-500 truncate max-w-[420px]">
+                          <span className="font-semibold text-slate-600 shrink-0">Catatan Terbaru:</span>
+                          <span className="truncate" title={cleanTextWithoutLink(item.latestLogNote)}>
+                            {cleanTextWithoutLink(item.latestLogNote)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[11.5px] text-slate-400 italic">
+                          <span>Belum ada catatan pembaruan</span>
+                        </div>
                       )}
                     </div>
 
@@ -689,16 +663,16 @@ export function ActionItemList({
                         </button>
                       )}
 
-                      {/* Update Progres button */}
+                      {/* Update Status button */}
                       {canEditThisItem(item) && (
                         <button
                           type="button"
                           onClick={() => openUpdateDialog(item)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E8F5F7] hover:bg-[#D5EEF2] text-[#215865] border border-[#BCE3EB] text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
-                          title="Perbarui status, persentase progres, atau tautan bukti"
+                          title="Perbarui status tindak lanjut atau tautan bukti"
                         >
                           <TrendingUp className="w-3.5 h-3.5 text-[#31889C]" />
-                          <span>Update Progres</span>
+                          <span>Update Status</span>
                         </button>
                       )}
 
@@ -730,6 +704,8 @@ export function ActionItemList({
       <ActionItemFormDialog
         isOpen={isFormOpen}
         meetingId={meetingId}
+        currentMeeting={currentMeeting}
+        lockMeeting={true}
         actionItem={editingItem}
         availableBiros={availableBiros}
         availableUsers={availableUsers}

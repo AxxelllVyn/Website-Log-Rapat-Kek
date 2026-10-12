@@ -267,11 +267,18 @@ export function resolveNotaDinasData(meeting?: any, minutes?: any) {
     '-';
   const signerName = (notaObj.signerName || defaultSignerName).trim();
 
-  const signatureImage =
-    notaObj.signatureImage ||
-    (minutes?.conclusion as any)?.signatureImage ||
-    (minutes?.decisions as any)?.signatureImage ||
-    null;
+  const signatureMode =
+    notaObj.signatureMode ||
+    (notaObj.signatureImage ? 'image' : 'placeholder');
+
+  const rawSignatureImage =
+    signatureMode === 'placeholder'
+      ? null
+      : (notaObj.signatureImage || null);
+
+  const signaturePlaceholder =
+    (notaObj.signaturePlaceholder || '').trim() ||
+    '${ttd_pengirim}';
 
   return {
     recipient,
@@ -283,7 +290,9 @@ export function resolveNotaDinasData(meeting?: any, minutes?: any) {
     biroName,
     signerRole,
     signerName,
-    signatureImage,
+    signatureImage: rawSignatureImage,
+    signaturePlaceholder,
+    signatureMode,
     documentNumber,
   };
 }

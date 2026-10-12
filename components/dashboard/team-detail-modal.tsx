@@ -32,7 +32,7 @@ interface TeamDetailModalProps {
 }
 
 type ModalTab = 'jobs' | 'meetings' | 'members';
-export type DatePeriodFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
+export type DatePeriodFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM';
 
 interface DateBoundaries {
   todayStr: string;
@@ -108,14 +108,21 @@ function formatIndonesianDateLabel(dateStr: string): string {
 }
 
 function isDateInPeriod(
-  dateStr: string | null | undefined,
+  dateValue: string | Date | null | undefined,
   period: DatePeriodFilter,
-  boundaries: DateBoundaries
+  boundaries: DateBoundaries,
+  customStart?: string,
+  customEnd?: string
 ): boolean {
   if (period === 'ALL') return true;
-  if (!dateStr) return false;
+  if (!dateValue) return false;
 
-  const clean = dateStr.slice(0, 10);
+  let clean = '';
+  if (dateValue instanceof Date) {
+    clean = toLocalDateStr(dateValue);
+  } else if (typeof dateValue === 'string') {
+    clean = dateValue.slice(0, 10);
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return false;
 
   if (period === 'TODAY') {
@@ -127,6 +134,20 @@ function isDateInPeriod(
   if (period === 'THIS_MONTH') {
     return clean >= boundaries.monthStart && clean <= boundaries.monthEnd;
   }
+  if (period === 'CUSTOM') {
+    if (customStart && customEnd) {
+      const min = customStart < customEnd ? customStart : customEnd;
+      const max = customStart < customEnd ? customEnd : customStart;
+      return clean >= min && clean <= max;
+    }
+    if (customStart) {
+      return clean === customStart;
+    }
+    if (customEnd) {
+      return clean === customEnd;
+    }
+    return true;
+  }
   return true;
 }
 
@@ -135,6 +156,8 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
   const [activeTab, setActiveTab] = useState<ModalTab>('jobs');
   const [jobFilter, setJobFilter] = useState<'ALL' | 'IN_PROGRESS' | 'COMPLETED' | 'PENDING'>('ALL');
   const [dateFilter, setDateFilter] = useState<DatePeriodFilter>('ALL');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const boundaries = useMemo(() => getDateBoundaries(), []);
@@ -192,11 +215,11 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
   // Periode Filtered Collections
   const dateFilteredJobs = (team.actionItems || []).filter((job) => {
     const jobDate = getJobDate(job);
-    return isDateInPeriod(jobDate, dateFilter, boundaries);
+    return isDateInPeriod(jobDate, dateFilter, boundaries, customStartDate, customEndDate);
   });
 
   const dateFilteredMeetings = (team.meetings || []).filter((m) => {
-    return isDateInPeriod(m.date, dateFilter, boundaries);
+    return isDateInPeriod(m.date, dateFilter, boundaries, customStartDate, customEndDate);
   });
 
   // Hitung jumlah item tiap periode untuk badge indikator
@@ -207,6 +230,8 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
     weekMeetings: (team.meetings || []).filter((m) => isDateInPeriod(m.date, 'THIS_WEEK', boundaries)).length,
     monthJobs: (team.actionItems || []).filter((j) => isDateInPeriod(getJobDate(j), 'THIS_MONTH', boundaries)).length,
     monthMeetings: (team.meetings || []).filter((m) => isDateInPeriod(m.date, 'THIS_MONTH', boundaries)).length,
+    customJobs: (team.actionItems || []).filter((j) => isDateInPeriod(getJobDate(j), 'CUSTOM', boundaries, customStartDate, customEndDate)).length,
+    customMeetings: (team.meetings || []).filter((m) => isDateInPeriod(m.date, 'CUSTOM', boundaries, customStartDate, customEndDate)).length,
   };
 
   // Metrik KPI reaktif berdasarkan filter periode yang aktif
@@ -284,6 +309,21 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
         return `Minggu Ini • ${formatIndonesianDateLabel(boundaries.weekStart)} – ${formatIndonesianDateLabel(boundaries.weekEnd)}`;
       case 'THIS_MONTH':
         return `Bulan Ini • ${MONTH_NAMES_ID[boundaries.currentMonth]} ${boundaries.currentYear}`;
+      case 'CUSTOM':
+        if (customStartDate && customEndDate) {
+          const min = customStartDate < customEndDate ? customStartDate : customEndDate;
+          const max = customStartDate < customEndDate ? customEndDate : customStartDate;
+          return min === max
+            ? `Tanggal • ${formatIndonesianDateLabel(min)}`
+            : `Rentang • ${formatIndonesianDateLabel(min)} – ${formatIndonesianDateLabel(max)}`;
+        }
+        if (customStartDate) {
+          return `Tanggal • ${formatIndonesianDateLabel(customStartDate)}`;
+        }
+        if (customEndDate) {
+          return `Tanggal • ${formatIndonesianDateLabel(customEndDate)}`;
+        }
+        return 'Pilih tanggal spesifik atau rentang tanggal';
       case 'ALL':
       default:
         return 'Seluruh riwayat agenda & pekerjaan';
@@ -422,7 +462,77 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
                   </span>
                 )}
               </button>
+              <button
+                type="button"
+                onClick={() => setDateFilter('CUSTOM')}
+                className={cn(
+                  'px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5',
+                  dateFilter === 'CUSTOM'
+                    ? 'bg-[#215865] text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                )}
+              >
+                <Calendar className="w-3 h-3" />
+                <span>Pilih Tanggal</span>
+                {(customStartDate || customEndDate) && (
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.2 rounded-full text-[9.5px] font-black',
+                      dateFilter === 'CUSTOM'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[#E8F5F7] text-[#215865]'
+                    )}
+                  >
+                    {activeTab === 'meetings' ? countsByPeriod.customMeetings : countsByPeriod.customJobs}
+                  </span>
+                )}
+              </button>
             </div>
+
+            {/* Custom Date Pickers (Muncul saat Pilih Tanggal aktif) */}
+            {dateFilter === 'CUSTOM' && (
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-[#BCE3EB] shadow-2xs text-[11.5px] animate-in fade-in duration-150">
+                <span className="text-[11px] font-semibold text-slate-500">Pilih:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  onClick={(e) => {
+                    try {
+                      (e.currentTarget as any).showPicker?.();
+                    } catch {}
+                  }}
+                  className="text-[11.5px] font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#31889C] cursor-pointer"
+                  title="Pilih tanggal spesifik atau tanggal mulai rentang"
+                />
+                <span className="text-[11px] text-slate-400 font-medium">s/d</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  onClick={(e) => {
+                    try {
+                      (e.currentTarget as any).showPicker?.();
+                    } catch {}
+                  }}
+                  className="text-[11.5px] font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#31889C] cursor-pointer"
+                  title="Pilih tanggal akhir jika ingin rentang tanggal (opsional)"
+                />
+                {(customStartDate || customEndDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomStartDate('');
+                      setCustomEndDate('');
+                    }}
+                    className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                    title="Kosongkan tanggal"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium ml-auto">
@@ -433,7 +543,11 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
             {dateFilter !== 'ALL' && (
               <button
                 type="button"
-                onClick={() => setDateFilter('ALL')}
+                onClick={() => {
+                  setDateFilter('ALL');
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }}
                 className="inline-flex items-center gap-0.5 text-[10.5px] text-[#31889C] hover:text-[#215865] hover:underline font-bold cursor-pointer"
                 title="Reset periode ke semua waktu"
               >
@@ -694,7 +808,15 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
                     {dateFilter !== 'ALL'
-                      ? `Tidak ada tindak lanjut untuk periode ${dateFilter === 'TODAY' ? 'Hari Ini' : dateFilter === 'THIS_WEEK' ? 'Minggu Ini' : 'Bulan Ini'}.`
+                      ? `Tidak ada tindak lanjut untuk ${
+                          dateFilter === 'TODAY'
+                            ? 'periode Hari Ini'
+                            : dateFilter === 'THIS_WEEK'
+                            ? 'periode Minggu Ini'
+                            : dateFilter === 'THIS_MONTH'
+                            ? 'periode Bulan Ini'
+                            : 'tanggal yang dipilih'
+                        }.`
                       : 'Silakan ubah filter status atau kata kunci pencarian.'}
                   </p>
                   {dateFilter !== 'ALL' && (
@@ -769,7 +891,15 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
                   </p>
                   <p className="text-xs text-slate-400 mt-1">
                     {dateFilter !== 'ALL'
-                      ? `Belum ada agenda rapat yang dijadwalkan pada ${dateFilter === 'TODAY' ? 'Hari Ini' : dateFilter === 'THIS_WEEK' ? 'Minggu Ini' : 'Bulan Ini'}.`
+                      ? `Belum ada agenda rapat yang dijadwalkan pada ${
+                          dateFilter === 'TODAY'
+                            ? 'Hari Ini'
+                            : dateFilter === 'THIS_WEEK'
+                            ? 'Minggu Ini'
+                            : dateFilter === 'THIS_MONTH'
+                            ? 'Bulan Ini'
+                            : 'tanggal yang dipilih'
+                        }.`
                       : `Seluruh rapat yang dibuat untuk ${team.fullName} akan tampil di sini.`}
                   </p>
                   {dateFilter !== 'ALL' && (

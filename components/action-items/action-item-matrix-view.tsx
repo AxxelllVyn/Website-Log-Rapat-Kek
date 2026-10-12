@@ -1251,8 +1251,9 @@ export function ActionItemMatrixView({
       {/* Create / Edit Dialog */}
       <ActionItemFormDialog
         isOpen={isFormOpen}
-        meetingId={editingItem ? editingItem.meetingId : selectedMeetingIdForCreate}
+        meetingId={editingItem ? editingItem.meetingId : undefined}
         actionItem={editingItem}
+        lockMeeting={Boolean(editingItem)}
         availableMeetings={availableMeetings}
         availableBiros={availableBiros}
         availableUsers={availableUsers}

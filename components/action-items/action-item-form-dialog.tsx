@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, AlertCircle, Save, ExternalLink, Layers, Calendar } from 'lucide-react';
+import { X, AlertCircle, Save, ExternalLink, Layers, Calendar, Lock, CheckCircle2 } from 'lucide-react';
 import {
   actionItemSchema,
   ActionItemInput,
@@ -28,6 +28,8 @@ import { PicCombobox } from './pic-combobox';
 interface ActionItemFormDialogProps {
   isOpen: boolean;
   meetingId?: string;
+  currentMeeting?: any;
+  lockMeeting?: boolean;
   actionItem?: ActionItem | null;
   availableMeetings?: Array<MeetingOption>;
   availableBiros?: { id: string; code: string; shortName: string; name: string }[];
@@ -40,6 +42,8 @@ interface ActionItemFormDialogProps {
 export function ActionItemFormDialog({
   isOpen,
   meetingId,
+  currentMeeting,
+  lockMeeting,
   actionItem,
   availableMeetings = [],
   availableBiros = [],
@@ -58,15 +62,50 @@ export function ActionItemFormDialog({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const isEditing = Boolean(actionItem);
 
+  // Normalize currentMeeting into MeetingOption format
+  const normalizedCurrentMeeting: MeetingOption | null = React.useMemo(() => {
+    if (!currentMeeting?.id) return null;
+    return {
+      id: currentMeeting.id,
+      meetingNumber: currentMeeting.meetingNumber || currentMeeting.id,
+      title: currentMeeting.title || '',
+      date: currentMeeting.date,
+      primaryBiro: currentMeeting.primaryBiro,
+      primaryTeamId: currentMeeting.primaryTeamId,
+    } as any;
+  }, [
+    currentMeeting?.id,
+    currentMeeting?.meetingNumber,
+    currentMeeting?.title,
+    currentMeeting?.date,
+  ]);
+
+  // Is meeting selection locked? (e.g. from a meeting page/dialog, editing item, or explicitly locked)
+  const isMeetingLocked = Boolean(
+    lockMeeting ||
+    meetingId ||
+    actionItem?.meetingId ||
+    normalizedCurrentMeeting
+  );
+
   // Resilient biros, users, teams & meetings state with auto-fetch
   const [birosList, setBirosList] = useState(availableBiros);
   const [usersList, setUsersList] = useState(availableUsers);
   const [teamsList, setTeamsList] = useState<Array<{ id: string; biroId: string; code: string; name: string; description?: string | null }>>([]);
   const [meetingsList, setMeetingsList] = useState<Array<MeetingOption>>(availableMeetings);
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>(
-    actionItem?.meetingId || meetingId || availableMeetings[0]?.id || ''
+    actionItem?.meetingId || meetingId || normalizedCurrentMeeting?.id || availableMeetings[0]?.id || ''
   );
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+
+  // Guaranteed unified meetings list including normalizedCurrentMeeting
+  const effectiveMeetings = React.useMemo(() => {
+    if (!normalizedCurrentMeeting) return meetingsList;
+    if (meetingsList.some((m) => m.id === normalizedCurrentMeeting.id)) {
+      return meetingsList;
+    }
+    return [normalizedCurrentMeeting, ...meetingsList];
+  }, [normalizedCurrentMeeting, meetingsList]);
 
   // Sync state if props change
   useEffect(() => {
@@ -149,7 +188,7 @@ export function ActionItemFormDialog({
       const mm = String(due.getMonth() + 1).padStart(2, '0');
       const dd = String(due.getDate()).padStart(2, '0');
 
-      setSelectedMeetingId(actionItem.meetingId || meetingId || '');
+      setSelectedMeetingId(actionItem.meetingId || meetingId || normalizedCurrentMeeting?.id || '');
       setTitle(actionItem.title || '');
       const foundDrive = extractDriveLink(actionItem.description);
       if (foundDrive) {
@@ -171,16 +210,16 @@ export function ActionItemFormDialog({
       const mm = String(nextWeek.getMonth() + 1).padStart(2, '0');
       const dd = String(nextWeek.getDate()).padStart(2, '0');
 
-      const initialMeetingId = meetingId || availableMeetings[0]?.id || '';
+      const initialMeetingId = meetingId || normalizedCurrentMeeting?.id || availableMeetings[0]?.id || '';
       setSelectedMeetingId(initialMeetingId);
       setTitle('');
       setDescription('');
       setDriveLink('');
 
       // Auto-detect team from meeting number prefix or primaryTeam
-      const currMeeting = (meetingsList.length > 0 ? meetingsList : availableMeetings).find(
-        (m) => m.id === initialMeetingId
-      );
+      const currMeeting = (effectiveMeetings.length > 0 ? effectiveMeetings : (normalizedCurrentMeeting ? [normalizedCurrentMeeting] : availableMeetings)).find(
+        (m) => m.id === initialMeetingId || (m.meetingNumber && m.meetingNumber.toUpperCase() === initialMeetingId.toUpperCase())
+      ) || normalizedCurrentMeeting;
       let detectedTeamId = 'TIM-001';
       if (currMeeting) {
         const num = currMeeting.meetingNumber?.toUpperCase() || '';
@@ -334,16 +373,21 @@ export function ActionItemFormDialog({
               </div>
             )}
 
-            {/* Rapat Terkait / Agenda Sumber (Required with Search & Filter) */}
+            {/* Rapat Terkait / Agenda Sumber */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
                   <Layers className="w-4 h-4 text-[#31889C]" />
-                  <span>Rapat Terkait / Agenda Sumber</span>
+                  <span>{isMeetingLocked ? 'Rapat Terkait' : 'Rapat Terkait / Agenda Sumber'}</span>
                   <span className="text-red-500">*</span>
                 </label>
                 {(() => {
-                  const currM = meetingsList.find((m) => m.id === (selectedMeetingId || meetingId));
+                  const targetMId = selectedMeetingId || meetingId || normalizedCurrentMeeting?.id;
+                  const currM = effectiveMeetings.find(
+                    (m) =>
+                      m.id === targetMId ||
+                      (m.meetingNumber && m.meetingNumber.toUpperCase() === targetMId?.toUpperCase())
+                  ) || normalizedCurrentMeeting;
                   return currM ? (
                     <span className="text-[11px] font-semibold text-[#215865] bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
                       {currM.meetingNumber}
@@ -353,9 +397,10 @@ export function ActionItemFormDialog({
               </div>
 
               <SearchableMeetingSelect
-                meetings={meetingsList}
-                selectedMeetingId={selectedMeetingId || meetingId || ''}
+                meetings={effectiveMeetings}
+                selectedMeetingId={selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || ''}
                 onSelectMeeting={(mId) => {
+                  if (isMeetingLocked) return;
                   setSelectedMeetingId(mId);
                   if (fieldErrors.meetingId) {
                     setFieldErrors((prev) => {
@@ -365,7 +410,7 @@ export function ActionItemFormDialog({
                     });
                   }
                   if (!isEditing) {
-                    const selM = meetingsList.find((m) => m.id === mId);
+                    const selM = effectiveMeetings.find((m) => m.id === mId);
                     if (selM) {
                       const num = selM.meetingNumber?.toUpperCase() || '';
                       let newTId = '';
@@ -382,12 +427,21 @@ export function ActionItemFormDialog({
                   }
                 }}
                 userBiroCode={effectiveLockedBiroCode}
+                isLocked={isMeetingLocked}
+                disabled={isMeetingLocked}
                 isLoading={isLoadingOptions}
                 error={fieldErrors.meetingId}
               />
-              <p className="mt-1.5 text-[11px] text-slate-400">
-                Hubungkan tindak lanjut ini dengan agenda sidang dewan yang relevan. Gunakan pencarian instan atau filter biro untuk menemukan rapat dengan cepat.
-              </p>
+              {isMeetingLocked ? (
+                <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
+                  <span>Tindak lanjut ini otomatis terhubung langsung ke rapat ini (tidak perlu memilih rapat lain).</span>
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-slate-400">
+                  Hubungkan tindak lanjut ini dengan agenda sidang dewan yang relevan. Gunakan pencarian instan atau filter biro untuk menemukan rapat dengan cepat.
+                </p>
+              )}
             </div>
 
             {/* Judul Tindak Lanjut (Required) */}

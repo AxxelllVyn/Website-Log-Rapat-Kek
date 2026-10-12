@@ -377,11 +377,9 @@ export function ActionItemLogDialog({
                     <div className="text-[10px] font-bold uppercase text-amber-700 mb-0.5">Transisi Status</div>
                     <div className="text-[22px] font-black text-amber-700">{transitions}</div>
                   </div>
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-                    <div className="text-[10px] font-bold uppercase text-emerald-700 mb-0.5">Capaian Terkini</div>
-                    <div className="text-[22px] font-black text-emerald-700">
-                      {latestProgress !== null ? `${latestProgress}%` : '—'}
-                    </div>
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center flex flex-col justify-center items-center">
+                    <div className="text-[10px] font-bold uppercase text-emerald-700 mb-1">Status Terkini</div>
+                    <ActionItemStatusBadge status={item.status} isOverdue={item.isOverdue} />
                   </div>
                 </div>
               )}
@@ -505,22 +503,7 @@ export function ActionItemLogDialog({
                             {formatDate(log.createdAt)}
                           </div>
 
-                          {/* Progress bar mini (always visible) */}
-                          {log.progress !== null && log.progress !== undefined && (
-                            <div className="px-4 pb-2 flex items-center gap-2">
-                              <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    log.progress === 100 ? 'bg-emerald-500' : 'bg-[#31889C]'
-                                  }`}
-                                  style={{ width: `${log.progress}%` }}
-                                />
-                              </div>
-                              <span className="text-[11px] font-bold text-[#31889C] shrink-0 w-9 text-right">
-                                {log.progress}%
-                              </span>
-                            </div>
-                          )}
+
 
                           {/* Expanded detail */}
                           {isExpanded && (
@@ -698,71 +681,33 @@ export function ActionItemLogDialog({
                   )}
                 </div>
 
-                {/* Status + Progress */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-                      Ubah Status Tindak Lanjut:
-                    </label>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => {
-                        const st = e.target.value as ActionItemStatus;
-                        setSelectedStatus(st);
-                        if (st === 'COMPLETED') setProgress(100);
-                        else if (st === 'PENDING') setProgress(0);
-                        else if (progress === 0 || progress === 100) setProgress(50);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C] bg-white cursor-pointer text-[13px]"
-                    >
-                      <option value="PENDING">Belum Dimulai</option>
-                      <option value="IN_PROGRESS">Dalam Proses</option>
-                      <option value="COMPLETED">Selesai</option>
-                    </select>
-                    {/* Current → new preview */}
-                    {item.status !== selectedStatus && (
-                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
-                        <span>Transisi:</span>
-                        <StatusTransitionBadge prev={item.status} next={selectedStatus} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[12px] font-semibold text-slate-700">
-                        Persentase Capaian:
-                      </label>
-                      <span className="font-black text-[#31889C] text-[14px]">{progress}%</span>
+                {/* Status Tindak Lanjut Langsung */}
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                    Ubah Status Tindak Lanjut:
+                  </label>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => {
+                      const st = e.target.value as ActionItemStatus;
+                      setSelectedStatus(st);
+                      if (st === 'COMPLETED') setProgress(100);
+                      else if (st === 'PENDING') setProgress(0);
+                      else setProgress(50);
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C] bg-white cursor-pointer text-[13px]"
+                  >
+                    <option value="PENDING">Belum Dimulai</option>
+                    <option value="IN_PROGRESS">Dalam Proses</option>
+                    <option value="COMPLETED">Selesai</option>
+                  </select>
+                  {/* Current → new preview */}
+                  {item.status !== selectedStatus && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <span>Transisi:</span>
+                      <StatusTransitionBadge prev={item.status} next={selectedStatus} />
                     </div>
-                    <div className="space-y-2">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={progress}
-                        onChange={(e) => setProgress(Number(e.target.value))}
-                        className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#31889C]"
-                      />
-                      <div className="flex items-center gap-1 justify-end">
-                        {[0, 25, 50, 75, 100].map((preset) => (
-                          <button
-                            key={preset}
-                            type="button"
-                            onClick={() => setProgress(preset)}
-                            className={`px-1.5 py-0.5 text-[10px] rounded font-bold border transition-colors ${
-                              progress === preset
-                                ? 'bg-[#31889C] text-white border-[#31889C]'
-                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                            }`}
-                          >
-                            {preset}%
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Submit */}

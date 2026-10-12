@@ -180,6 +180,12 @@ export function MeetingMinutesEditor({
   const [ndSignerName, setNdSignerName] = useState<string>(
     initialNota.signerName || meeting?.chairperson?.name || ''
   );
+  const [ndSignaturePlaceholder, setNdSignaturePlaceholder] = useState<string>(
+    initialNota.signaturePlaceholder || '${ttd_pengirim}'
+  );
+  const [ndSignatureMode, setNdSignatureMode] = useState<'placeholder' | 'image'>(
+    initialNota.signatureMode || (initialSignatureImage ? 'image' : 'placeholder')
+  );
 
   const handleApplyExtractedDocToEditor = (extractedData: any) => {
     if (extractedData.agendaJson) {
@@ -247,7 +253,9 @@ export function MeetingMinutesEditor({
           biroName: ndBiroName.trim(),
           signerRole: ndSignerRole.trim(),
           signerName: ndSignerName.trim(),
-          signatureImage: signatureImage || null,
+          signatureImage: ndSignatureMode === 'image' ? (signatureImage || null) : null,
+          signaturePlaceholder: ndSignaturePlaceholder.trim() || '${ttd_pengirim}',
+          signatureMode: ndSignatureMode,
           documentNumber: finalNdDocNum, // Opsional / bisa kosong
         };
 
@@ -324,6 +332,8 @@ export function MeetingMinutesEditor({
       ndIntroText,
       ndSignerRole,
       ndSignerName,
+      ndSignaturePlaceholder,
+      ndSignatureMode,
       ndDocumentNumber,
       signerName,
       signerRole,
@@ -371,6 +381,8 @@ export function MeetingMinutesEditor({
     ndIntroText,
     ndSignerRole,
     ndSignerName,
+    ndSignaturePlaceholder,
+    ndSignatureMode,
     ndDocumentNumber,
     signerName,
     signerRole,
@@ -580,6 +592,8 @@ export function MeetingMinutesEditor({
     );
     setNdSignerRole('Kepala Bagian Program dan Tata Kelola');
     setNdSignerName('Noviar Iskandar');
+    setNdSignaturePlaceholder('${ttd_pengirim}');
+    setNdSignatureMode('placeholder');
 
     const sampleDiscussion: JSONContent = {
       type: 'doc',
@@ -1125,6 +1139,135 @@ export function MeetingMinutesEditor({
               </div>
             </div>
 
+            {/* Konfigurasi Format Tanda Tangan: Rumus / Placeholder ${ttd_pengirim} vs Gambar */}
+            <div className="bg-[#F8FAFC] border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h5 className="text-[13px] font-bold text-slate-800 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#31889C]" />
+                    <span>Format Tanda Tangan Pengirim:</span>
+                  </h5>
+                  <p className="text-[11.5px] text-slate-500 mt-0.5">
+                    Pilih format: gunakan rumus placeholder standar <strong className="text-slate-800 font-mono">${'{ttd_pengirim}'}</strong> atau pasang berkas tanda tangan gambar.
+                  </p>
+                </div>
+
+                <div className="inline-flex items-center gap-1 p-1 bg-slate-200/70 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNdSignatureMode('placeholder');
+                      hasChangesRef.current = true;
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer ${
+                      ndSignatureMode === 'placeholder'
+                        ? 'bg-white text-[#215865] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    ✨ Rumus (${'{ttd_pengirim}'})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNdSignatureMode('image');
+                      if (!signatureImage) {
+                        setIsSignatureModalOpen(true);
+                      }
+                      hasChangesRef.current = true;
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer ${
+                      ndSignatureMode === 'image'
+                        ? 'bg-white text-[#215865] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🖊️ Berkas Gambar / TTE
+                  </button>
+                </div>
+              </div>
+
+              {ndSignatureMode === 'placeholder' ? (
+                <div className="p-3.5 bg-white rounded-xl border border-[#BCE3EB] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>Rumus Tag Placeholder Tanda Tangan:</span>
+                    </label>
+                    {ndSignaturePlaceholder !== '${ttd_pengirim}' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNdSignaturePlaceholder('${ttd_pengirim}');
+                          hasChangesRef.current = true;
+                        }}
+                        className="text-[11px] font-semibold text-[#31889C] hover:underline cursor-pointer"
+                      >
+                        Reset ke Standar &apos;${'{ttd_pengirim}'}&apos;
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={ndSignaturePlaceholder}
+                      onChange={(e) => {
+                        setNdSignaturePlaceholder(e.target.value);
+                        hasChangesRef.current = true;
+                      }}
+                      placeholder="${ttd_pengirim}"
+                      className="w-full px-3.5 py-2 text-[13px] font-mono bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C] text-slate-900 font-semibold"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    💡 Rumus <strong className="text-slate-700 font-mono">${'{ttd_pengirim}'}</strong> akan dicetak otomatis di antara jabatan dan nama penandatangan pada naskah Nota Dinas resmi, pratinjau, berkas Word (.docx), serta PDF untuk kebutuhan template persuratan atau penempatan tanda tangan elektronik.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3.5 bg-white rounded-xl border border-[#BCE3EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="text-[12px] text-slate-600 space-y-0.5">
+                    {signatureImage ? (
+                      <p className="font-semibold text-emerald-700 flex items-center gap-1.5">
+                        <Check className="w-4 h-4" />
+                        <span>Berkas gambar tanda tangan terpasang</span>
+                      </p>
+                    ) : (
+                      <p className="text-slate-600">
+                        Belum ada berkas tanda tangan. Unggah berkas PNG/JPG transparan atau gores tanda tangan.
+                      </p>
+                    )}
+                    <p className="text-[10.5px] text-slate-400">
+                      Anda dapat kembali menggunakan rumus <strong className="font-mono">${'{ttd_pengirim}'}</strong> kapan saja melalui tombol di atas.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#31889C] hover:bg-[#266F80] text-white font-semibold text-[11.5px] shadow-xs transition-all cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{signatureImage ? 'Ubah Berkas' : '+ Atur Tanda Tangan'}</span>
+                    </button>
+                    {signatureImage && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSignatureImage(null);
+                          setNdSignatureMode('placeholder');
+                          hasChangesRef.current = true;
+                        }}
+                        className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        title="Hapus dan kembali ke rumus"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Pratinjau Tampilan Format Lembar Nota Dinas & Kolom Tanda Tangan */}
             <div className="pt-2">
               <p className="text-[11.5px] font-bold text-slate-700 mb-2">
@@ -1177,7 +1320,7 @@ export function MeetingMinutesEditor({
                   </p>
 
                   {/* Signature preview / upload area */}
-                  {signatureImage ? (
+                  {ndSignatureMode === 'image' && signatureImage ? (
                     <div className="my-2 p-3 bg-white rounded-xl border border-[#BCE3EB] flex items-center justify-between gap-3 shadow-2xs">
                       <div className="flex items-center gap-3">
                         <div className="p-1 rounded-lg border border-slate-200 bg-[#F8FAFC]">
@@ -1211,35 +1354,30 @@ export function MeetingMinutesEditor({
                           type="button"
                           onClick={() => {
                             setSignatureImage(null);
+                            setNdSignatureMode('placeholder');
                             hasChangesRef.current = true;
                           }}
                           className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Hapus tanda tangan"
+                          title="Hapus dan beralih ke rumus"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="my-2 p-3.5 rounded-xl border border-dashed border-[#BCE3EB] bg-[#F0F9FA]/40 hover:bg-[#F0F9FA] transition-all flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div className="text-left space-y-0.5">
-                        <p className="font-semibold text-[11.5px] text-slate-700 flex items-center gap-1.5">
-                          <PenTool className="w-3.5 h-3.5 text-[#31889C]" />
-                          <span>Tanda Tangan Pengirim (Opsional)</span>
-                        </p>
-                        <p className="text-[10.5px] text-slate-500">
-                          Unggah berkas (PNG/JPG) atau gores langsung di layar sentuh / mouse. Jika kosong, dicetak placeholder {'${ttd_pengirim}'}.
-                        </p>
+                    <div className="my-2 p-3 bg-white rounded-xl border border-[#BCE3EB] flex flex-col justify-center items-start shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[13px] font-bold text-slate-900 bg-slate-100 border border-slate-300 px-3 py-1 rounded-md tracking-tight">
+                          {ndSignaturePlaceholder || '${ttd_pengirim}'}
+                        </span>
+                        <span className="text-[10.5px] text-[#215865] font-semibold bg-[#E8F5F7] border border-[#BCE3EB] px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-[#31889C]" />
+                          Rumus Tanda Tangan Aktif
+                        </span>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsSignatureModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#31889C] hover:bg-[#266F80] text-white font-semibold text-[11.5px] shadow-xs shadow-[#31889C]/20 transition-all cursor-pointer shrink-0"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>+ Atur Tanda Tangan</span>
-                      </button>
+                      <p className="text-[10.5px] text-slate-500 mt-1.5">
+                        Placeholder tanda tangan dinas dicetak resmi pada posisi ini.
+                      </p>
                     </div>
                   )}
 

@@ -754,7 +754,7 @@ export async function generateNotaDinasDocx(meeting: MeetingPdfData): Promise<Bu
   const sigCellParagraphs: Paragraph[] = [
     new Paragraph({
       children: [new TextRun({ text: sigRole, font: 'Arial', size: 22 })],
-      spacing: { after: sigImageRun ? 60 : 600 },
+      spacing: { after: 120 },
     }),
   ];
 
@@ -763,6 +763,21 @@ export async function generateNotaDinasDocx(meeting: MeetingPdfData): Promise<Bu
       new Paragraph({
         children: [sigImageRun],
         spacing: { after: 60 },
+      })
+    );
+  } else {
+    // Rumus / tag placeholder tanda tangan dinas: ${ttd_pengirim}
+    sigCellParagraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: notaData.signaturePlaceholder || '${ttd_pengirim}',
+            font: 'Arial',
+            size: 22,
+            color: '000000',
+          }),
+        ],
+        spacing: { before: 140, after: 140 },
       })
     );
   }

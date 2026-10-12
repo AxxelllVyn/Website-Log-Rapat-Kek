@@ -883,7 +883,16 @@ export async function generateNotaDinasPdf(meeting: MeetingPdfData): Promise<Buf
       }
 
       if (!hasRenderedSignature) {
-        doc.moveDown(4.5);
+        doc.moveDown(1.2);
+        doc
+          .font(fonts.arial)
+          .fontSize(11)
+          .fillColor('#000000')
+          .text(notaData.signaturePlaceholder || '${ttd_pengirim}', sigX, doc.y, {
+            width: sigColW,
+            align: 'left',
+          });
+        doc.moveDown(1.5);
       }
 
       doc.font(fonts.arial).fontSize(11).fillColor('#000000');

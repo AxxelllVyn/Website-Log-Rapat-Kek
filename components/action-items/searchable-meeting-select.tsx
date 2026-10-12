@@ -12,6 +12,7 @@ import {
   Filter,
   Building2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 
 export interface MeetingOption {
@@ -31,6 +32,7 @@ interface SearchableMeetingSelectProps {
   onSelectMeeting: (meetingId: string) => void;
   userBiroCode?: string;
   disabled?: boolean;
+  isLocked?: boolean;
   isLoading?: boolean;
   error?: string;
 }
@@ -70,6 +72,7 @@ export function SearchableMeetingSelect({
   onSelectMeeting,
   userBiroCode,
   disabled = false,
+  isLocked = false,
   isLoading = false,
   error,
 }: SearchableMeetingSelectProps) {
@@ -106,7 +109,14 @@ export function SearchableMeetingSelect({
 
   // Currently selected meeting object
   const currentMeeting = useMemo(() => {
-    return meetings.find((m) => m.id === selectedMeetingId) || null;
+    if (!selectedMeetingId) return null;
+    return (
+      meetings.find(
+        (m) =>
+          m.id === selectedMeetingId ||
+          (m.meetingNumber && m.meetingNumber.toUpperCase() === selectedMeetingId.toUpperCase())
+      ) || null
+    );
   }, [meetings, selectedMeetingId]);
 
   // Extract distinct biro codes present in the available meetings
@@ -161,15 +171,17 @@ export function SearchableMeetingSelect({
       {/* Selected Meeting Card / Trigger Button */}
       {currentMeeting ? (
         <div
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`group flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-            isOpen
-              ? 'border-[#31889C] ring-2 ring-[#31889C]/20 bg-[#F0F9FA]'
-              : 'border-slate-200 bg-white hover:border-[#31889C]/60 hover:bg-[#F8FCFC]'
+          onClick={() => !disabled && !isLocked && setIsOpen(!isOpen)}
+          className={`group flex items-center justify-between p-3 rounded-xl border transition-all ${
+            isLocked
+              ? 'border-[#BCE3EB] bg-[#F0F9FA]/70 cursor-default'
+              : isOpen
+              ? 'border-[#31889C] ring-2 ring-[#31889C]/20 bg-[#F0F9FA] cursor-pointer'
+              : 'border-slate-200 bg-white hover:border-[#31889C]/60 hover:bg-[#F8FCFC] cursor-pointer'
           } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <div className="flex items-start gap-3 min-w-0 pr-2">
-            <div className="w-9 h-9 rounded-lg bg-[#E8F5F7] border border-[#BCE3EB] flex items-center justify-center shrink-0 mt-0.5 text-[#215865] group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-lg bg-[#E8F5F7] border border-[#BCE3EB] flex items-center justify-center shrink-0 mt-0.5 text-[#215865]">
               <Layers className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -200,10 +212,17 @@ export function SearchableMeetingSelect({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[11px] font-bold text-[#31889C] bg-[#E8F5F7] px-2.5 py-1 rounded-md border border-[#BCE3EB] group-hover:bg-[#31889C] group-hover:text-white transition-colors flex items-center gap-1">
-              {isOpen ? 'Tutup' : 'Ganti Rapat'}
-              {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </span>
+            {isLocked ? (
+              <span className="text-[11px] font-semibold text-[#215865] bg-[#E8F5F7] px-2.5 py-1 rounded-md border border-[#BCE3EB] flex items-center gap-1 shadow-2xs">
+                <Lock className="w-3.5 h-3.5 text-[#31889C]" />
+                <span>Rapat Terkait</span>
+              </span>
+            ) : (
+              <span className="text-[11px] font-bold text-[#31889C] bg-[#E8F5F7] px-2.5 py-1 rounded-md border border-[#BCE3EB] group-hover:bg-[#31889C] group-hover:text-white transition-colors flex items-center gap-1">
+                {isOpen ? 'Tutup' : 'Ganti Rapat'}
+                {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </span>
+            )}
           </div>
         </div>
       ) : (
@@ -226,7 +245,7 @@ export function SearchableMeetingSelect({
       )}
 
       {/* Dropdown Search & Filter Popover */}
-      {isOpen && (
+      {isOpen && !isLocked && (
         <div className="mt-2 w-full bg-white rounded-xl border border-slate-300 shadow-xl overflow-hidden z-20 transition-all animate-in fade-in-50 zoom-in-95 duration-150">
           {/* 1. Live Search Input Bar */}
           <div className="p-3 bg-[#F8FAFC] border-b border-slate-200">

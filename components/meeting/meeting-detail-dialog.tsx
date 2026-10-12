@@ -601,6 +601,7 @@ export function MeetingDetailDialog({
               ) : (
                 <ActionItemList
                   meetingId={meeting.id}
+                  currentMeeting={meeting}
                   initialItems={actionItems}
                   availableBiros={availableBiros}
                   availableUsers={availableUsers}

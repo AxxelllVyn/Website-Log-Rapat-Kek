@@ -2109,6 +2109,7 @@ export function MeetingDetailView({
         <div className="space-y-4">
           <ActionItemList
             meetingId={meeting.id}
+            currentMeeting={meeting}
             initialItems={meeting.actionItems || []}
             availableBiros={availableBiros}
             availableUsers={availableUsers}
