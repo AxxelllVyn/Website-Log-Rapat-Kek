@@ -13,6 +13,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (images with .png, .jpg, .svg, etc.)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html|drawio|puml|pdf)$).*)',
   ],
 };

@@ -11,8 +11,9 @@ export const authConfig: NextAuthConfig = {
       const isAuthRoute = nextUrl.pathname.startsWith('/api/auth');
       const isLoginRoute = nextUrl.pathname === '/login';
       const isCalendarIcsRoute = nextUrl.pathname.endsWith('/ics');
+      const isPublicDoc = nextUrl.pathname.endsWith('.html') || nextUrl.pathname.endsWith('.drawio') || nextUrl.pathname.endsWith('.puml') || nextUrl.pathname.endsWith('.pdf');
 
-      if (isAuthRoute || isCalendarIcsRoute) return true;
+      if (isAuthRoute || isCalendarIcsRoute || isPublicDoc) return true;
 
       if (isLoginRoute) {
         if (isLoggedIn) {

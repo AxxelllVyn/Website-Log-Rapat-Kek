@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4. Desain Database | SIM-RAPAT KEK RI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+    .fira-code { font-family: 'Fira Code', monospace; }
+    
+    /* Database Card Styling matching user's exact uploaded image */
+    .db-card {
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+      border: 1px solid #cbd5e1;
+      overflow: hidden;
+      font-size: 11px;
+    }
+    
+    .db-card-header {
+      background: #205493;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 10px;
+      font-size: 11.5px;
+      letter-spacing: 0.2px;
+      border-bottom: 1px solid #163d6b;
+    }
+    
+    /* Highlighted Key Rows (PK & FK) */
+    .row-key {
+      background-color: #e6f0fa;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 10px;
+      border-bottom: 1px solid #dbeafe;
+      font-size: 11px;
+    }
+    
+    /* Normal Rows */
+    .row-normal {
+      background-color: #ffffff;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 11px;
+    }
+    .row-normal:last-child {
+      border-bottom: none;
+    }
+    
+    .col-name {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 500;
+    }
+    .col-name-pk {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .col-name-fk {
+      font-weight: 600;
+      color: #1e3a8a;
+    }
+    
+    .col-type {
+      color: #64748b;
+      font-family: 'Fira Code', monospace;
+      font-size: 10px;
+    }
+    
+    .tab-btn.active {
+      background-color: #205493;
+      color: #ffffff;
+      font-weight: 700;
+      border-color: #205493;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center">
+
+  <!-- Top Action Bar -->
+  <div class="max-w-[1240px] w-full mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+    <div>
+      <span class="text-xs font-bold text-[#205493] uppercase tracking-wider">Format Standar Laporan Skripsi</span>
+      <h1 class="text-base font-bold text-slate-900">4. Desain Database (Relational Schema Diagram)</h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/DESAIN_DATABASE_SIM_RAPAT.drawio" download class="px-3.5 py-2 rounded-lg text-xs font-bold bg-[#205493] text-white hover:bg-[#163d6b] transition-all flex items-center gap-1.5 shadow-xs">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Unduh .drawio (Multi-Tab)
+      </a>
+      <button onclick="window.print()" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+        Cetak / PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab Selector -->
+  <div class="max-w-[1240px] w-full mb-4 flex flex-wrap gap-2">
+    <button onclick="switchView('view-simrapat-8')" id="btn-simrapat-8" class="tab-btn active px-4 py-2 rounded-lg text-xs font-medium border border-slate-300 bg-white text-slate-700 transition-all">
+      1. SIM-RAPAT KEK RI (8 Tabel Utama - Layout Sesuai Contoh)
+    </button>
+    <button onclick="switchView('view-simrapat-14')" id="btn-simrapat-14" class="tab-btn px-4 py-2 rounded-lg text-xs font-medium border border-slate-300 bg-white text-slate-700 transition-all">
+      2. SIM-RAPAT KEK RI (14 Tabel Lengkap 3NF)
+    </button>
+    <button onclick="switchView('view-replica-example')" id="btn-replica-example" class="tab-btn px-4 py-2 rounded-lg text-xs font-medium border border-slate-300 bg-white text-slate-700 transition-all">
+      3. Replika Persis Contoh Gambar (8 Tabel Permohonan Informasi)
+    </button>
+  </div>
+
+  <!-- Document Sheet Canvas -->
+  <div class="max-w-[1240px] w-full bg-white p-6 md:p-10 shadow-sm border border-slate-200 rounded-2xl overflow-x-auto">
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 1: SIM-RAPAT KEK RI - 8 TABEL UTAMA (LAYOUT PERSIS CONTOH FOTO USER) -->
+    <!-- ========================================================================= -->
+    <div id="view-simrapat-8">
+      <div class="mb-5">
+        <h2 class="text-xl font-bold text-slate-900 italic">4. Desain Database</h2>
+        <p class="text-xs text-slate-600 mt-0.5">Sistem Informasi Log & Notula Rapat (SIM-RAPAT KEK RI) — Sekretariat Jenderal Dewan Nasional KEK</p>
+      </div>
+
+      <!-- Canvas Relative Container -->
+      <div class="relative w-[1140px] h-[980px] bg-slate-50/40 rounded-xl border border-slate-100 p-2">
+
+        <!-- SVG Relational Connectors Overlay -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 10;">
+          <defs>
+            <marker id="circle-end" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+              <circle cx="5" cy="5" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="2"/>
+            </marker>
+            <marker id="arrow-fk" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 1 2 L 7 5 L 1 8" fill="none" stroke="#3182CE" stroke-width="1.8"/>
+            </marker>
+          </defs>
+
+          <!-- 1. biro.id_biro (480, 52) -> rapat.id_biro (270, 260) -->
+          <path d="M 430 52 L 90 52 L 90 260 L 120 260" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="430" cy="52" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="405" y="47" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="96" y="254" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 2. biro.id_biro (600, 52) -> tim_biro.id_biro (840, 78) -->
+          <path d="M 600 52 L 730 52 L 730 78 L 840 78" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="600" cy="52" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="605" y="47" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="820" y="74" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 3. tim_biro.id_tim (1000, 52) -> pengguna.id_tim (1000, 485) -->
+          <path d="M 1010 52 L 1080 52 L 1080 485 L 1010 485" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="1010" cy="52" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="1015" y="47" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="1015" y="480" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 4. rapat.id_rapat (360, 205) -> tindak_lanjut.id_rapat (430, 230) -->
+          <path d="M 360 205 L 395 205 L 395 230 L 430 230" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="360" cy="205" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="365" y="200" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="415" y="225" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 5. rapat.id_rapat (360, 235) -> notifikasi.ref_id (430, 532) -->
+          <path d="M 360 235 L 395 235 L 395 532 L 430 532" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="360" cy="235" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="365" y="230" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="415" y="527" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 6. pengguna.id_pengguna (840, 485) -> notifikasi.user_id (630, 508) -->
+          <path d="M 840 485 L 735 485 L 735 508 L 630 508" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="840" cy="485" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="815" y="480" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="635" y="503" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 7. rapat.id_rapat (360, 215) -> notulen_rapat.id_rapat (360, 680) -->
+          <path d="M 120 205 L 60 205 L 60 680 L 120 680" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="120" cy="205" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="125" y="200" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="96" y="675" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 8. rapat.id_rapat (360, 400) -> peserta_rapat.id_rapat (430, 775) -->
+          <path d="M 360 400 L 395 400 L 395 775 L 430 775" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="360" cy="400" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="365" y="395" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="415" y="770" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- 9. pengguna.id_pengguna (840, 510) -> peserta_rapat.id_pengguna (630, 800) -->
+          <path d="M 840 510 L 735 510 L 735 800 L 630 800" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="840" cy="510" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="815" y="505" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="635" y="795" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+        </svg>
+
+        <!-- ================= CARDS SIM-RAPAT KEK RI ================= -->
+
+        <!-- 1. biro (Top Center, x=430, y=20, w=170) -->
+        <div class="absolute left-[430px] top-[20px] w-[170px] db-card z-20">
+          <div class="db-card-header">biro</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_biro</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">kode_biro</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">nama_biro</div>
+            <div class="col-type">varchar</div>
+          </div>
+        </div>
+
+        <!-- 2. tim_biro (Top Right, x=840, y=20, w=170) -->
+        <div class="absolute left-[840px] top-[20px] w-[170px] db-card z-20">
+          <div class="db-card-header">tim_biro</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_tim</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_biro</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">nama_tim</div>
+            <div class="col-type">varchar</div>
+          </div>
+        </div>
+
+        <!-- 3. rapat (Middle Left, x=120, y=175, w=240) -->
+        <div class="absolute left-[120px] top-[175px] w-[240px] db-card z-20">
+          <div class="db-card-header">rapat</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_rapat</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">nomor_rapat</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">judul_rapat</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_biro</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_tim</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_pengguna</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">tanggal_rapat</div>
+            <div class="col-type">timestamp</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">waktu_mulai</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">lokasi_rapat</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">status_rapat</div>
+            <div class="col-type">enum</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">kategori_naskah</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">dibuat_pada</div>
+            <div class="col-type">timestamp</div>
+          </div>
+        </div>
+
+        <!-- 4. tindak_lanjut (Center Middle, x=430, y=175, w=200) -->
+        <div class="absolute left-[430px] top-[175px] w-[200px] db-card z-20">
+          <div class="db-card-header">tindak_lanjut</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_tindak_lanjut</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_rapat</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">judul_tindak_lanjut</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">status_tindak_lanjut</div>
+            <div class="col-type">enum</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">prioritas</div>
+            <div class="col-type">enum</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">tenggat_waktu</div>
+            <div class="col-type">timestamp</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">diselesaikan_pada</div>
+            <div class="col-type">timestamp</div>
+          </div>
+        </div>
+
+        <!-- 5. pengguna (Middle Right, x=840, y=455, w=170) -->
+        <div class="absolute left-[840px] top-[455px] w-[170px] db-card z-20">
+          <div class="db-card-header">pengguna</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_pengguna</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">nama_lengkap</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">email</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">kata_sandi</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">peran</div>
+            <div class="col-type">enum</div>
+          </div>
+        </div>
+
+        <!-- 6. notifikasi (Center Lower, x=430, y=455, w=200) -->
+        <div class="absolute left-[430px] top-[455px] w-[200px] db-card z-20">
+          <div class="db-card-header">notifikasi</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_notifikasi</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_pengguna</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">judul</div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">pesan</div>
+            <div class="col-type">text</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">sudah_dibaca</div>
+            <div class="col-type">boolean</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">dibuat_pada</div>
+            <div class="col-type">timestamp</div>
+          </div>
+        </div>
+
+        <!-- 7. notulen_rapat (Bottom Left, x=120, y=650, w=240) -->
+        <div class="absolute left-[120px] top-[650px] w-[240px] db-card z-20">
+          <div class="db-card-header">notulen_rapat</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_notulen</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_rapat</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">poin_pembahasan</div>
+            <div class="col-type">text</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">arahan_pimpinan</div>
+            <div class="col-type">text</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">kesimpulan</div>
+            <div class="col-type">text</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">catatan_khusus</div>
+            <div class="col-type">text</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">dibuat_pada</div>
+            <div class="col-type">timestamp</div>
+          </div>
+        </div>
+
+        <!-- 8. peserta_rapat (Bottom Center, x=430, y=720, w=200) -->
+        <div class="absolute left-[430px] top-[720px] w-[200px] db-card z-20">
+          <div class="db-card-header">peserta_rapat</div>
+          <div class="row-key">
+            <div class="col-name col-name-pk">
+              <span>id_peserta</span>
+              <svg class="w-3 h-3 text-amber-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_rapat</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-key">
+            <div class="col-name col-name-fk">
+              <span>id_pengguna</span>
+              <svg class="w-3 h-3 text-blue-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </div>
+            <div class="col-type">varchar</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">status_kehadiran</div>
+            <div class="col-type">enum</div>
+          </div>
+          <div class="row-normal">
+            <div class="col-name">dibuat_pada</div>
+            <div class="col-type">timestamp</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="mt-4 text-xs text-slate-500 italic text-center">
+        <b>Gambar 4.1:</b> Desain Database Relasional SIM-RAPAT KEK RI (Format Skripsi)
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 2: SIM-RAPAT KEK RI - 14 TABEL LENGKAP (3NF) -->
+    <!-- ========================================================================= -->
+    <div id="view-simrapat-14" class="hidden">
+      <div class="mb-5">
+        <h2 class="text-xl font-bold text-slate-900 italic">4. Desain Database (Skema Lengkap 14 Entitas)</h2>
+        <p class="text-xs text-slate-600 mt-0.5">Seluruh 14 tabel basis data PostgreSQL (3NF) terintegrasi dengan audit trail & riwayat log.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        
+        <!-- Table 1: biro -->
+        <div class="db-card">
+          <div class="db-card-header">biro</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_biro 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">kode_biro</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nama_biro</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nama_singkat</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status_aktif</div><div class="col-type">boolean</div></div>
+        </div>
+
+        <!-- Table 2: tim_biro -->
+        <div class="db-card">
+          <div class="db-card-header">tim_biro</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_tim 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_biro 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">kode_tim</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nama_tim</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status_aktif</div><div class="col-type">boolean</div></div>
+        </div>
+
+        <!-- Table 3: pengguna -->
+        <div class="db-card">
+          <div class="db-card-header">pengguna</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_pengguna 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_biro 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_tim 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nama_lengkap</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">email</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">peran</div><div class="col-type">enum</div></div>
+        </div>
+
+        <!-- Table 4: rapat -->
+        <div class="db-card">
+          <div class="db-card-header">rapat</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_rapat 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nomor_rapat</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">judul_rapat</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_biro 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_tim 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">tanggal_rapat</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">status_rapat</div><div class="col-type">enum</div></div>
+        </div>
+
+        <!-- Table 5: peserta_rapat -->
+        <div class="db-card">
+          <div class="db-card-header">peserta_rapat</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_peserta 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_rapat 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status_kehadiran</div><div class="col-type">enum</div></div>
+        </div>
+
+        <!-- Table 6: notulen_rapat -->
+        <div class="db-card">
+          <div class="db-card-header">notulen_rapat</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_notulen 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_rapat 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">poin_pembahasan</div><div class="col-type">text</div></div>
+          <div class="row-normal"><div class="col-name">arahan_pimpinan</div><div class="col-type">text</div></div>
+          <div class="row-normal"><div class="col-name">kesimpulan</div><div class="col-type">text</div></div>
+        </div>
+
+        <!-- Table 7: tindak_lanjut -->
+        <div class="db-card">
+          <div class="db-card-header">tindak_lanjut</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_tindak_lanjut 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_rapat 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">judul_tindak_lanjut</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status_tindak_lanjut</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">tenggat_waktu</div><div class="col-type">timestamp</div></div>
+        </div>
+
+        <!-- Table 8: riwayat_tindak_lanjut -->
+        <div class="db-card">
+          <div class="db-card-header">riwayat_tindak_lanjut</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_riwayat 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_tindak_lanjut 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status_baru</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">catatan</div><div class="col-type">text</div></div>
+        </div>
+
+        <!-- Table 9: lampiran_rapat -->
+        <div class="db-card">
+          <div class="db-card-header">lampiran_rapat</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_lampiran 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_rapat 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nama_berkas</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">tautan_berkas</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">ukuran_berkas</div><div class="col-type">integer</div></div>
+        </div>
+
+        <!-- Table 10: penomoran_rapat_biro -->
+        <div class="db-card">
+          <div class="db-card-header">penomoran_rapat_biro</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_penomoran 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_biro 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nomor_terakhir</div><div class="col-type">integer</div></div>
+        </div>
+
+        <!-- Table 11: rapat_biro (Junction) -->
+        <div class="db-card">
+          <div class="db-card-header">rapat_biro (Junction M:N)</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_rapat 🔑🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-pk">id_biro 🔑🔗</div><div class="col-type">varchar</div></div>
+        </div>
+
+        <!-- Table 12: notifikasi -->
+        <div class="db-card">
+          <div class="db-card-header">notifikasi</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_notifikasi 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">judul</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">sudah_dibaca</div><div class="col-type">boolean</div></div>
+        </div>
+
+        <!-- Table 13: komentar_notulen -->
+        <div class="db-card">
+          <div class="db-card-header">komentar_notulen</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_komentar 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_rapat 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">isi_komentar</div><div class="col-type">text</div></div>
+        </div>
+
+        <!-- Table 14: riwayat_notulen -->
+        <div class="db-card">
+          <div class="db-card-header">riwayat_notulen</div>
+          <div class="row-key"><div class="col-name col-name-pk">id_riwayat 🔑</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_rapat 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_pengguna 🔗</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">versi</div><div class="col-type">integer</div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 3: REPLIKA PERSIS GAMBAR CONTOH (8 TABEL PERMOHONAN INFORMASI) -->
+    <!-- ========================================================================= -->
+    <div id="view-replica-example" class="hidden">
+      <div class="mb-5">
+        <h2 class="text-xl font-bold text-slate-900 italic">4. Desain Database</h2>
+        <p class="text-xs text-slate-600 mt-0.5">Replika 100% Persis Berdasarkan Tangkapan Layar Contoh Acuan Pengguna (Sistem Permohonan Informasi PPID)</p>
+      </div>
+
+      <div class="relative w-[1140px] h-[980px] bg-slate-50/40 rounded-xl border border-slate-100 p-2">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 10;">
+          <!-- m_units -> r_permohonan_informasi -->
+          <path d="M 430 52 L 100 52 L 100 240 L 120 240" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="430" cy="52" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="405" y="47" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="106" y="235" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- m_units -> r_user_unit -->
+          <path d="M 600 52 L 730 52 L 730 110 L 840 110" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="600" cy="52" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="605" y="47" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="820" y="105" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- users -> r_user_unit -->
+          <path d="M 1010 485 L 1080 485 L 1080 85 L 1010 85" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="1010" cy="485" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="1015" y="480" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="1015" y="80" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- r_permohonan_informasi -> r_tickets_informasi -->
+          <path d="M 360 190 L 395 190 L 395 210 L 430 210" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="360" cy="190" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="365" y="185" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="415" y="205" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- r_permohonan_informasi -> t_notifikasi -->
+          <path d="M 360 210 L 375 210 L 375 510 L 430 510" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="360" cy="210" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="365" y="205" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="415" y="505" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- users -> t_notifikasi -->
+          <path d="M 840 485 L 735 485 L 735 485 L 630 485" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="840" cy="485" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="815" y="480" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="635" y="480" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- r_permohonan_informasi -> r_pengajuan_keberatan -->
+          <path d="M 120 190 L 70 190 L 70 690 L 120 690" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="120" cy="190" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="125" y="185" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="105" y="685" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+
+          <!-- r_pengajuan_keberatan -> r_tickets_keberatan -->
+          <path d="M 360 665 L 395 665 L 395 770 L 430 770" fill="none" stroke="#3182CE" stroke-width="1.6" />
+          <circle cx="360" cy="665" r="3" fill="#ffffff" stroke="#3182CE" stroke-width="1.8"/>
+          <text x="365" y="660" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">0..1</text>
+          <text x="415" y="765" font-size="10" font-family="Fira Code" font-weight="600" fill="#3182CE">*</text>
+        </svg>
+
+        <!-- Cards -->
+        <div class="absolute left-[430px] top-[20px] w-[170px] db-card z-20">
+          <div class="db-card-header">m_units</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">title</div><div class="col-type">varchar</div></div>
+        </div>
+
+        <div class="absolute left-[840px] top-[40px] w-[170px] db-card z-20">
+          <div class="db-card-header">r_user_unit</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_user 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">id_unit 🔗</div><div class="col-type">integer</div></div>
+        </div>
+
+        <div class="absolute left-[120px] top-[160px] w-[240px] db-card z-20">
+          <div class="db-card-header">r_permohonan_informasi</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">nama_lengkap</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">nomor_identitas</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">alamat</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">email</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">no_telepon</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">pekerjaan</div><div class="col-type">varchar</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">unit_tujuan 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">rincian</div><div class="col-type">text</div></div>
+          <div class="row-normal"><div class="col-name">tujuan_informasi</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">cara_memperoleh</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">cara_mendapatkan</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">tgl_permohonan</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">due_date</div><div class="col-type">timestamp</div></div>
+        </div>
+
+        <div class="absolute left-[430px] top-[160px] w-[200px] db-card z-20">
+          <div class="db-card-header">r_tickets_informasi</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">permohonan_id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">kode_ticket</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">tgl_dibuat</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">last_update</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">due_date</div><div class="col-type">timestamp</div></div>
+        </div>
+
+        <div class="absolute left-[840px] top-[455px] w-[170px] db-card z-20">
+          <div class="db-card-header">users</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">nama</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">username</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">password</div><div class="col-type">varchar</div></div>
+        </div>
+
+        <div class="absolute left-[430px] top-[430px] w-[200px] db-card z-20">
+          <div class="db-card-header">t_notifikasi</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">user_id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">ref_id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">pesan</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">is_read</div><div class="col-type">boolean</div></div>
+          <div class="row-normal"><div class="col-name">created_at</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">updated_at</div><div class="col-type">timestamp</div></div>
+        </div>
+
+        <div class="absolute left-[120px] top-[635px] w-[240px] db-card z-20">
+          <div class="db-card-header">r_pengajuan_keberatan</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">permohonan_id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">nama_lengkap</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">alamat</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">no_telepon</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">pekerjaan</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">tujuan_informasi</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">alasan</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">kasus</div><div class="col-type">text</div></div>
+          <div class="row-normal"><div class="col-name">tgl_pengajuan</div><div class="col-type">timestamp</div></div>
+        </div>
+
+        <div class="absolute left-[430px] top-[735px] w-[200px] db-card z-20">
+          <div class="db-card-header">r_tickets_keberatan</div>
+          <div class="row-key"><div class="col-name col-name-pk">id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-key"><div class="col-name col-name-fk">keberatan_id 🔗</div><div class="col-type">integer</div></div>
+          <div class="row-normal"><div class="col-name">kode_ticket</div><div class="col-type">varchar</div></div>
+          <div class="row-normal"><div class="col-name">status</div><div class="col-type">enum</div></div>
+          <div class="row-normal"><div class="col-name">tgl_dibuat</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">last_update</div><div class="col-type">timestamp</div></div>
+          <div class="row-normal"><div class="col-name">due_date</div><div class="col-type">timestamp</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function switchView(viewId) {
+      document.getElementById('view-simrapat-8').classList.add('hidden');
+      document.getElementById('view-simrapat-14').classList.add('hidden');
+      document.getElementById('view-replica-example').classList.add('hidden');
+
+      document.getElementById('btn-simrapat-8').classList.remove('active');
+      document.getElementById('btn-simrapat-14').classList.remove('active');
+      document.getElementById('btn-replica-example').classList.remove('active');
+
+      document.getElementById(viewId).classList.remove('hidden');
+      if (viewId === 'view-simrapat-8') document.getElementById('btn-simrapat-8').classList.add('active');
+      if (viewId === 'view-simrapat-14') document.getElementById('btn-simrapat-14').classList.add('active');
+      if (viewId === 'view-replica-example') document.getElementById('btn-replica-example').classList.add('active');
+    }
+  </script>
+
+</body>
+</html>

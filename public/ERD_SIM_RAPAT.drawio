@@ -557,15 +557,20 @@
           </mxGeometry>
         </mxCell>
 
-        <!-- Relationship: penugasan (pegawai) -->
-        <mxCell id="rel_pic_user" value="penugasan
-(pegawai)" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#E8F5F7;strokeColor=#215865;strokeWidth=2;fontColor=#215865;fontStyle=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
-          <mxGeometry x="715" y="922" width="130" height="55" as="geometry" />
+        <!-- Relationship: penugasan (pic) -->
+        <mxCell id="rel_pic_user" value="penugasan&#xa;(pic)" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#E8F5F7;strokeColor=#215865;strokeWidth=2;fontColor=#215865;fontStyle=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="930" width="130" height="55" as="geometry" />
         </mxCell>
         
-        <!-- Edge 1: ent_user <-> rel_pic_user -->
-        <mxCell id="edge_rel_pic_user_1" style="endArrow=none;html=1;strokeColor=#215865;strokeWidth=1.8;" edge="1" parent="1" source="ent_user" target="rel_pic_user">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- Edge 1: ent_user <-> rel_pic_user (Jalur Koridor Bersih Tanpa Tabrakan Atribut) -->
+        <mxCell id="edge_rel_pic_user_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;arcSize=10;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#215865;strokeWidth=1.8;" edge="1" parent="1" source="ent_user" target="rel_pic_user">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1260" y="250" />
+              <mxPoint x="1260" y="870" />
+              <mxPoint x="715" y="870" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="lbl_rel_pic_user_1" value="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontStyle=1;fontColor=#215865;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="edge_rel_pic_user_1">
           <mxGeometry x="-0.7" y="0" relative="1" as="geometry">

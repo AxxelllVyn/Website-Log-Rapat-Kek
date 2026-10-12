@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIM-RAPAT KEK RI | Diagram UML &amp; ERD Resmi</title>
+  <title>SIM-RAPAT KEK RI | Spesifikasi UML &amp; Database 14 Entitas Resmi</title>
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,7 +35,7 @@
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
   <!-- Header -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-2xs">
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#31889C] to-[#215865] p-2 flex items-center justify-center shadow-sm">
@@ -43,15 +43,15 @@
         </div>
         <div>
           <div class="text-[11px] font-bold tracking-wider text-[#31889C] uppercase">Dewan Nasional Kawasan Ekonomi Khusus RI</div>
-          <h1 class="text-[18px] font-bold text-slate-900 leading-tight">Spesifikasi Struktur ID, UML Class Diagram &amp; ERD</h1>
+          <h1 class="text-[18px] font-bold text-slate-900 leading-tight">Spesifikasi UML &amp; Database Relasional (14 Entitas / 3NF)</h1>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <a href="/" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
-          &larr; Kembali ke Dashboard
+          &larr; Dashboard Rapat
         </a>
         <button onclick="window.print()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#31889C] hover:bg-[#266F80] text-white shadow-xs transition-colors">
-          Cetak / PDF
+          Cetak / Ekspor PDF
         </button>
       </div>
     </div>
@@ -61,20 +61,26 @@
   <div class="bg-white border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <nav class="flex space-x-6 overflow-x-auto" aria-label="Tabs">
-        <button onclick="switchTab('kamus-data')" id="tab-kamus-data" class="tab-btn py-3.5 px-1 border-b-2 border-[#31889C] font-bold text-sm text-[#31889C] whitespace-nowrap">
-          1. Kamus Data ID
+        <button onclick="switchTab('use-case')" id="tab-use-case" class="tab-btn py-3.5 px-1 border-b-2 border-[#31889C] font-bold text-sm text-[#31889C] whitespace-nowrap">
+          1. UML Use Case Diagram
         </button>
         <button onclick="switchTab('class-diagram')" id="tab-class-diagram" class="tab-btn py-3.5 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 whitespace-nowrap">
           2. UML Class Diagram
         </button>
+        <button onclick="switchTab('sequence-diagram')" id="tab-sequence-diagram" class="tab-btn py-3.5 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          3. UML Sequence Diagram
+        </button>
         <button onclick="switchTab('erd')" id="tab-erd" class="tab-btn py-3.5 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 whitespace-nowrap">
-          3. ERD (Draw.io)
+          4. ERD (Physical Model)
         </button>
         <button onclick="switchTab('lrs')" id="tab-lrs" class="tab-btn py-3.5 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 whitespace-nowrap">
-          4. LRS (Draw.io)
+          5. LRS (Record Structure 14 Entitas)
+        </button>
+        <button onclick="switchTab('kamus-data')" id="tab-kamus-data" class="tab-btn py-3.5 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          6. Kamus Data 14 Entitas
         </button>
         <button onclick="switchTab('plantuml')" id="tab-plantuml" class="tab-btn py-3.5 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 whitespace-nowrap">
-          5. PlantUML Source (.puml)
+          7. PlantUML Source (.puml)
         </button>
       </nav>
     </div>
@@ -83,18 +89,154 @@
   <!-- Main Container -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
 
-    <!-- TAB 1: KAMUS DATA ID -->
-    <div id="content-kamus-data" class="tab-content space-y-6">
+    <!-- Draw.io Fast Download Banner -->
+    <div class="bg-gradient-to-r from-[#215865] to-[#31889C] rounded-2xl p-5 text-white shadow-xs mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="text-[11px] font-bold uppercase tracking-wider text-teal-200">Berkas Mentah Draw.io Siap Pakai (.drawio)</div>
+        <div class="text-sm font-semibold mt-0.5">Buka &amp; Ekspor di app.diagrams.net untuk Bab III &amp; Lampiran Sidang Skripsi</div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="/USE_CASE_SIM_RAPAT.drawio" download class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-[#215865] hover:bg-slate-100 shadow-xs flex items-center gap-1">
+          📥 Use Case (.drawio)
+        </a>
+        <a href="/ACTIVITY_DIAGRAM_SIM_RAPAT.drawio" download class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-[#215865] hover:bg-slate-100 shadow-xs flex items-center gap-1">
+          📥 Activity 5 Tab (.drawio)
+        </a>
+        <a href="/LRS_SIM_RAPAT.drawio" download class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-[#215865] hover:bg-slate-100 shadow-xs flex items-center gap-1">
+          📥 LRS 14 Tabel (.drawio)
+        </a>
+        <a href="/ERD_SIM_RAPAT.drawio" download class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-[#215865] hover:bg-slate-100 shadow-xs flex items-center gap-1">
+          📥 ERD (.drawio)
+        </a>
+      </div>
+    </div>
+
+    <!-- TAB 1: USE CASE DIAGRAM -->
+    <div id="content-use-case" class="tab-content space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-[17px] font-bold text-slate-900">UML Use Case Diagram (3 Aktor &amp; 27 Kasus Penggunaan)</h2>
+            <p class="text-xs text-slate-500 mt-1">
+              Hierarki berbasis prinsip <b>Generalisasi Aktor (Actor Inheritance)</b>: Super Admin &rarr; Admin Biro/Tim &rarr; Staf Pelaksana.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a href="/USE_CASE_SIM_RAPAT.drawio" download class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#31889C] text-white hover:bg-[#266F80] transition-all">
+              Unduh File Draw.io (.drawio)
+            </a>
+          </div>
+        </div>
+
+        <!-- Tabel 3 Aktor -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="p-4 rounded-xl border border-teal-200 bg-teal-50/50">
+            <div class="text-xs font-bold text-[#215865] uppercase">Aktor 1 (Tingkat Dasar)</div>
+            <div class="text-sm font-bold text-slate-900 mt-0.5">👤 Staf Pelaksana (PIC)</div>
+            <p class="text-xs text-slate-600 mt-1.5">Login, profil, lihat agenda rapat, unduh materi, catat progres tugas tindak lanjut.</p>
+          </div>
+          <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/50">
+            <div class="text-xs font-bold text-amber-800 uppercase">Aktor 2 (Mewarisi Staf)</div>
+            <div class="text-sm font-bold text-slate-900 mt-0.5">👤 Admin Biro / Tim</div>
+            <p class="text-xs text-slate-600 mt-1.5">Buat rapat baru, penomoran urut otomatis, kelola peserta, susun &amp; finalisasi notula.</p>
+          </div>
+          <div class="p-4 rounded-xl border border-purple-200 bg-purple-50/50">
+            <div class="text-xs font-bold text-purple-800 uppercase">Aktor 3 (Mewarisi Admin)</div>
+            <div class="text-sm font-bold text-slate-900 mt-0.5">👤 Super Admin (Pimpinan)</div>
+            <p class="text-xs text-slate-600 mt-1.5">Monitoring beban 3 Tim Kerja KEK (INV, KS, KOM), kelola pengguna, master biro, &amp; sistem.</p>
+          </div>
+        </div>
+
+        <!-- Mermaid Use Case -->
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto flex justify-center">
+          <pre class="mermaid" id="mermaid-usecase">
+flowchart LR
+    subgraph AKTOR["Aktor Sistem (Generalisasi)"]
+        Staff["👤 Staf Pelaksana"]
+        Admin["👤 Admin Biro / Tim"]
+        SuperAdmin["👤 Super Admin"]
+    end
+
+    Admin -->|generalizes| Staff
+    SuperAdmin -->|generalizes| Admin
+
+    subgraph SYSTEM["Sistem Informasi Log & Notula Rapat (SIM-RAPAT KEK RI)"]
+        subgraph MOD1["1. Autentikasi & Akun"]
+            UC01(["UC-01: Login & Logout"])
+            UC02(["UC-02: Kelola Profil"])
+            UC03(["UC-03: Ganti Sandi"])
+        end
+
+        subgraph MOD2["2. Dashboard & Monitoring"]
+            UC04(["UC-04: Lihat Dashboard"])
+            UC05(["UC-05: Monitoring 3 Tim KEK"])
+            UC06(["UC-06: Filter Periode Tim"])
+        end
+
+        subgraph MOD3["3. Manajemen Rapat"]
+            UC08(["UC-08: Lihat Rapat"])
+            UC10(["UC-10: Jadwalkan Rapat"])
+            UC13(["UC-13: Nomor Urut Otomatis"])
+            UC15(["UC-15: Kelola Peserta"])
+        end
+
+        subgraph MOD4["4. Risalah & Notulensi"]
+            UC17(["UC-17: Susun Notula"])
+            UC18(["UC-18: Unggah Dokumen"])
+            UC19(["UC-19: Ekspor Naskah PDF"])
+        end
+
+        subgraph MOD5["5. Tindak Lanjut"]
+            UC21(["UC-21: Matriks Tindak Lanjut"])
+            UC22(["UC-22: Buat Butir Arahan"])
+            UC24(["UC-24: Update Progres PIC"])
+        end
+
+        subgraph MOD6["6. Administrasi"]
+            UC25(["UC-25: Kelola User & Hak Akses"])
+            UC26(["UC-26: Kelola Master Biro & Tim"])
+        end
+    end
+
+    Staff --- UC01
+    Staff --- UC02
+    Staff --- UC04
+    Staff --- UC08
+    Staff --- UC18
+    Staff --- UC21
+    Staff --- UC24
+
+    Admin --- UC10
+    Admin --- UC17
+    Admin --- UC22
+
+    SuperAdmin --- UC05
+    SuperAdmin --- UC25
+    SuperAdmin --- UC26
+
+    UC10 -.->|include| UC13
+    UC10 -.->|include| UC15
+    UC17 -.->|include| UC22
+    UC03 -.->|extend| UC02
+    UC06 -.->|extend| UC05
+    UC19 -.->|extend| UC08
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: KAMUS DATA 14 ENTITAS -->
+    <div id="content-kamus-data" class="tab-content hidden space-y-6">
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-[17px] font-bold text-slate-900">Standarisasi Nama ID Setiap Tabel (Primary Key &amp; Foreign Key)</h2>
+            <h2 class="text-[17px] font-bold text-slate-900">Standarisasi Nama 14 Entitas di Neon PostgreSQL (3NF)</h2>
             <p class="text-xs text-slate-500 mt-1">
-              Daftar penamaan ID deskriptif terstandar untuk mempermudah perancangan UML, relasi foreign key, dan analisis database.
+              Daftar penamaan Primary Key dan Foreign Key 100% konsisten dalam 5 Klaster Fungsional untuk laporan Tugas Akhir.
             </p>
           </div>
           <span class="px-3 py-1 bg-[#E8F5F7] border border-[#BCE3EB] text-[#215865] rounded-full text-xs font-bold">
-            10 Entitas Lengkap
+            14 Entitas Aktif
           </span>
         </div>
 
@@ -102,84 +244,148 @@
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
-                <th class="py-3 px-4">Nama Entitas</th>
+                <th class="py-3 px-4">Klaster</th>
+                <th class="py-3 px-4">Nama Tabel Fisik</th>
                 <th class="py-3 px-4">Primary Key (PK)</th>
-                <th class="py-3 px-4">Foreign Key (FK)</th>
+                <th class="py-3 px-4">Foreign Key Masuk (FK)</th>
                 <th class="py-3 px-4">Kardinalitas &amp; Deskripsi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 font-medium">
+              <!-- Klaster 1 -->
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">Biro</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">biro_id</span></td>
+                <td rowspan="3" class="py-3.5 px-4 font-bold text-[#215865] bg-slate-50/70 border-r border-slate-100 align-top">
+                  1. Organisasi &amp; Akun
+                </td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">biro</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_biro</span></td>
                 <td class="py-3.5 px-4 text-slate-400">-</td>
-                <td class="py-3.5 px-4 text-slate-600">Master 5 Biro resmi KEK (<span class="mono">code</span>: BPPK, PKKEK, IKK, HSDMO, UK).</td>
+                <td class="py-3.5 px-4 text-slate-600">Master unit kerja eselon tingkat biro (IKK, BPPK, PKKEK, HSDMO, UK).</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">User (Pengguna)</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">user_id</span></td>
-                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">biro_id &rarr; biro</span></td>
-                <td class="py-3.5 px-4 text-slate-600">Pengguna sistem, login NextAuth, pimpinan sidang, notulis, dan PIC tindak lanjut.</td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">tim_biro</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_tim</span></td>
+                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">id_biro &rarr; biro</span></td>
+                <td class="py-3.5 px-4 text-slate-600">Unit kerja teknis pelaksana rapat dinas (Tim Investasi, Kerja Sama, Komunikasi).</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">Meeting (Rapat)</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">meeting_id</span></td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">pengguna</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_pengguna</span></td>
                 <td class="py-3.5 px-4 space-y-1">
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">primary_biro_id &rarr; biro</span></div>
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">chairperson_id &rarr; user</span></div>
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">secretary_id &rarr; user</span></div>
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">previous_meeting_id &rarr; meeting</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_biro &rarr; biro</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_tim &rarr; tim_biro (Null)</span></div>
                 </td>
-                <td class="py-3.5 px-4 text-slate-600">Agenda rapat dinas KEK. Memiliki Unique Key resmi <span class="mono font-bold">meeting_number</span> (contoh: <span class="mono">IKK-015</span>).</td>
+                <td class="py-3.5 px-4 text-slate-600">Akun aparatur aparatur sipil negara, pimpinan sidang, notulis, dan PIC penugasan.</td>
+              </tr>
+
+              <!-- Klaster 2 -->
+              <tr class="hover:bg-slate-50/50">
+                <td rowspan="5" class="py-3.5 px-4 font-bold text-[#215865] bg-slate-50/70 border-r border-slate-100 align-top">
+                  2. Pelaksanaan Rapat
+                </td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">penomoran_rapat_biro</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_penomoran</span></td>
+                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">id_biro &rarr; biro (1:1 UK)</span></td>
+                <td class="py-3.5 px-4 text-slate-600">Generator nomor registrasi surat urut otomatis per biro (atomic sequence counter).</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">MeetingMinutes (Notulen)</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">minutes_id</span></td>
-                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">meeting_id &rarr; meeting (1:1)</span></td>
-                <td class="py-3.5 px-4 text-slate-600">Dokumen notula dinas resmi: agenda, substansi inti, keputusan, dan penandatangan.</td>
-              </tr>
-              <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">MeetingParticipant</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">participant_id</span></td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">rapat</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_rapat</span></td>
                 <td class="py-3.5 px-4 space-y-1">
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">meeting_id &rarr; meeting</span></div>
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">user_id &rarr; user</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_biro &rarr; biro</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_tim &rarr; tim_biro</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_pengguna &rarr; pengguna</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_notulis &rarr; pengguna</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_rapat_sebelumnya &rarr; rapat</span></div>
                 </td>
-                <td class="py-3.5 px-4 text-slate-600">Daftar kehadiran peserta rapat dan status absensi (<span class="mono">INVITED</span>, <span class="mono">PRESENT</span>, dll.).</td>
+                <td class="py-3.5 px-4 text-slate-600">Agenda rapat dinas KEK dengan nomor unik resmi (<span class="mono">nomor_rapat</span>, cth: INV-015).</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">MeetingBiro</td>
-                <td class="py-3.5 px-4"><span class="mono bg-amber-50 text-amber-800 px-2 py-0.5 rounded font-bold border border-amber-200">(meeting_id, biro_id) PK</span></td>
-                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Composite FK</span></td>
-                <td class="py-3.5 px-4 text-slate-600">Junction Many-to-Many untuk biro-biro yang terlibat dalam agenda rapat lintas instansi.</td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">rapat_biro</td>
+                <td class="py-3.5 px-4"><span class="mono bg-amber-50 text-amber-800 px-2 py-0.5 rounded font-bold border border-amber-200">(id_rapat, id_biro) PK</span></td>
+                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Composite FK (M:N)</span></td>
+                <td class="py-3.5 px-4 text-slate-600">Tabel perantara (junction) untuk rapat gabungan lintas biro di Sekretariat Dewan Nasional.</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">ActionItem (Tindak Lanjut)</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">action_item_id</span></td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">peserta_rapat</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_peserta</span></td>
                 <td class="py-3.5 px-4 space-y-1">
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">meeting_id &rarr; meeting</span></div>
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">pic_biro_id &rarr; biro</span></div>
-                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">pic_user_id &rarr; user</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_rapat &rarr; rapat</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_pengguna &rarr; pengguna</span></div>
                 </td>
-                <td class="py-3.5 px-4 text-slate-600">Butir resolusi arahan rapat, tenggat waktu (<span class="mono">dueDate</span>), status pengerjaan, dan prioritas.</td>
+                <td class="py-3.5 px-4 text-slate-600">Daftar kehadiran peserta undangan rapat beserta status presensi (<span class="mono">INVITED</span>, <span class="mono">PRESENT</span>).</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">BiroMeetingSequence</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">sequence_id</span></td>
-                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">biro_id &rarr; biro (1:1)</span></td>
-                <td class="py-3.5 px-4 text-slate-600">Generator nomor urut resmi penomoran rapat otomatis per biro (atomic sequence counter).</td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">lampiran_rapat</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_lampiran</span></td>
+                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">id_rapat &rarr; rapat</span></td>
+                <td class="py-3.5 px-4 text-slate-600">Dokumen materi paparan, undangan disposisi, dan berkas digital pendukung rapat.</td>
+              </tr>
+
+              <!-- Klaster 3 -->
+              <tr class="hover:bg-slate-50/50">
+                <td rowspan="3" class="py-3.5 px-4 font-bold text-[#215865] bg-slate-50/70 border-r border-slate-100 align-top">
+                  3. Notulensi &amp; Risalah
+                </td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">notulen_rapat</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_notulen</span></td>
+                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">id_rapat &rarr; rapat (1:1 UK)</span></td>
+                <td class="py-3.5 px-4 text-slate-600">Naskah risalah resmi: butir agenda, hasil pembahasan, kesepakatan keputusan, &amp; kesimpulan.</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">Account</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">account_id</span></td>
-                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">user_id &rarr; user</span></td>
-                <td class="py-3.5 px-4 text-slate-600">Tabel manajemen otentikasi login provider (OAuth / Kredensial lokal).</td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">komentar_notulen</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_komentar</span></td>
+                <td class="py-3.5 px-4 space-y-1">
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_rapat &rarr; rapat</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_pengguna &rarr; pengguna</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_induk &rarr; komentar (Unary)</span></div>
+                </td>
+                <td class="py-3.5 px-4 text-slate-600">Kolaborasi review draft notula dinas dengan fitur balasan utas (<span class="mono">id_induk</span>).</td>
               </tr>
               <tr class="hover:bg-slate-50/50">
-                <td class="py-3.5 px-4 font-bold text-slate-900">Session</td>
-                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">session_id</span></td>
-                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">user_id &rarr; user</span></td>
-                <td class="py-3.5 px-4 text-slate-600">Manajemen sesi login aktif pengguna pada peramban web.</td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">riwayat_notulen</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_riwayat</span></td>
+                <td class="py-3.5 px-4 space-y-1">
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_rapat &rarr; rapat</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_pengguna &rarr; pengguna</span></div>
+                </td>
+                <td class="py-3.5 px-4 text-slate-600">Audit trail kepemerintahan untuk melacak versi, perubahan kolom, nilai lama, dan nilai baru.</td>
+              </tr>
+
+              <!-- Klaster 4 -->
+              <tr class="hover:bg-slate-50/50">
+                <td rowspan="2" class="py-3.5 px-4 font-bold text-[#215865] bg-slate-50/70 border-r border-slate-100 align-top">
+                  4. Tindak Lanjut
+                </td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">tindak_lanjut</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_tindak_lanjut</span></td>
+                <td class="py-3.5 px-4 space-y-1">
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_rapat &rarr; rapat</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_biro &rarr; biro</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_tim &rarr; tim_biro (Null)</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_pengguna &rarr; pengguna (Null)</span></div>
+                </td>
+                <td class="py-3.5 px-4 text-slate-600">Butir resolusi arahan rapat, tenggat waktu (<span class="mono">tenggat_waktu</span>), prioritas, dan PIC penugasan.</td>
+              </tr>
+              <tr class="hover:bg-slate-50/50">
+                <td class="py-3.5 px-4 font-bold text-slate-900">riwayat_tindak_lanjut</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_riwayat</span></td>
+                <td class="py-3.5 px-4 space-y-1">
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_tindak_lanjut &rarr; tindak_lanjut</span></div>
+                  <div><span class="mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">id_pengguna &rarr; pengguna</span></div>
+                </td>
+                <td class="py-3.5 px-4 text-slate-600">Catatan log berkala perkembangan tugas tindak lanjut dan persentase progres (0-100%).</td>
+              </tr>
+
+              <!-- Klaster 5 -->
+              <tr class="hover:bg-slate-50/50">
+                <td class="py-3.5 px-4 font-bold text-[#215865] bg-slate-50/70 border-r border-slate-100 align-top">
+                  5. Komunikasi
+                </td>
+                <td class="py-3.5 px-4 font-bold text-slate-900">notifikasi</td>
+                <td class="py-3.5 px-4"><span class="mono bg-[#E8F5F7] text-[#215865] px-2 py-0.5 rounded font-bold border border-[#BCE3EB]">id_notifikasi</span></td>
+                <td class="py-3.5 px-4"><span class="mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">id_pengguna &rarr; pengguna</span></td>
+                <td class="py-3.5 px-4 text-slate-600">Pemberitahuan real-time untuk undangan rapat baru, revisi notula, dan peringatan tenggat waktu tugas.</td>
               </tr>
             </tbody>
           </table>
@@ -192,9 +398,9 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-[17px] font-bold text-slate-900">UML Class Diagram (Struktur Objek &amp; Relasi)</h2>
+            <h2 class="text-[17px] font-bold text-slate-900">UML Class Diagram Lengkap (14 Kelas &amp; Operasi)</h2>
             <p class="text-xs text-slate-500 mt-1">
-              Menampilkan struktur kelas entitas, atribut data, hak akses (<span class="mono">+</span> public), dan relasi asosiasi / komposisi.
+              Menampilkan struktur kelas entitas, atribut data, hak akses (<span class="mono">+</span> public), metode/operasi bisnis, dan relasi kardinalitas.
             </p>
           </div>
           <button onclick="copyMermaid('mermaid-class')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F0F9FA] text-[#215865] border border-[#BCE3EB] hover:bg-[#E8F5F7] transition-all">
@@ -207,16 +413,14 @@
 classDiagram
     direction TB
 
-    class UserRole {
+    class PeranPengguna {
         <<enumeration>>
         SUPER_ADMIN
         ADMIN
-        NOTULIS
         STAFF
-        VIEWER
     }
 
-    class MeetingStatus {
+    class StatusRapat {
         <<enumeration>>
         DRAFT
         REVIEW
@@ -224,7 +428,7 @@ classDiagram
         FINAL
     }
 
-    class AttendanceStatus {
+    class StatusKehadiran {
         <<enumeration>>
         INVITED
         PRESENT
@@ -232,7 +436,7 @@ classDiagram
         EXCUSED
     }
 
-    class ActionItemStatus {
+    class StatusTindakLanjut {
         <<enumeration>>
         PENDING
         IN_PROGRESS
@@ -240,7 +444,7 @@ classDiagram
         OVERDUE
     }
 
-    class ActionItemPriority {
+    class PrioritasTindakLanjut {
         <<enumeration>>
         LOW
         MEDIUM
@@ -249,150 +453,341 @@ classDiagram
     }
 
     class Biro {
-        +String biro_id PK
-        +String code UK
-        +String name
-        +String shortName
-        +String description
-        +Boolean isActive
-        +DateTime createdAt
-        +DateTime updatedAt
-        +getWorkload()
-        +getStaffList()
+        +String id_biro PK
+        +String kode_biro UK
+        +String nama_biro
+        +String nama_singkat
+        +String deskripsi
+        +Boolean status_aktif
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +hitungBebanKerja()
+        +getDaftarPegawai()
+        +getStatistikTim()
     }
 
-    class User {
-        +String user_id PK
-        +String biro_id FK
-        +String name
+    class TimBiro {
+        +String id_tim PK
+        +String id_biro FK
+        +String kode_tim
+        +String nama_tim
+        +String deskripsi_tim
+        +Boolean status_aktif
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +getDaftarStaf()
+        +hitungRapatTim()
+    }
+
+    class Pengguna {
+        +String id_pengguna PK
+        +String id_biro FK
+        +String id_tim FK
+        +String nama_lengkap
         +String email UK
-        +String password
-        +UserRole role
-        +Boolean isActive
-        +DateTime createdAt
-        +DateTime updatedAt
-        +authenticate()
-        +updateProfile()
+        +String kata_sandi
+        +PeranPengguna peran
+        +Boolean status_aktif
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +autentikasi()
+        +ubahProfil()
+        +ambilDaftarTugas()
     }
 
-    class Meeting {
-        +String meeting_id PK
-        +String meeting_number UK
-        +String title
-        +String primary_biro_id FK
-        +DateTime date
-        +String startTime
-        +String endTime
-        +String location
-        +String chairperson_id FK
-        +String secretary_id FK
-        +String previous_meeting_id FK
-        +MeetingStatus status
-        +DateTime createdAt
-        +DateTime updatedAt
-        +createMeeting()
-        +updateStatus()
-        +exportPdf()
+    class PenomoranRapatBiro {
+        +String id_penomoran PK
+        +String id_biro FK
+        +Int nomor_terakhir
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +ambilNomorBerikutnya()
     }
 
-    class MeetingMinutes {
-        +String minutes_id PK
-        +String meeting_id FK
-        +Json agenda
-        +Json discussion
-        +Json decisions
-        +Json conclusion
-        +DateTime createdAt
-        +DateTime updatedAt
-        +saveMinutes()
-        +generatePdf()
+    class Rapat {
+        +String id_rapat PK
+        +String nomor_rapat UK
+        +String judul_rapat
+        +String id_biro FK
+        +String id_tim FK
+        +String id_pengguna FK
+        +String id_notulis FK
+        +String id_rapat_sebelumnya FK
+        +DateTime tanggal_rapat
+        +String waktu_mulai
+        +String waktu_selesai
+        +String lokasi_rapat
+        +StatusRapat status_rapat
+        +String jenis_rapat
+        +String pic_rapat
+        +String status_progres
+        +String kategori_naskah
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +buatRapat()
+        +perbaruiStatus()
+        +tambahPeserta()
+        +eksporRisalahPdf()
     }
 
-    class MeetingParticipant {
-        +String participant_id PK
-        +String meeting_id FK
-        +String user_id FK
-        +AttendanceStatus attendanceStatus
-        +DateTime createdAt
-        +updateAttendance()
+    class RapatBiro {
+        +String id_rapat PK_FK
+        +String id_biro PK_FK
     }
 
-    class MeetingBiro {
-        +String meeting_id PK_FK
-        +String biro_id PK_FK
+    class PesertaRapat {
+        +String id_peserta PK
+        +String id_rapat FK
+        +String id_pengguna FK
+        +StatusKehadiran status_kehadiran
+        +DateTime dibuat_pada
+        +catatKehadiran()
     }
 
-    class ActionItem {
-        +String action_item_id PK
-        +String meeting_id FK
-        +String title
-        +String description
-        +String pic_biro_id FK
-        +String pic_user_id FK
-        +DateTime dueDate
-        +ActionItemStatus status
-        +ActionItemPriority priority
-        +DateTime completedAt
-        +DateTime createdAt
-        +DateTime updatedAt
-        +updateStatus()
-        +markCompleted()
+    class LampiranRapat {
+        +String id_lampiran PK
+        +String id_rapat FK
+        +String nama_berkas
+        +String url_berkas
+        +Int ukuran_berkas
+        +String tipe_berkas
+        +String kategori
+        +DateTime dibuat_pada
+        +unggahBerkas()
+        +unduhBerkas()
     }
 
-    class BiroMeetingSequence {
-        +String sequence_id PK
-        +String biro_id FK
-        +Int currentNumber
-        +DateTime createdAt
-        +DateTime updatedAt
-        +getNextNumber()
+    class NotulenRapat {
+        +String id_notulen PK
+        +String id_rapat FK
+        +Json agenda_pembahasan
+        +Json hasil_pembahasan
+        +Json poin_keputusan
+        +Json kesimpulan
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +simpanNotulen()
+        +validasiNotulen()
+        +cetakDokumenResmi()
     }
 
-    Biro "1" --> "0..*" User : biro_id
-    Biro "1" --> "0..*" Meeting : primary_biro_id
-    Biro "1" --> "1" BiroMeetingSequence : biro_id
-    User "1" --> "0..*" Meeting : chairperson_id
-    User "1" --> "0..*" Meeting : secretary_id
-    Meeting "1" --> "0..1" Meeting : previous_meeting_id
-    Meeting "1" *-- "0..1" MeetingMinutes : meeting_id
-    Meeting "1" *-- "0..*" ActionItem : meeting_id
-    Meeting "1" -- "0..*" MeetingBiro : meeting_id
-    Biro "1" -- "0..*" MeetingBiro : biro_id
-    Meeting "1" *-- "0..*" MeetingParticipant : meeting_id
-    User "1" -- "0..*" MeetingParticipant : user_id
-    Biro "1" --> "0..*" ActionItem : pic_biro_id
-    User "0..1" --> "0..*" ActionItem : pic_user_id
+    class KomentarNotulen {
+        +String id_komentar PK
+        +String id_rapat FK
+        +String id_pengguna FK
+        +String id_induk FK
+        +String isi_komentar
+        +String seksi
+        +Boolean sudah_diselesaikan
+        +DateTime dibuat_pada
+        +tambahKomentar()
+        +balasKomentar()
+        +tandaiSelesai()
+    }
+
+    class RiwayatNotulen {
+        +String id_riwayat PK
+        +String id_rapat FK
+        +String id_pengguna FK
+        +String tipe_perubahan
+        +String nama_kolom
+        +Json nilai_lama
+        +Json nilai_baru
+        +String ringkasan_perubahan
+        +DateTime dibuat_pada
+        +catatAuditTrail()
+    }
+
+    class TindakLanjut {
+        +String id_tindak_lanjut PK
+        +String id_rapat FK
+        +String id_biro FK
+        +String id_tim FK
+        +String id_pengguna FK
+        +String judul_tindakan
+        +String deskripsi_tindakan
+        +DateTime tenggat_waktu
+        +StatusTindakLanjut status_tindak_lanjut
+        +PrioritasTindakLanjut skala_prioritas
+        +DateTime diselesaikan_pada
+        +DateTime dibuat_pada
+        +DateTime diperbarui_pada
+        +perbaruiStatus()
+        +perbaruiProgres()
+        +tandaiSelesai()
+    }
+
+    class RiwayatTindakLanjut {
+        +String id_riwayat PK
+        +String id_tindak_lanjut FK
+        +String id_pengguna FK
+        +StatusTindakLanjut status_sebelumnya
+        +StatusTindakLanjut status_terbaru
+        +String catatan_progres
+        +Int persentase_progres
+        +DateTime dibuat_pada
+        +tambahLogProgres()
+    }
+
+    class Notifikasi {
+        +String id_notifikasi PK
+        +String id_pengguna FK
+        +String judul
+        +String pesan
+        +String tipe
+        +String tautan
+        +Boolean sudah_dibaca
+        +DateTime dibuat_pada
+        +kirimNotifikasi()
+        +tandaiDibaca()
+    }
+
+    Biro "1" --> "0..*" TimBiro : id_biro
+    Biro "1" --> "0..*" Pengguna : id_biro
+    Biro "1" --> "0..*" Rapat : id_biro
+    Biro "1" --> "1" PenomoranRapatBiro : id_biro
+    Biro "1" --> "0..*" TindakLanjut : id_biro
+    Biro "1" -- "0..*" RapatBiro : id_biro
+
+    TimBiro "0..1" --> "0..*" Pengguna : id_tim
+    TimBiro "0..1" --> "0..*" Rapat : id_tim
+    TimBiro "0..1" --> "0..*" TindakLanjut : id_tim
+
+    Pengguna "1" --> "0..*" Rapat : id_pengguna
+    Pengguna "1" -- "0..*" PesertaRapat : id_pengguna
+    Pengguna "0..1" --> "0..*" TindakLanjut : id_pengguna
+    Pengguna "1" --> "0..*" RiwayatTindakLanjut : id_pengguna
+    Pengguna "1" --> "0..*" KomentarNotulen : id_pengguna
+    Pengguna "1" --> "0..*" RiwayatNotulen : id_pengguna
+    Pengguna "1" --> "0..*" Notifikasi : id_pengguna
+
+    Rapat "1" --> "0..1" Rapat : id_rapat_sebelumnya
+    Rapat "1" *-- "0..1" NotulenRapat : id_rapat
+    Rapat "1" *-- "0..*" TindakLanjut : id_rapat
+    Rapat "1" *-- "0..*" PesertaRapat : id_rapat
+    Rapat "1" *-- "0..*" LampiranRapat : id_rapat
+    Rapat "1" *-- "0..*" KomentarNotulen : id_rapat
+    Rapat "1" *-- "0..*" RiwayatNotulen : id_rapat
+    Rapat "1" -- "0..*" RapatBiro : id_rapat
+
+    KomentarNotulen "1" --> "0..*" KomentarNotulen : id_induk
+    TindakLanjut "1" *-- "0..*" RiwayatTindakLanjut : id_tindak_lanjut
           </pre>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: ERD DIAGRAM -->
-    <div id="content-erd" class="tab-content hidden space-y-6">
-      <!-- Roadmap Banner -->
-      <div class="bg-gradient-to-r from-[#215865] to-[#31889C] rounded-2xl p-5 text-white shadow-xs">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <span class="px-2.5 py-0.5 bg-white/20 rounded-full text-[11px] font-bold tracking-wide uppercase">Tahap 1 dari 6 UML & Database</span>
-            <h3 class="text-base font-bold mt-1">Entity Relationship Diagram (ERD) - Siap Buka di Draw.io</h3>
-            <p class="text-xs text-white/80 mt-0.5">Dibuat khusus dan terstandarisasi untuk presentasi, tugas akhir, dan laporan teknis.</p>
+    <!-- TAB 3: UML SEQUENCE DIAGRAM -->
+    <div id="content-sequence-diagram" class="tab-content hidden space-y-6">
+      <div class="space-y-6">
+        <!-- SD-01 -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
+          <h3 class="text-base font-bold text-slate-900 mb-1">SD-01: Penjadwalan Rapat Dinas Baru &amp; Penomoran Otomatis</h3>
+          <p class="text-xs text-slate-500 mb-4">Interaksi Admin Biro/Tim memicu pembuatan rapat, auto-increment sequence, dan blasting notifikasi.</p>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto flex justify-center">
+            <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admin as 👤 Admin Biro/Tim
+    participant UI as 💻 BuatRapatPage (UI)
+    participant Action as ⚙️ meetingAction (Server)
+    participant DB_Seq as 🗄️ penomoran_rapat_biro
+    participant DB_Mtg as 🗄️ rapat
+    participant DB_Part as 🗄️ peserta_rapat
+    participant DB_Notif as 🗄️ notifikasi
+
+    Admin->>UI: Buka form 'Buat Rapat' & pilih Biro/Tim
+    UI->>Action: getNextMeetingNumber(id_biro)
+    Action->>DB_Seq: SELECT nomor_terakhir FOR UPDATE
+    DB_Seq-->>Action: nomor_terakhir = 14
+    Action-->>UI: nomor_rapat = "IKK-015"
+    
+    Admin->>UI: Input Judul, Tanggal, Jam, Lokasi, Pimpinan, Peserta & Lampiran
+    Admin->>UI: Klik 'Jadwalkan Rapat'
+    UI->>Action: createMeeting(dataRapat, listPeserta)
+    Action->>DB_Mtg: INSERT INTO rapat VALUES (...)
+    Action->>DB_Seq: UPDATE penomoran_rapat_biro SET nomor_terakhir = 15
+    Action->>DB_Part: INSERT INTO peserta_rapat VALUES (...)
+    Action->>DB_Notif: INSERT INTO notifikasi VALUES (...)
+    Action-->>UI: Return { success: true, id_rapat: "MTG-015" }
+    UI-->>Admin: Tampilkan Toast Sukses & Alihkan ke Detail Rapat
+            </pre>
           </div>
-          <div class="flex items-center gap-2">
-            <a href="/ERD_SIM_RAPAT.drawio" download="ERD_SIM_RAPAT.drawio" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-[#215865] hover:bg-slate-100 shadow-sm transition-all flex items-center gap-1.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              Unduh File Draw.io (.drawio)
-            </a>
+        </div>
+
+        <!-- SD-02 -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
+          <h3 class="text-base font-bold text-slate-900 mb-1">SD-02: Penyusunan Risalah &amp; Notulensi Rapat Resmi</h3>
+          <p class="text-xs text-slate-500 mb-4">Interaksi Notulis mencatat risalah, audit log perubahan naskah, dan pengubahan status ke REVIEW.</p>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto flex justify-center">
+            <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Notulis as ✍️ Notulis Rapat
+    participant UI as 💻 NotulensiEditorPage (UI)
+    participant Action as ⚙️ minutesAction (Server)
+    participant DB_Notul as 🗄️ notulen_rapat
+    participant DB_Hist as 🗄️ riwayat_notulen
+    participant DB_Mtg as 🗄️ rapat
+
+    Notulis->>UI: Buka Rincian Rapat & Tab 'Notulensi'
+    UI->>Action: getMinutesByMeetingId(id_rapat)
+    Action->>DB_Notul: SELECT * FROM notulen_rapat WHERE id_rapat = ?
+    DB_Notul-->>Action: Data Notulensi
+    Action-->>UI: Tampilkan formulir editor notulensi
+    
+    Notulis->>UI: Simpan Perubahan Naskah Risalah
+    UI->>Action: updateMinutes(id_rapat, payloadNotulen)
+    Action->>DB_Notul: UPSERT INTO notulen_rapat VALUES (...)
+    Action->>DB_Hist: INSERT INTO riwayat_notulen VALUES (...)
+    Action->>DB_Mtg: UPDATE rapat SET status_rapat = 'REVIEW'
+    Action-->>UI: Return { success: true }
+    UI-->>Notulis: Tampilkan status 'Tersimpan Otomatis'
+            </pre>
+          </div>
+        </div>
+
+        <!-- SD-03 -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
+          <h3 class="text-base font-bold text-slate-900 mb-1">SD-03: Pembaruan Status Progres Tindak Lanjut (PIC)</h3>
+          <p class="text-xs text-slate-500 mb-4">Interaksi Pegawai/PIC memperbarui tugas, mencatat timeline riwayat progres, dan notifikasi pimpinan.</p>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto flex justify-center">
+            <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor PIC as 👤 Staf / PIC Penugasan
+    participant UI as 💻 TindakLanjutPage (UI)
+    participant Action as ⚙️ actionItemAction (Server)
+    participant DB_Act as 🗄️ tindak_lanjut
+    participant DB_Log as 🗄️ riwayat_tindak_lanjut
+    participant DB_Notif as 🗄️ notifikasi
+
+    PIC->>UI: Buka Matriks Tindak Lanjut Tim
+    UI->>Action: getActionItemsByFilter(timId)
+    Action->>DB_Act: SELECT * FROM tindak_lanjut WHERE ...
+    DB_Act-->>Action: List Tindak Lanjut Aktif
+    Action-->>UI: Render kartu Kanban / Tabel Tugas
+
+    PIC->>UI: Update Progres: 100%, Status 'COMPLETED'
+    UI->>Action: updateActionProgress(id, 100, 'COMPLETED', catatan)
+    Action->>DB_Act: UPDATE tindak_lanjut SET status = 'COMPLETED'
+    Action->>DB_Log: INSERT INTO riwayat_tindak_lanjut VALUES (...)
+    Action->>DB_Notif: INSERT INTO notifikasi VALUES (...)
+    Action-->>UI: Return { success: true }
+    UI-->>PIC: Tampilkan Badge Hijau 'Selesai'
+            </pre>
           </div>
         </div>
       </div>
+    </div>
 
+    <!-- TAB 4: ERD DIAGRAM -->
+    <div id="content-erd" class="tab-content hidden space-y-6">
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-[17px] font-bold text-slate-900">Entity Relationship Diagram (ERD - Physical Model)</h2>
-            <p class="text-xs text-slate-500 mt-1">
-              Diagram relasi entitas fisik menggunakan notasi Crow's Foot lengkap dengan Primary Key (PK) dan Foreign Key (FK).
-            </p>
+            <h2 class="text-[17px] font-bold text-slate-900">Entity Relationship Diagram (ERD - Physical Model 14 Tabel)</h2>
+            <p class="text-xs text-slate-500 mt-1">Diagram relasi entitas fisik menggunakan notasi Crow's Foot lengkap dengan PK dan FK.</p>
           </div>
           <button onclick="copyMermaid('mermaid-erd')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F0F9FA] text-[#215865] border border-[#BCE3EB] hover:bg-[#E8F5F7] transition-all">
             Salin Kode ERD
@@ -402,523 +797,84 @@ classDiagram
         <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto flex justify-center">
           <pre class="mermaid" id="mermaid-erd">
 erDiagram
-    BIRO ||--o{ USER : "memiliki pegawai"
-    BIRO ||--o{ MEETING : "menyelenggarakan"
-    BIRO ||--|| BIRO_MEETING_SEQUENCE : "nomor urut surat"
-    BIRO ||--o{ ACTION_ITEM : "penanggung jawab biro"
-    BIRO ||--o{ MEETING_BIRO : "terlibat sidang"
+    biro ||--o{ tim_biro : "1:N menaungi"
+    biro ||--o{ pengguna : "1:N mempekerjakan"
+    biro ||--o{ rapat : "1:N menyelenggarakan"
+    biro ||--|| penomoran_rapat_biro : "1:1 nomor urut"
+    biro ||--o{ tindak_lanjut : "1:N penugasan biro"
+    biro ||--o{ rapat_biro : "1:N biro terlibat"
 
-    USER ||--o{ MEETING_PARTICIPANT : "kehadiran sidang"
-    USER ||--o{ ACTION_ITEM : "PIC personal"
-    USER ||--o{ MEETING : "pimpinan atau notulis"
+    tim_biro ||--o{ pengguna : "1:N staf tim"
+    tim_biro ||--o{ rapat : "1:N rapat tim"
+    tim_biro ||--o{ tindak_lanjut : "1:N penugasan tim"
 
-    MEETING ||--|| MEETING_MINUTES : "memiliki 1 dokumen naskah"
-    MEETING ||--o{ ACTION_ITEM : "menghasilkan resolusi"
-    MEETING ||--o{ MEETING_PARTICIPANT : "daftar peserta"
-    MEETING ||--o{ MEETING_BIRO : "biro terlibat"
-    MEETING ||--o| MEETING : "rujukan rapat sebelumnya"
+    pengguna ||--o{ peserta_rapat : "1:N kehadiran"
+    pengguna ||--o{ tindak_lanjut : "1:N PIC personal"
+    pengguna ||--o{ rapat : "1:N pimpinan/notulis"
+    pengguna ||--o{ riwayat_tindak_lanjut : "1:N log progres"
+    pengguna ||--o{ komentar_notulen : "1:N komentar"
+    pengguna ||--o{ riwayat_notulen : "1:N audit trail"
+    pengguna ||--o{ notifikasi : "1:N notifikasi"
 
-    BIRO {
-        string biro_id PK "BIRO-IKK, BIRO-BPPK"
-        string code UK "Kode Biro (IKK/BPPK/dll)"
-        string name "Nama Lengkap Biro"
-        string shortName "Nama Singkat Biro"
-        string description "Deskripsi Tugas"
-        boolean isActive "Status Aktif"
-        datetime createdAt "Waktu Dibuat"
-        datetime updatedAt "Waktu Diubah"
-    }
+    rapat ||--|| notulen_rapat : "1:1 naskah notula"
+    rapat ||--o{ tindak_lanjut : "1:N butir resolusi"
+    rapat ||--o{ peserta_rapat : "1:N daftar peserta"
+    rapat ||--o{ lampiran_rapat : "1:N berkas materi"
+    rapat ||--o{ komentar_notulen : "1:N diskusi review"
+    rapat ||--o{ riwayat_notulen : "1:N riwayat revisi"
+    rapat ||--o{ rapat_biro : "1:N biro terlibat"
+    rapat ||--o| rapat : "0..1 rapat rujukan"
 
-    USER {
-        string user_id PK "USR-001, USR-002"
-        string biro_id FK "Relasi ke BIRO"
-        string name "Nama Pengguna"
-        string email UK "Email Login"
-        string password "Password Terenkripsi"
-        string role "UserRole (SUPER_ADMIN/ADMIN/dll)"
-        boolean isActive "Status Akun Aktif"
-        datetime createdAt "Waktu Dibuat"
-        datetime updatedAt "Waktu Diubah"
-    }
-
-    MEETING {
-        string meeting_id PK "MTG-001, MTG-002"
-        string meeting_number UK "Nomor Surat Rapat (IKK-015)"
-        string primary_biro_id FK "Biro Penyelenggara"
-        string chairperson_id FK "Pimpinan Sidang (User)"
-        string secretary_id FK "Notulis Sidang (User)"
-        string previous_meeting_id FK "Rujukan Rapat Sebelumnya"
-        string title "Judul Rapat"
-        datetime date "Tanggal Pelaksanaan"
-        string startTime "Waktu Mulai"
-        string endTime "Waktu Selesai"
-        string location "Ruang Rapat / Tautan Virtual"
-        string status "Status (DRAFT/REVIEW/APPROVED/FINAL)"
-        datetime createdAt "Waktu Dibuat"
-        datetime updatedAt "Waktu Diubah"
-    }
-
-    MEETING_MINUTES {
-        string minutes_id PK "UUID"
-        string meeting_id FK "Relasi Unik ke MEETING"
-        json agenda "Agenda Pembahasan"
-        json discussion "Substansi Pembahasan"
-        json decisions "Keputusan / Hasil Sidang"
-        json conclusion "Pengesahan, Pimpinan, dan TTD"
-        datetime createdAt "Waktu Dibuat"
-        datetime updatedAt "Waktu Diubah"
-    }
-
-    ACTION_ITEM {
-        string action_item_id PK "UUID"
-        string meeting_id FK "Relasi ke MEETING"
-        string pic_biro_id FK "Biro Penanggung Jawab"
-        string pic_user_id FK "Pegawai PIC Spesifik"
-        string title "Judul Tindak Lanjut"
-        string description "Deskripsi Tindak Lanjut"
-        datetime dueDate "Tenggat Waktu Selesai"
-        string status "Status (PENDING/IN_PROGRESS/dll)"
-        string priority "Prioritas (LOW/MEDIUM/HIGH/URGENT)"
-        datetime completedAt "Waktu Selesai"
-        datetime createdAt "Waktu Dibuat"
-        datetime updatedAt "Waktu Diubah"
-    }
-
-    MEETING_PARTICIPANT {
-        string participant_id PK "UUID"
-        string meeting_id FK "Relasi ke MEETING"
-        string user_id FK "Relasi ke USER"
-        string attendanceStatus "Status Kehadiran"
-        datetime createdAt "Waktu Dicatat"
-    }
-
-    MEETING_BIRO {
-        string meeting_id PK_FK "Relasi ke MEETING"
-        string biro_id PK_FK "Relasi ke BIRO"
-    }
-
-    BIRO_MEETING_SEQUENCE {
-        string sequence_id PK "UUID"
-        string biro_id FK "Relasi Unik ke BIRO"
-        int currentNumber "Nomor Urut Terakhir"
-        datetime createdAt "Waktu Dibuat"
-        datetime updatedAt "Waktu Diubah"
-    }
+    tindak_lanjut ||--o{ riwayat_tindak_lanjut : "1:N riwayat progres"
+    komentar_notulen ||--o{ komentar_notulen : "0..1 balasan induk"
           </pre>
         </div>
       </div>
     </div>
 
-    <!-- TAB 4: LRS DIAGRAM -->
+    <!-- TAB 5: LRS DIAGRAM -->
     <div id="content-lrs" class="tab-content hidden space-y-6">
-      <!-- Roadmap Banner -->
-      <div class="bg-gradient-to-r from-[#215865] to-[#31889C] rounded-2xl p-5 text-white shadow-xs">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <span class="px-2.5 py-0.5 bg-white/20 rounded-full text-[11px] font-bold tracking-wide uppercase">Tahap 2 dari 6 UML &amp; Database</span>
-            <h3 class="text-base font-bold mt-1">Logical Record Structure (LRS) - Siap Buka di Draw.io</h3>
-            <p class="text-xs text-white/80 mt-0.5">Hasil transformasi formal dari ERD setelah normalisasi relasi 1:1, 1:N, dan M:N.</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <a href="/LRS_SIM_RAPAT.drawio" download="LRS_SIM_RAPAT.drawio" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-[#215865] hover:bg-slate-100 shadow-sm transition-all flex items-center gap-1.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              Unduh File LRS (.drawio)
-            </a>
-          </div>
-        </div>
-      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+        <h2 class="text-[17px] font-bold text-slate-900 mb-2">Logical Record Structure (LRS) 14 Entitas</h2>
+        <p class="text-xs text-slate-500 mb-6">Blok rekod logis hasil transformasi ERD ke LRS siap disalin ke Bab III Skripsi / Laporan Tugas Akhir.</p>
 
-      
-      <!-- Visual LRS Diagram (Scribd Standard Academic Style) -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <div>
-            <h2 class="text-[17px] font-bold text-slate-900">Diagram Visual LRS (Standar Akademik / Buku Teks)</h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Format kartu entitas dengan header resmi KEK (<span class="font-bold text-[#215865]">#215865</span>), penanda <span class="font-bold text-amber-700">[PK]</span> &amp; <span class="font-bold text-sky-700">[FK]</span>, alur garis relasi orthogonal 1 ke M &amp; 1 ke 1 berpanah, serta jalur bebas tabrakan (Zero-Collision).
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-semibold">
-              Format Bersih &amp; Rapi
-            </span>
-          </div>
-        </div>
-
-        <!-- Scrollable Diagram Canvas Container -->
-        <div class="w-full overflow-x-auto bg-slate-100/70 p-4 rounded-xl border border-slate-200 flex justify-center">
-          <div class="relative bg-white shadow-md border border-slate-300 rounded-lg" style="width: 1110px; height: 1020px; min-width: 1110px;">
-            
-            <!-- Title Bar inside canvas -->
-            <div class="absolute left-[80px] top-[20px] w-[940px] h-[42px] bg-[#215865] rounded-lg shadow-sm border border-[#183E47] flex flex-col items-center justify-center text-center text-white">
-              <span class="text-xs font-bold tracking-wide uppercase">LOGICAL RECORD STRUCTURE (LRS)</span>
-              <span class="text-[11px] text-white/90 font-medium">SIM-RAPAT KEK RI (SEKRETARIAT JENDERAL DEWAN NASIONAL KAWASAN EKONOMI KHUSUS)</span>
-            </div>
-
-            <!-- SVG Overlay for Lines & Arrowheads -->
-            <svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 10;">
-              <defs>
-                <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#215865" />
-                </marker>
-              </defs>
-
-              <!-- 1. Biro -> Sequence (1:1) -->
-              <path d="M 300 135 L 440 135" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="306" y="118" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="310" y="130" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="420" y="118" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="424" y="130" font-size="11" font-weight="bold" fill="#215865">1</text>
-
-              <!-- 2. Biro -> User (1:M) through corridor below sequence -->
-              <path d="M 300 245 L 370 245 L 370 235 L 735 235 L 735 245 L 800 245" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="306" y="235" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="310" y="247" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="780" y="235" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="784" y="247" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 3. Biro -> Meeting_biro (1:M via biro_id) -->
-              <path d="M 140 295 L 140 400" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="146" y="305" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="150" y="317" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="146" y="380" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="150" y="392" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 4. Meeting -> Meeting_biro (1:M via meeting_id) -->
-              <path d="M 440 435 L 300 435" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="420" y="423" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="424" y="435" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="312" y="423" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="316" y="435" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 5. Biro -> Meeting (1:M via primary_biro_id) entering TOP at x=500 -->
-              <path d="M 250 295 L 250 330 L 500 330 L 500 360" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="256" y="305" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="260" y="317" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="506" y="340" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="510" y="352" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 6. User -> Meeting (1:M via chairperson/secretary) entering TOP at x=600 -->
-              <path d="M 850 315 L 850 330 L 600 330 L 600 360" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="856" y="305" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="860" y="317" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="606" y="340" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="610" y="352" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 7. User -> Meeting_participant (1:M via user_id) -->
-              <path d="M 910 315 L 910 380" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="916" y="325" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="920" y="337" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="916" y="360" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="920" y="372" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 8. Meeting -> Meeting_participant (1:M via meeting_id) -->
-              <path d="M 670 435 L 800 435" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="680" y="423" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="684" y="435" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="780" y="423" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="784" y="435" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 9. Meeting -> Meeting (Recursive via previous_meeting_id) right side loop -->
-              <path d="M 670 530 L 735 530 L 735 590 L 670 590" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="680" y="518" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="684" y="530" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="680" y="578" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="684" y="590" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 10. Meeting -> Meeting_minutes (1:1 via meeting_id) -->
-              <path d="M 555 675 L 555 720" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="562" y="682" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="566" y="694" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="562" y="702" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="566" y="714" font-size="11" font-weight="bold" fill="#215865">1</text>
-
-              <!-- 11. Meeting -> Action_item (1:M via meeting_id) -->
-              <path d="M 470 675 L 470 695 L 260 695 L 260 720" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="476" y="675" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="480" y="687" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="266" y="702" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="270" y="714" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 12. Biro -> Action_item (1:M via pic_biro_id) left corridor -->
-              <path d="M 80 180 L 40 180 L 40 810 L 80 810" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="55" y="168" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="59" y="180" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="55" y="798" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="59" y="810" font-size="11" font-weight="bold" fill="#215865">M</text>
-
-              <!-- 13. User -> Action_item (1:M via pic_user_id) internal corridor -->
-              <path d="M 820 315 L 820 350 L 755 350 L 755 680 L 200 680 L 200 720" fill="none" stroke="#215865" stroke-width="1.8" marker-end="url(#arrow-teal)" />
-              <rect x="826" y="325" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="830" y="337" font-size="11" font-weight="bold" fill="#215865">1</text>
-              <rect x="206" y="702" width="16" height="16" fill="#ffffff" rx="2" />
-              <text x="210" y="714" font-size="11" font-weight="bold" fill="#215865">M</text>
-            </svg>
-
-            <!-- Table 1: Biro -->
-            <div class="absolute left-[80px] top-[90px] w-[220px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                BIRO
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">biro_id [PK]</div>
-                <div>code</div>
-                <div>name</div>
-                <div>shortName</div>
-                <div>description</div>
-                <div>isActive</div>
-                <div>createdAt</div>
-                <div>updatedAt</div>
-              </div>
-            </div>
-
-            <!-- Table 2: Biro_meeting_sequence -->
-            <div class="absolute left-[440px] top-[90px] w-[230px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                BIRO_MEETING_SEQUENCE
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">sequence_id [PK]</div>
-                <div class="font-bold text-[#0284C7]">biro_id [FK]</div>
-                <div>currentNumber</div>
-                <div>createdAt</div>
-                <div>updatedAt</div>
-              </div>
-            </div>
-
-            <!-- Table 3: User -->
-            <div class="absolute left-[800px] top-[90px] w-[220px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                USER
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">user_id [PK]</div>
-                <div class="font-bold text-[#0284C7]">biro_id [FK]</div>
-                <div>name</div>
-                <div>email</div>
-                <div>password</div>
-                <div>role</div>
-                <div>isActive</div>
-                <div>createdAt</div>
-                <div>updatedAt</div>
-              </div>
-            </div>
-
-            <!-- Table 4: Meeting_biro -->
-            <div class="absolute left-[80px] top-[400px] w-[220px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                MEETING_BIRO (Junction)
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#D97706]">meeting_id [PK, FK]</div>
-                <div class="font-bold text-[#D97706]">biro_id [PK, FK]</div>
-              </div>
-            </div>
-
-            <!-- Table 5: Meeting -->
-            <div class="absolute left-[440px] top-[360px] w-[230px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                MEETING
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">meeting_id [PK]</div>
-                <div>meeting_number</div>
-                <div>title</div>
-                <div class="font-bold text-[#0284C7]">primary_biro_id [FK]</div>
-                <div class="font-bold text-[#0284C7]">chairperson_id [FK]</div>
-                <div class="font-bold text-[#0284C7]">secretary_id [FK]</div>
-                <div class="font-bold text-[#0284C7]">previous_meeting_id [FK]</div>
-                <div>date</div>
-                <div>startTime</div>
-                <div>endTime</div>
-                <div>location</div>
-                <div>status</div>
-                <div>createdAt</div>
-                <div>updatedAt</div>
-              </div>
-            </div>
-
-            <!-- Table 6: Meeting_participant -->
-            <div class="absolute left-[800px] top-[380px] w-[220px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                MEETING_PARTICIPANT
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">participant_id [PK]</div>
-                <div class="font-bold text-[#0284C7]">meeting_id [FK]</div>
-                <div class="font-bold text-[#0284C7]">user_id [FK]</div>
-                <div>attendanceStatus</div>
-                <div>createdAt</div>
-              </div>
-            </div>
-
-            <!-- Table 7: Action_item -->
-            <div class="absolute left-[80px] top-[720px] w-[220px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                ACTION_ITEM
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">action_item_id [PK]</div>
-                <div class="font-bold text-[#0284C7]">meeting_id [FK]</div>
-                <div class="font-bold text-[#0284C7]">pic_biro_id [FK]</div>
-                <div class="font-bold text-[#0284C7]">pic_user_id [FK]</div>
-                <div>title</div>
-                <div>description</div>
-                <div>dueDate</div>
-                <div>status</div>
-                <div>priority</div>
-                <div>completedAt</div>
-                <div>createdAt</div>
-                <div>updatedAt</div>
-              </div>
-            </div>
-
-            <!-- Table 8: Meeting_minutes -->
-            <div class="absolute left-[440px] top-[720px] w-[230px] rounded-lg border border-[#94A3B8] bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-[#215865] text-white text-center py-1.5 font-bold text-xs">
-                MEETING_MINUTES
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-0.5">
-                <div class="font-bold text-[#B7791F]">minutes_id [PK]</div>
-                <div class="font-bold text-[#0284C7]">meeting_id [FK]</div>
-                <div>agenda</div>
-                <div>discussion</div>
-                <div>decisions</div>
-                <div>conclusion</div>
-                <div>createdAt</div>
-                <div>updatedAt</div>
-              </div>
-            </div>
-
-            <!-- Legend: Petunjuk Notasi LRS -->
-            <div class="absolute left-[800px] top-[720px] w-[220px] rounded-lg border border-slate-700 bg-white shadow-xs overflow-hidden" style="z-index: 20;">
-              <div class="bg-slate-800 text-white text-center py-1.5 font-bold text-xs">
-                PETUNJUK NOTASI LRS
-              </div>
-              <div class="p-2.5 text-[11px] leading-relaxed text-slate-800 space-y-1">
-                <div><span class="font-bold text-[#B7791F]">[PK]</span> : Primary Key (Kuning)</div>
-                <div><span class="font-bold text-[#0284C7]">[FK]</span> : Foreign Key (Biru)</div>
-                <div><span class="font-bold text-[#215865]">1</span> &nbsp;&nbsp;&nbsp;: Relasi Derajat 1</div>
-                <div><span class="font-bold text-[#215865]">M</span> &nbsp;&nbsp;&nbsp;: Relasi Derajat Banyak</div>
-                <div><span class="font-bold text-[#215865]">1 &rarr; M</span> : Satu ke Banyak</div>
-                <div><span class="font-bold text-[#215865]">1 &rarr; 1</span> : Satu ke Satu Unik</div>
-                <div><span class="font-bold text-[#215865]">Panah</span> : Menunjuk Kunci Tamu</div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 overflow-hidden">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-[17px] font-bold text-slate-900">Daftar Atribut Lengkap Setiap Rekod LRS</h2>
-            <p class="text-xs text-slate-500 mt-1">
-              Setiap kotak merepresentasikan rekod tabel logis lengkap dengan alur Primary Key (*PK) menuju Foreign Key (**FK).
-            </p>
-          </div>
-        </div>
-
-        <div class="bg-slate-900 rounded-xl p-5 border border-slate-800 text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed">
-<pre class="text-[#7CC563]">1. BIRO
-   ├── *biro_id : VARCHAR(50) &lt;PK&gt;
-   ├── code : VARCHAR(20) &lt;UK&gt;
-   ├── name : VARCHAR(255)
-   ├── shortName : VARCHAR(100)
-   ├── description : TEXT
-   ├── isActive : BOOLEAN
-   ├── createdAt : TIMESTAMP
-   └── updatedAt : TIMESTAMP
-
-2. BIRO_MEETING_SEQUENCE
-   ├── *sequence_id : VARCHAR(50) &lt;PK&gt;
-   ├── **biro_id : VARCHAR(50) &lt;FK, UK&gt; ─── (Relasi 1:1 dari BIRO)
-   ├── currentNumber : INTEGER
-   ├── createdAt : TIMESTAMP
-   └── updatedAt : TIMESTAMP
-
-3. USER
-   ├── *user_id : VARCHAR(50) &lt;PK&gt;
-   ├── **biro_id : VARCHAR(50) &lt;FK&gt; ───────── (Relasi 1:N dari BIRO)
-   ├── email : VARCHAR(150) &lt;UK&gt;
-   ├── name : VARCHAR(150)
-   ├── password : VARCHAR(255)
-   ├── role : ENUM('SUPER_ADMIN', 'ADMIN', 'NOTULIS', 'STAFF', 'VIEWER')
-   ├── isActive : BOOLEAN
-   ├── createdAt : TIMESTAMP
-   └── updatedAt : TIMESTAMP
-
-4. MEETING
-   ├── *meeting_id : VARCHAR(50) &lt;PK&gt;
-   ├── meeting_number : VARCHAR(50) &lt;UK&gt;
-   ├── **primary_biro_id : VARCHAR(50) &lt;FK&gt; ── (Relasi 1:N dari BIRO)
-   ├── **chairperson_id : VARCHAR(50) &lt;FK&gt; ─── (Relasi 1:N dari USER)
-   ├── **secretary_id : VARCHAR(50) &lt;FK&gt; ───── (Relasi 1:N dari USER)
-   ├── **previous_meeting_id : VARCHAR(50) &lt;FK&gt; (Relasi 1:N Rekursif dari MEETING)
-   ├── title : VARCHAR(255)
-   ├── date : DATE
-   ├── startTime : VARCHAR(10)
-   ├── endTime : VARCHAR(10)
-   ├── location : VARCHAR(255)
-   ├── status : ENUM('DRAFT', 'REVIEW', 'APPROVED', 'FINAL')
-   ├── createdAt : TIMESTAMP
-   └── updatedAt : TIMESTAMP
-
-5. MEETING_BIRO (Junction Table)
-   ├── *meeting_id : VARCHAR(50) &lt;PK, FK&gt; ──── (Relasi 1:N dari MEETING)
-   └── *biro_id : VARCHAR(50) &lt;PK, FK&gt; ─────── (Relasi 1:N dari BIRO)
-
-6. MEETING_PARTICIPANT
-   ├── *participant_id : VARCHAR(50) &lt;PK&gt;
-   ├── **meeting_id : VARCHAR(50) &lt;FK&gt; ─────── (Relasi 1:N dari MEETING)
-   ├── **user_id : VARCHAR(50) &lt;FK&gt; ────────── (Relasi 1:N dari USER)
-   ├── attendanceStatus : ENUM('INVITED', 'PRESENT', 'ABSENT', 'EXCUSED')
-   └── createdAt : TIMESTAMP
-
-7. MEETING_MINUTES
-   ├── *minutes_id : VARCHAR(50) &lt;PK&gt;
-   ├── **meeting_id : VARCHAR(50) &lt;FK, UK&gt; ─── (Relasi 1:1 dari MEETING)
-   ├── agenda : JSON
-   ├── discussion : JSON
-   ├── decisions : JSON
-   ├── conclusion : JSON
-   ├── createdAt : TIMESTAMP
-   └── updatedAt : TIMESTAMP
-
-8. ACTION_ITEM
-   ├── *action_item_id : VARCHAR(50) &lt;PK&gt;
-   ├── **meeting_id : VARCHAR(50) &lt;FK&gt; ─────── (Relasi 1:N dari MEETING)
-   ├── **pic_biro_id : VARCHAR(50) &lt;FK&gt; ────── (Relasi 1:N dari BIRO)
-   ├── **pic_user_id : VARCHAR(50) &lt;FK&gt; ────── (Relasi 1:N dari USER, Opsional)
-   ├── title : VARCHAR(255)
-   ├── description : TEXT
-   ├── dueDate : TIMESTAMP
-   ├── status : ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE')
-   ├── priority : ENUM('LOW', 'MEDIUM', 'HIGH', 'URGENT')
-   ├── completedAt : TIMESTAMP
-   ├── createdAt : TIMESTAMP
-   └── updatedAt : TIMESTAMP</pre>
+        <div class="bg-slate-900 text-slate-100 p-6 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+          <pre>
+1. biro (*id_biro &lt;PK&gt;, kode_biro &lt;UK&gt;, nama_biro, nama_singkat, deskripsi, status_aktif)
+2. tim_biro (*id_tim &lt;PK&gt;, **id_biro &lt;FK&gt;, kode_tim, nama_tim, deskripsi_tim, status_aktif)
+3. pengguna (*id_pengguna &lt;PK&gt;, **id_biro &lt;FK&gt;, **id_tim &lt;FK&gt;, nama_lengkap, email &lt;UK&gt;, peran, status_aktif)
+4. penomoran_rapat_biro (*id_penomoran &lt;PK&gt;, **id_biro &lt;FK, UK&gt;, nomor_terakhir)
+5. rapat (*id_rapat &lt;PK&gt;, nomor_rapat &lt;UK&gt;, judul_rapat, **id_biro &lt;FK&gt;, **id_tim &lt;FK&gt;, **id_pengguna &lt;FK&gt;, **id_notulis &lt;FK&gt;, **id_rapat_sebelumnya &lt;FK&gt;, tanggal_rapat, status_rapat)
+6. rapat_biro (*id_rapat &lt;PK, FK&gt;, *id_biro &lt;PK, FK&gt;)
+7. peserta_rapat (*id_peserta &lt;PK&gt;, **id_rapat &lt;FK&gt;, **id_pengguna &lt;FK&gt;, status_kehadiran)
+8. lampiran_rapat (*id_lampiran &lt;PK&gt;, **id_rapat &lt;FK&gt;, nama_berkas, url_berkas, ukuran_berkas, tipe_berkas)
+9. notulen_rapat (*id_notulen &lt;PK&gt;, **id_rapat &lt;FK, UK&gt;, agenda_pembahasan, hasil_pembahasan, poin_keputusan, kesimpulan)
+10. komentar_notulen (*id_komentar &lt;PK&gt;, **id_rapat &lt;FK&gt;, **id_pengguna &lt;FK&gt;, **id_induk &lt;FK&gt;, isi_komentar, sudah_diselesaikan)
+11. riwayat_notulen (*id_riwayat &lt;PK&gt;, **id_rapat &lt;FK&gt;, **id_pengguna &lt;FK&gt;, tipe_perubahan, nama_kolom, nilai_lama, nilai_baru)
+12. tindak_lanjut (*id_tindak_lanjut &lt;PK&gt;, **id_rapat &lt;FK&gt;, **id_biro &lt;FK&gt;, **id_tim &lt;FK&gt;, **id_pengguna &lt;FK&gt;, judul_tindakan, tenggat_waktu, status_tindak_lanjut, skala_prioritas)
+13. riwayat_tindak_lanjut (*id_riwayat &lt;PK&gt;, **id_tindak_lanjut &lt;FK&gt;, **id_pengguna &lt;FK&gt;, status_terbaru, catatan_progres, persentase_progres)
+14. notifikasi (*id_notifikasi &lt;PK&gt;, **id_pengguna &lt;FK&gt;, judul, pesan, tipe, tautan, sudah_dibaca)
+          </pre>
         </div>
       </div>
     </div>
 
-    <!-- TAB 5: PLANTUML RAW -->
+    <!-- TAB 6: PLANTUML -->
     <div id="content-plantuml" class="tab-content hidden space-y-6">
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-[17px] font-bold text-slate-900">Kode PlantUML Resmi (.puml)</h2>
-            <p class="text-xs text-slate-500 mt-1">
-              Bisa langsung Anda salin dan tempel ke <strong>PlantText, Visual Paradigm, StarUML</strong>, atau ekstensi PlantUML di VS Code.
-            </p>
+            <h2 class="text-[17px] font-bold text-slate-900">Kode PlantUML Lengkap (sim-rapat-uml.puml)</h2>
+            <p class="text-xs text-slate-500 mt-1">Salin kode ini dan buka di PlantText.com atau ekstensi VS Code PlantUML untuk ekspor PNG resolusi ultra-tinggi.</p>
           </div>
-          <button onclick="copyPlantUml()" id="btn-copy-plant" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#31889C] text-white hover:bg-[#266F80] transition-all shadow-xs">
+          <button onclick="copyPlantUML()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#31889C] text-white hover:bg-[#266F80] transition-all">
             Salin Kode PlantUML
           </button>
         </div>
 
-        <pre id="plantuml-code" class="mono bg-slate-900 text-slate-200 p-5 rounded-xl text-xs overflow-x-auto leading-relaxed border border-slate-800">@startuml SIM_RAPAT_KEK_UML
+        <div class="bg-slate-900 text-slate-100 p-6 rounded-xl font-mono text-xs overflow-x-auto border border-slate-800 max-h-[600px]">
+          <pre id="plantuml-code">
+@startuml SIM_RAPAT_KEK_UML
 !theme plain
 skinparam classAttributeIconSize 0
 skinparam monochrome false
@@ -930,38 +886,36 @@ skinparam class {
     BorderColor #215865
 }
 
-title SISTEM INFORMASI MANAJEMEN RAPAT &amp; TINDAK LANJUT (SIM-RAPAT KEK RI)\nUML Class Diagram
+title SISTEM INFORMASI LOG & RISALAH RAPAT (SIM-RAPAT KEK RI)\nUML Class Diagram Lengkap (14 Entitas Basis Data)
 
-enum UserRole {
+enum PeranPengguna {
   SUPER_ADMIN
   ADMIN
-  NOTULIS
   STAFF
-  VIEWER
 }
 
-enum MeetingStatus {
+enum StatusRapat {
   DRAFT
   REVIEW
   APPROVED
   FINAL
 }
 
-enum AttendanceStatus {
+enum StatusKehadiran {
   INVITED
   PRESENT
   ABSENT
   EXCUSED
 }
 
-enum ActionItemStatus {
+enum StatusTindakLanjut {
   PENDING
   IN_PROGRESS
   COMPLETED
   OVERDUE
 }
 
-enum ActionItemPriority {
+enum PrioritasTindakLanjut {
   LOW
   MEDIUM
   HIGH
@@ -969,176 +923,273 @@ enum ActionItemPriority {
 }
 
 class Biro {
-  + String biro_id <<PK>>
-  + String code <<UK>>
-  + String name
-  + String shortName
-  + String description
-  + Boolean isActive
-  + DateTime createdAt
-  + DateTime updatedAt
+  + String id_biro <<PK>>
+  + String kode_biro <<UK>>
+  + String nama_biro
+  + String nama_singkat
+  + String deskripsi
+  + Boolean status_aktif
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
   --
-  + getWorkload()
-  + getStaffList()
+  + hitungBebanKerja()
+  + getDaftarPegawai()
+  + getStatistikTim()
 }
 
-class User {
-  + String user_id <<PK>>
-  + String biro_id <<FK>>
-  + String name
+class TimBiro {
+  + String id_tim <<PK>>
+  + String id_biro <<FK>>
+  + String kode_tim
+  + String nama_tim
+  + String deskripsi_tim
+  + Boolean status_aktif
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
+  --
+  + getDaftarStaf()
+  + hitungRapatTim()
+}
+
+class Pengguna {
+  + String id_pengguna <<PK>>
+  + String id_biro <<FK>>
+  + String id_tim <<FK, Null>>
+  + String nama_lengkap
   + String email <<UK>>
-  + String password
-  + UserRole role
-  + Boolean isActive
-  + DateTime createdAt
-  + DateTime updatedAt
+  + String kata_sandi
+  + PeranPengguna peran
+  + Boolean status_aktif
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
   --
-  + authenticate()
-  + updateProfile()
+  + autentikasi()
+  + ubahProfil()
+  + ambilDaftarTugas()
 }
 
-class Meeting {
-  + String meeting_id <<PK>>
-  + String meeting_number <<UK>>
-  + String title
-  + String primary_biro_id <<FK>>
-  + DateTime date
-  + String startTime
-  + String endTime
-  + String location
-  + String chairperson_id <<FK>>
-  + String secretary_id <<FK>>
-  + String previous_meeting_id <<FK>>
-  + MeetingStatus status
-  + DateTime createdAt
-  + DateTime updatedAt
+class PenomoranRapatBiro {
+  + String id_penomoran <<PK>>
+  + String id_biro <<FK, UK>>
+  + Int nomor_terakhir
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
   --
-  + createMeeting()
-  + updateStatus()
-  + exportPdf()
+  + ambilNomorBerikutnya()
 }
 
-class MeetingMinutes {
-  + String minutes_id <<PK>>
-  + String meeting_id <<FK, UK>>
-  + Json agenda
-  + Json discussion
-  + Json decisions
-  + Json conclusion
-  + DateTime createdAt
-  + DateTime updatedAt
+class Rapat {
+  + String id_rapat <<PK>>
+  + String nomor_rapat <<UK>>
+  + String judul_rapat
+  + String id_biro <<FK>>
+  + String id_tim <<FK, Null>>
+  + String id_pengguna <<FK>>
+  + String id_notulis <<FK, Null>>
+  + String id_rapat_sebelumnya <<FK, Null>>
+  + DateTime tanggal_rapat
+  + String waktu_mulai
+  + String waktu_selesai
+  + String lokasi_rapat
+  + StatusRapat status_rapat
+  + String jenis_rapat
+  + String pic_rapat
+  + String status_progres
+  + String kategori_naskah
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
   --
-  + saveMinutes()
-  + generatePdf()
+  + buatRapat()
+  + perbaruiStatus()
+  + tambahPeserta()
+  + eksporRisalahPdf()
 }
 
-class MeetingParticipant {
-  + String participant_id <<PK>>
-  + String meeting_id <<FK>>
-  + String user_id <<FK>>
-  + AttendanceStatus attendanceStatus
-  + DateTime createdAt
+class RapatBiro {
+  + String id_rapat <<PK, FK>>
+  + String id_biro <<PK, FK>>
+}
+
+class PesertaRapat {
+  + String id_peserta <<PK>>
+  + String id_rapat <<FK>>
+  + String id_pengguna <<FK>>
+  + StatusKehadiran status_kehadiran
+  + DateTime dibuat_pada
   --
-  + updateAttendance()
+  + catatKehadiran()
 }
 
-class MeetingBiro {
-  + String meeting_id <<PK, FK>>
-  + String biro_id <<PK, FK>>
-}
-
-class ActionItem {
-  + String action_item_id <<PK>>
-  + String meeting_id <<FK>>
-  + String title
-  + String description
-  + String pic_biro_id <<FK>>
-  + String pic_user_id <<FK>>
-  + DateTime dueDate
-  + ActionItemStatus status
-  + ActionItemPriority priority
-  + DateTime completedAt
-  + DateTime createdAt
-  + DateTime updatedAt
+class LampiranRapat {
+  + String id_lampiran <<PK>>
+  + String id_rapat <<FK>>
+  + String nama_berkas
+  + String url_berkas
+  + Int ukuran_berkas
+  + String tipe_berkas
+  + String kategori
+  + DateTime dibuat_pada
   --
-  + updateStatus()
-  + markCompleted()
+  + unggahBerkas()
+  + unduhBerkas()
 }
 
-class BiroMeetingSequence {
-  + String sequence_id <<PK>>
-  + String biro_id <<FK, UK>>
-  + Int currentNumber
-  + DateTime createdAt
-  + DateTime updatedAt
+class NotulenRapat {
+  + String id_notulen <<PK>>
+  + String id_rapat <<FK, UK>>
+  + Json agenda_pembahasan
+  + Json hasil_pembahasan
+  + Json poin_keputusan
+  + Json kesimpulan
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
   --
-  + getNextNumber()
+  + simpanNotulen()
+  + validasiNotulen()
+  + cetakDokumenResmi()
 }
 
-' Relations
-Biro "1" *-- "0..*" User : mempekerjakan (biro_id)
-Biro "1" --> "0..*" Meeting : menyelenggarakan (primary_biro_id)
-Biro "1" *-- "1" BiroMeetingSequence : penomoran surat (biro_id)
-User "1" --> "0..*" Meeting : memimpin (chairperson_id)
-User "1" --> "0..*" Meeting : mencatat (secretary_id)
-Meeting "1" --> "0..1" Meeting : rujukan (previous_meeting_id)
+class KomentarNotulen {
+  + String id_komentar <<PK>>
+  + String id_rapat <<FK>>
+  + String id_pengguna <<FK>>
+  + String id_induk <<FK, Null>>
+  + String isi_komentar
+  + String seksi
+  + Boolean sudah_diselesaikan
+  + DateTime dibuat_pada
+  --
+  + tambahKomentar()
+  + balasKomentar()
+  + tandaiSelesai()
+}
 
-Meeting "1" *-- "1" MeetingMinutes : menghasilkan naskah (meeting_id)
-Meeting "1" *-- "0..*" ActionItem : menghasilkan resolusi (meeting_id)
-Biro "1" --> "0..*" ActionItem : penanggung jawab (pic_biro_id)
-User "0..1" --> "0..*" ActionItem : staf pelaksana (pic_user_id)
+class RiwayatNotulen {
+  + String id_riwayat <<PK>>
+  + String id_rapat <<FK>>
+  + String id_pengguna <<FK>>
+  + String tipe_perubahan
+  + String nama_kolom
+  + Json nilai_lama
+  + Json nilai_baru
+  + String ringkasan_perubahan
+  + DateTime dibuat_pada
+  --
+  + catatAuditTrail()
+}
 
-Meeting "1" *-- "0..*" MeetingParticipant : dihadiri (meeting_id)
-User "1" --> "0..*" MeetingParticipant : sebagai peserta (user_id)
+class TindakLanjut {
+  + String id_tindak_lanjut <<PK>>
+  + String id_rapat <<FK>>
+  + String id_biro <<FK>>
+  + String id_tim <<FK, Null>>
+  + String id_pengguna <<FK, Null>>
+  + String judul_tindakan
+  + String deskripsi_tindakan
+  + DateTime tenggat_waktu
+  + StatusTindakLanjut status_tindak_lanjut
+  + PrioritasTindakLanjut skala_prioritas
+  + DateTime diselesaikan_pada
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
+  --
+  + perbaruiStatus()
+  + perbaruiProgres()
+  + tandaiSelesai()
+}
 
-Meeting "1" -- "0..*" MeetingBiro : melibatkan (meeting_id)
-Biro "1" -- "0..*" MeetingBiro : terlibat (biro_id)
+class RiwayatTindakLanjut {
+  + String id_riwayat <<PK>>
+  + String id_tindak_lanjut <<FK>>
+  + String id_pengguna <<FK>>
+  + StatusTindakLanjut status_sebelumnya
+  + StatusTindakLanjut status_terbaru
+  + String catatan_progres
+  + Int persentase_progres
+  + DateTime dibuat_pada
+  --
+  + tambahLogProgres()
+}
 
-@enduml</pre>
+class Notifikasi {
+  + String id_notifikasi <<PK>>
+  + String id_pengguna <<FK>>
+  + String judul
+  + String pesan
+  + String tipe
+  + String tautan
+  + Boolean sudah_dibaca
+  + DateTime dibuat_pada
+  --
+  + kirimNotifikasi()
+  + tandaiDibaca()
+}
+
+Biro "1" --> "0..*" TimBiro : id_biro (1:N)
+Biro "1" --> "0..*" Pengguna : id_biro (1:N)
+Biro "1" --> "0..*" Rapat : id_biro (1:N)
+Biro "1" --> "1" PenomoranRapatBiro : id_biro (1:1)
+Biro "1" --> "0..*" TindakLanjut : id_biro (1:N)
+Biro "1" -- "0..*" RapatBiro : id_biro (M:N)
+
+TimBiro "0..1" --> "0..*" Pengguna : id_tim (1:N)
+TimBiro "0..1" --> "0..*" Rapat : id_tim (1:N)
+TimBiro "0..1" --> "0..*" TindakLanjut : id_tim (1:N)
+
+Pengguna "1" --> "0..*" Rapat : id_pengguna (1:N)
+Pengguna "1" -- "0..*" PesertaRapat : id_pengguna (1:N)
+Pengguna "0..1" --> "0..*" TindakLanjut : id_pengguna (1:N)
+Pengguna "1" --> "0..*" RiwayatTindakLanjut : id_pengguna (1:N)
+Pengguna "1" --> "0..*" KomentarNotulen : id_pengguna (1:N)
+Pengguna "1" --> "0..*" RiwayatNotulen : id_pengguna (1:N)
+Pengguna "1" --> "0..*" Notifikasi : id_pengguna (1:N)
+
+Rapat "1" --> "0..1" Rapat : id_rapat_sebelumnya (0..1:N)
+Rapat "1" *-- "0..1" NotulenRapat : id_rapat (1:1)
+Rapat "1" *-- "0..*" TindakLanjut : id_rapat (1:N)
+Rapat "1" *-- "0..*" PesertaRapat : id_rapat (1:N)
+Rapat "1" *-- "0..*" LampiranRapat : id_rapat (1:N)
+Rapat "1" *-- "0..*" KomentarNotulen : id_rapat (1:N)
+Rapat "1" *-- "0..*" RiwayatNotulen : id_rapat (1:N)
+Rapat "1" -- "0..*" RapatBiro : id_rapat (M:N)
+
+KomentarNotulen "1" --> "0..*" KomentarNotulen : id_induk (0..1:N)
+TindakLanjut "1" *-- "0..*" RiwayatTindakLanjut : id_tindak_lanjut (1:N)
+
+@enduml
+          </pre>
+        </div>
       </div>
     </div>
 
   </main>
 
-  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-    SIM-RAPAT KEK RI &bull; Sistem Informasi Manajemen Rapat &amp; Tindak Lanjut Dewan Nasional Kawasan Ekonomi Khusus RI &copy; 2026
-  </footer>
-
   <script>
     function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('border-[#31889C]', 'text-[#31889C]', 'font-bold');
         btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
       });
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-      });
 
-      const activeBtn = document.getElementById(`tab-${tabId}`);
-      const activeContent = document.getElementById(`content-${tabId}`);
-      if (activeBtn) {
-        activeBtn.classList.add('border-[#31889C]', 'text-[#31889C]', 'font-bold');
-        activeBtn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
-      }
-      if (activeContent) {
-        activeContent.classList.remove('hidden');
+      const activeContent = document.getElementById('content-' + tabId);
+      const activeTabBtn = document.getElementById('tab-' + tabId);
+
+      if (activeContent) activeContent.classList.remove('hidden');
+      if (activeTabBtn) {
+        activeTabBtn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+        activeTabBtn.classList.add('border-[#31889C]', 'text-[#31889C]', 'font-bold');
       }
     }
 
     function copyMermaid(elementId) {
-      const code = document.getElementById(elementId).innerText;
-      navigator.clipboard.writeText(code).then(() => {
-        alert('Kode diagram Mermaid berhasil disalin ke clipboard!');
-      });
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => alert('Kode Mermaid berhasil disalin!'));
     }
 
-    function copyPlantUml() {
-      const code = document.getElementById('plantuml-code').innerText;
-      navigator.clipboard.writeText(code).then(() => {
-        const btn = document.getElementById('btn-copy-plant');
-        btn.innerText = 'Tersalin!';
-        setTimeout(() => { btn.innerText = 'Salin Kode PlantUML'; }, 2000);
-      });
+    function copyPlantUML() {
+      const text = document.getElementById('plantuml-code').innerText;
+      navigator.clipboard.writeText(text).then(() => alert('Kode PlantUML berhasil disalin!'));
     }
   </script>
 </body>
