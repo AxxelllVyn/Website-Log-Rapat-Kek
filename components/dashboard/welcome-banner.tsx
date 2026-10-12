@@ -40,6 +40,10 @@ export function WelcomeBanner({
   const userName = currentUser?.name || 'Administrator';
   const userRole = (currentUser?.role as string) || 'SUPER_ADMIN';
   const roleConfig = ROLE_LABELS[userRole] || ROLE_LABELS.SUPER_ADMIN;
+  const userTeamName = currentUser?.teamName;
+  const roleLabelText = userRole === 'STAFF' && userTeamName
+    ? `Staf Tim ${userTeamName}`
+    : roleConfig.label;
 
   const biroInfo = 'Sekretariat Dewan Nasional KEK';
 
@@ -120,7 +124,7 @@ export function WelcomeBanner({
               className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border font-bold text-[11px] uppercase tracking-wider ${roleConfig.badgeClass}`}
             >
               <span className="w-2 h-2 rounded-full bg-current" />
-              {roleConfig.label}
+              {roleLabelText}
             </span>
 
             <span className="text-slate-300 font-semibold">•</span>

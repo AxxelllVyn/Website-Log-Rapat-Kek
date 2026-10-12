@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: normalizedEmail },
-          include: { biro: true },
+          include: { biro: true, team: true },
         });
 
         // Reject if user doesn't exist, has no password, or is deactivated
@@ -53,6 +53,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           biroId: user.biroId,
           biroCode: user.biro.code,
           biroName: user.biro.shortName,
+          teamId: user.teamId,
+          teamCode: user.team?.code,
+          teamName: user.team?.name,
         };
       },
     }),
@@ -67,6 +70,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.biroId = user.biroId;
         token.biroCode = user.biroCode;
         token.biroName = user.biroName;
+        token.teamId = user.teamId;
+        token.teamCode = user.teamCode;
+        token.teamName = user.teamName;
       }
 
       // Handle client-side session update
@@ -79,6 +85,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (session.user?.biroCode) token.biroCode = session.user.biroCode;
         if (session.biroName) token.biroName = session.biroName;
         if (session.user?.biroName) token.biroName = session.user.biroName;
+        if (session.teamCode) token.teamCode = session.teamCode;
+        if (session.user?.teamCode) token.teamCode = session.user.teamCode;
+        if (session.teamName) token.teamName = session.teamName;
+        if (session.user?.teamName) token.teamName = session.user.teamName;
       }
 
       // Realtime sync from database: ensures profile edits are immediately reflected
@@ -90,12 +100,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               name: true,
               role: true,
               isActive: true,
+              teamId: true,
+              team: { select: { id: true, code: true, name: true } },
               biro: { select: { id: true, code: true, shortName: true } },
             },
           });
           if (dbUser && dbUser.isActive) {
             token.name = dbUser.name;
             token.role = dbUser.role;
+            token.teamId = dbUser.teamId;
+            token.teamCode = dbUser.team?.code;
+            token.teamName = dbUser.team?.name;
             if (dbUser.biro) {
               token.biroId = dbUser.biro.id;
               token.biroCode = dbUser.biro.code;
@@ -117,6 +132,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.biroId = token.biroId as string;
         session.user.biroCode = token.biroCode as string;
         session.user.biroName = token.biroName as string;
+        session.user.teamId = (token.teamId as string) || null;
+        session.user.teamCode = (token.teamCode as string) || null;
+        session.user.teamName = (token.teamName as string) || null;
       }
       return session;
     },

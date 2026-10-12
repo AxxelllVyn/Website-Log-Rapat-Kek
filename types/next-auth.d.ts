@@ -9,6 +9,9 @@ declare module 'next-auth' {
       biroId: string;
       biroCode?: string;
       biroName?: string;
+      teamId?: string | null;
+      teamCode?: string | null;
+      teamName?: string | null;
     } & DefaultSession['user'];
   }
 
@@ -18,6 +21,9 @@ declare module 'next-auth' {
     biroId?: string;
     biroCode?: string;
     biroName?: string;
+    teamId?: string | null;
+    teamCode?: string | null;
+    teamName?: string | null;
   }
 }
 
@@ -28,5 +34,8 @@ declare module 'next-auth/jwt' {
     biroId?: string;
     biroCode?: string;
     biroName?: string;
+    teamId?: string | null;
+    teamCode?: string | null;
+    teamName?: string | null;
   }
 }

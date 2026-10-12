@@ -23,6 +23,9 @@ export default async function DashboardPage() {
       monthlyActivity={stats?.monthlyActivity}
       totalResolutions={stats?.actionItemStats?.total}
       teamWorkload={stats?.teamWorkload}
+      userRole={currentUser?.role}
+      userTeamCode={currentUser?.teamCode}
+      userTeamName={currentUser?.teamName}
     />
   );
 }

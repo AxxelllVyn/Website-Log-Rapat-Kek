@@ -77,6 +77,9 @@ export interface AuthUser {
   biroId: string;
   biroCode?: string;
   biroName?: string;
+  teamId?: string | null;
+  teamCode?: string | null;
+  teamName?: string | null;
 }
 
 let testUserOverride: AuthUser | null = null;
@@ -108,6 +111,9 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       biroId: session.user.biroId,
       biroCode: session.user.biroCode,
       biroName: session.user.biroName,
+      teamId: session.user.teamId,
+      teamCode: session.user.teamCode,
+      teamName: session.user.teamName,
     };
   } catch (error) {
     console.error('Error getting current user:', error);

@@ -302,7 +302,15 @@ export function Sidebar({
                         { code: 'INV', name: 'Tim Investasi', href: '/semua-rapat?tim=INV' },
                         { code: 'KS', name: 'Tim Kerja Sama', href: '/semua-rapat?tim=KS' },
                         { code: 'KOM', name: 'Tim Komunikasi', href: '/semua-rapat?tim=KOM' },
-                      ].map((tim) => (
+                      ]
+                        .filter((tim) => {
+                          // Untuk role Staf, hanya tampilkan tim yang sesuai dengan tim mereka
+                          if (userRole === 'STAFF' && session?.user?.teamCode) {
+                            return tim.code.toUpperCase() === session.user.teamCode.toUpperCase();
+                          }
+                          return true;
+                        })
+                        .map((tim) => (
                         <Link
                           key={tim.code}
                           href={tim.href}

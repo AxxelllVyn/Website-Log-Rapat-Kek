@@ -10,6 +10,7 @@ import { TeamWorkloadGrid } from '@/components/dashboard/team-workload-grid';
 import { TeamDetailModal } from '@/components/dashboard/team-detail-modal';
 import { MeetingTable } from '@/components/meeting/meeting-table';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Meeting, DashboardMetric, BureauWorkload, FollowUpStatusMetric, MonthlyActivity, TeamWorkloadMetric } from '@/lib/types';
 import { normalizeProgressStatus, mapStatusToProgress } from '@/lib/meeting-status';
 
@@ -21,6 +22,9 @@ interface DashboardClientProps {
   monthlyActivity?: MonthlyActivity[];
   totalResolutions?: number;
   teamWorkload?: TeamWorkloadMetric[];
+  userRole?: string;
+  userTeamCode?: string | null;
+  userTeamName?: string | null;
 }
 
 const MONTH_INDEX_MAP: Record<string, number> = {
@@ -43,6 +47,17 @@ const FULL_MONTH_NAMES: Record<string, string> = {
   Des: 'Desember',
 };
 
+function isMatchTeam(m: Meeting, code: string): boolean {
+  const c = code.toUpperCase();
+  if (c === 'ALL' || c === 'IKK' || c === 'BIRO-IKK') return true;
+  if (m.primaryTeamCode?.toUpperCase() === c) return true;
+  if (m.primaryTeamId?.toUpperCase().includes(c)) return true;
+  if (c === 'INV' && (m.primaryTeamName?.toLowerCase().includes('investasi') || m.primaryTeamCode === 'TIM-001' || m.primaryTeamId === 'TIM-001')) return true;
+  if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
+  if (c === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002')) return true;
+  return false;
+}
+
 export function DashboardClient({
   initialMeetings,
   metrics,
@@ -51,8 +66,17 @@ export function DashboardClient({
   monthlyActivity,
   totalResolutions,
   teamWorkload: initialTeamWorkload,
+  userRole: initialUserRole,
+  userTeamCode: initialUserTeamCode,
+  userTeamName: initialUserTeamName,
 }: DashboardClientProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+
+  const effectiveUserRole = session?.user?.role || initialUserRole || 'STAFF';
+  const effectiveTeamCode = session?.user?.teamCode ?? initialUserTeamCode ?? null;
+  const isStaff = effectiveUserRole === 'STAFF';
+
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [meetingsList, setMeetingsList] = useState<Meeting[]>(initialMeetings);
 
@@ -99,6 +123,16 @@ export function DashboardClient({
       );
   }, [teamWorkload]);
 
+  // Khusus staf: temukan data beban kerja dan pekerjaan tim yang sesuai
+  const userTeamWorkload = useMemo(() => {
+    if (!isStaff || !effectiveTeamCode) return null;
+    return (
+      sanitizedTeamWorkload.find(
+        (t) => t.code.toUpperCase() === effectiveTeamCode.toUpperCase()
+      ) || null
+    );
+  }, [isStaff, effectiveTeamCode, sanitizedTeamWorkload]);
+
   const handleOpenTeamModal = (team: TeamWorkloadMetric) => {
     setSelectedTeamForModal(team);
     setIsTeamModalOpen(true);
@@ -108,26 +142,34 @@ export function DashboardClient({
     setMeetingsList(initialMeetings.filter((m) => !deletedIds.has(m.id)));
   }, [initialMeetings, deletedIds]);
 
+  // Koleksi rapat yang relevan: untuk staf hanya ambil rapat milik tim mereka
+  const relevantMeetings = useMemo(() => {
+    if (isStaff && effectiveTeamCode) {
+      return meetingsList.filter((m) => isMatchTeam(m, effectiveTeamCode));
+    }
+    return meetingsList;
+  }, [meetingsList, isStaff, effectiveTeamCode]);
+
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
-  // Dynamically discover all years present in meetings (guaranteeing at least 2026 and 2027)
+  // Dynamically discover all years present in relevant meetings (guaranteeing at least 2026 and 2027)
   const availableYears = useMemo(() => {
     const yearsSet = new Set<number>([2026, 2027]);
-    meetingsList.forEach((m) => {
+    relevantMeetings.forEach((m) => {
       const y = new Date(m.date).getFullYear();
       if (!isNaN(y) && y > 2000) yearsSet.add(y);
     });
     return Array.from(yearsSet).sort((a, b) => a - b);
-  }, [meetingsList]);
+  }, [relevantMeetings]);
 
   // Meetings filtered by the selected year
   const yearMeetings = useMemo(() => {
-    return meetingsList.filter((m) => {
+    return relevantMeetings.filter((m) => {
       const d = new Date(m.date);
       return d.getFullYear() === selectedYear;
     });
-  }, [meetingsList, selectedYear]);
+  }, [relevantMeetings, selectedYear]);
 
   // Compute monthly activity trend dynamically for the selected year
   const yearMonthlyActivity: MonthlyActivity[] = useMemo(() => {
@@ -192,6 +234,20 @@ export function DashboardClient({
     const pendingItems = monthMeetings.reduce((sum, m) => sum + (m.actionItems?.pending || 0), 0);
     const activeItems = inProgressItems + pendingItems;
 
+    // Untuk staf pada mode tahunan (tanpa filter bulan), gunakan data real pekerjaan tim dari workload
+    const activeItemsValue = isStaff && userTeamWorkload && !selectedMonth
+      ? userTeamWorkload.inProgressJobs + userTeamWorkload.pendingJobs
+      : activeItems;
+    const completedItemsValue = isStaff && userTeamWorkload && !selectedMonth
+      ? userTeamWorkload.completedJobs
+      : completedItems;
+    const inProgressItemsValue = isStaff && userTeamWorkload && !selectedMonth
+      ? userTeamWorkload.inProgressJobs
+      : inProgressItems;
+    const pendingItemsValue = isStaff && userTeamWorkload && !selectedMonth
+      ? userTeamWorkload.pendingJobs
+      : pendingItems;
+
     const overdueCount = onProgressMonth;
     const completionPercent = totalItems > 0
       ? Math.round((completedItems / totalItems) * 100)
@@ -213,7 +269,7 @@ export function DashboardClient({
           value: totalYearMeetings,
           unit: 'Rapat',
           changeValue: totalYearMeetings > 0 ? '+100%' : '0%',
-          changeLabel: `Tahun ${selectedYear}`,
+          changeLabel: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `Tahun ${selectedYear}`,
           variant: 'default',
           iconName: 'event_note',
         },
@@ -230,10 +286,10 @@ export function DashboardClient({
         {
           id: 'tindak-lanjut-aktif',
           label: 'TINDAK LANJUT AKTIF',
-          value: activeItems,
+          value: activeItemsValue,
           unit: 'Item',
-          badgeText: `${inProgressItems} Sedang Jalan`,
-          badgeSubtext: `${pendingItems} Menunggu`,
+          badgeText: `${inProgressItemsValue} Sedang Jalan`,
+          badgeSubtext: `${pendingItemsValue} Menunggu`,
           variant: 'default',
           iconName: 'pending_actions',
         },
@@ -243,17 +299,17 @@ export function DashboardClient({
           value: yearOnProgress + yearStart,
           unit: 'Rapat',
           badgeText: `${yearOnProgress} Dalam Proses • ${yearStart} Belum Dimulai`,
-          badgeSubtext: `Tahun ${selectedYear}`,
+          badgeSubtext: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `Tahun ${selectedYear}`,
           variant: yearOnProgress > 0 ? 'default' : 'default',
           iconName: 'warning',
         },
         {
           id: 'tindak-lanjut-selesai',
           label: 'TINDAK LANJUT SELESAI',
-          value: completedItems,
+          value: completedItemsValue,
           unit: 'Selesai',
-          badgeText: `${completedItems} Selesai`,
-          badgeSubtext: `${inProgressItems} Dalam Proses • ${pendingItems} Belum Dimulai`,
+          badgeText: `${completedItemsValue} Selesai`,
+          badgeSubtext: `${inProgressItemsValue} Dalam Proses • ${pendingItemsValue} Belum Dimulai`,
           variant: 'success',
           iconName: 'task_alt',
         },
@@ -267,7 +323,7 @@ export function DashboardClient({
         value: ytdMeetings.length,
         unit: 'Rapat',
         changeValue: `${ytdMeetings.length}/${yearMeetings.length || 1}`,
-        changeLabel: `s/d ${selectedMonth} ${selectedYear}`,
+        changeLabel: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `s/d ${selectedMonth} ${selectedYear}`,
         variant: 'default',
         iconName: 'event_note',
       },
@@ -319,7 +375,98 @@ export function DashboardClient({
     ytdMeetings,
     yearMeetings,
     fullMonthName,
+    isStaff,
+    userTeamWorkload,
   ]);
+
+function computeDonutMetrics(
+  completed: number,
+  inProgress: number,
+  pending: number,
+  overdue = 0
+): FollowUpStatusMetric[] {
+  const total = completed + inProgress + pending + overdue;
+  const circ = 238.76;
+  if (total === 0) {
+    return [
+      {
+        label: 'Belum Ada Pekerjaan',
+        percentage: 0,
+        count: 0,
+        color: '#94A3B8',
+        dasharray: `0 ${circ}`,
+        dashoffset: '0',
+      },
+    ];
+  }
+  const pCompleted = Math.round((completed / total) * 100);
+  const pInProgress = Math.round((inProgress / total) * 100);
+  const pOverdue = Math.round((overdue / total) * 100);
+  const pPending = Math.max(0, 100 - pCompleted - pInProgress - pOverdue);
+
+  const lenComp = (pCompleted / 100) * circ;
+  const lenInProg = (pInProgress / 100) * circ;
+  const lenPend = (pPending / 100) * circ;
+  const lenOver = (pOverdue / 100) * circ;
+
+  const result: FollowUpStatusMetric[] = [
+    {
+      label: 'Selesai',
+      percentage: pCompleted,
+      count: completed,
+      color: '#7CC563',
+      dasharray: `${lenComp.toFixed(1)} ${circ}`,
+      dashoffset: '0',
+    },
+    {
+      label: 'Sedang Berjalan',
+      percentage: pInProgress,
+      count: inProgress,
+      color: '#31889C',
+      dasharray: `${lenInProg.toFixed(1)} ${circ}`,
+      dashoffset: `-${lenComp.toFixed(1)}`,
+    },
+    {
+      label: 'Belum Dimulai',
+      percentage: pPending,
+      count: pending,
+      color: '#FFD300',
+      borderColor: '#FFD300',
+      dasharray: `${lenPend.toFixed(1)} ${circ}`,
+      dashoffset: `-${(lenComp + lenInProg).toFixed(1)}`,
+    },
+  ];
+
+  if (overdue > 0) {
+    result.push({
+      label: 'Terlambat',
+      percentage: pOverdue,
+      count: overdue,
+      color: '#DC2626',
+      dasharray: `${lenOver.toFixed(1)} ${circ}`,
+      dashoffset: `-${(lenComp + lenInProg + lenPend).toFixed(1)}`,
+    });
+  }
+
+  return result;
+}
+
+  // Metrik tindak lanjut reaktif per tim untuk grafik donut
+  const displayFollowUpMetrics: FollowUpStatusMetric[] = useMemo(() => {
+    if (isStaff && userTeamWorkload) {
+      return computeDonutMetrics(
+        userTeamWorkload.completedJobs,
+        userTeamWorkload.inProgressJobs,
+        userTeamWorkload.pendingJobs,
+        userTeamWorkload.overdueJobs || 0
+      );
+    }
+    return followUpMetrics || [];
+  }, [isStaff, userTeamWorkload, followUpMetrics]);
+
+  const displayTotalResolutions = isStaff && userTeamWorkload
+    ? userTeamWorkload.totalJobs
+    : totalResolutions;
 
   return (
     <div className="flex flex-col w-full gap-6">
@@ -336,11 +483,13 @@ export function DashboardClient({
         onResetMonth={() => setSelectedMonth(null)}
       />
 
-      {/* 3. Executive 3 Tim Kerja KEK (Investasi, Kerja Sama, Komunikasi) - Super Admin */}
-      <TeamWorkloadGrid
-        teams={sanitizedTeamWorkload}
-        onTeamClick={handleOpenTeamModal}
-      />
+      {/* 3. Executive 3 Tim Kerja KEK (Investasi, Kerja Sama, Komunikasi) - Hanya Super Admin, Admin, Pimpinan (bukan Staf) */}
+      {!isStaff && (
+        <TeamWorkloadGrid
+          teams={sanitizedTeamWorkload}
+          onTeamClick={handleOpenTeamModal}
+        />
+      )}
 
       {/* 4. Analytics Grid (Monthly Trend + Status Donut + Tim Distribution) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -356,8 +505,8 @@ export function DashboardClient({
           }}
         />
         <FollowUpStatusChart
-          followUpData={followUpMetrics}
-          totalResolutions={totalResolutions}
+          followUpData={displayFollowUpMetrics}
+          totalResolutions={displayTotalResolutions}
           onManageMatrixClick={() => router.push('/tindak-lanjut')}
         />
         <BureauDistribution
