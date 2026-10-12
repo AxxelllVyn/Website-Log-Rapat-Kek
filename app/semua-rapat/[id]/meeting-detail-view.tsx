@@ -1385,7 +1385,7 @@ export function MeetingDetailView({
             }`}
         >
           <Users className="w-4 h-4" />
-          <span>Peserta &amp; Presensi ({totalCount})</span>
+          <span>Tamu Undangan ({totalCount})</span>
         </button>
 
         <button
@@ -1780,7 +1780,7 @@ export function MeetingDetailView({
               <div>
                 <h3 className="text-[18px] font-bold text-slate-900 flex items-center gap-2">
                   <Users className="w-5 h-5 text-[#31889C]" />
-                  <span>Daftar Presensi Peserta Sidang</span>
+                  <span>Daftar Presensi Tamu Undangan</span>
                 </h3>
                 <p className="text-[12px] text-slate-500 mt-0.5">
                   {canManageParticipants
@@ -1878,18 +1878,7 @@ export function MeetingDetailView({
               </div>
             </div>
 
-            {/* Quick Helper Banner for Admin/Notulis */}
-            {canManageParticipants && (
-              <div className="p-3 bg-[#F0F9FA] rounded-xl border border-[#BCE3EB] text-[12px] text-[#215865] flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-[#31889C] shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-semibold">Cara Mengubah Status Presensi:</p>
-                  <p className="text-slate-600 text-[11.5px] leading-relaxed">
-                    Klik tombol pilihan (<strong>Hadir</strong>, <strong>Izin</strong>, <strong>Tidak Hadir</strong>, atau <strong>Diundang</strong>) di sebelah kanan nama peserta. Sistem akan langsung menyimpan status ke database dan memperbarui dokumen PDF Risalah Rapat.
-                  </p>
-                </div>
-              </div>
-            )}
+
 
             {/* Participant List */}
             {participants.length > 0 ? (
