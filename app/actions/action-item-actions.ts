@@ -594,11 +594,6 @@ export async function updateActionItemStatusAction(input: UpdateActionItemStatus
  */
 export async function deleteActionItemAction(id: string) {
   try {
-    // Authorization Check: Must have 'delete:action_item' permission (SUPER_ADMIN, ADMIN)
-    const currentUser = await requirePermission('delete:action_item');
-    const isPrivileged =
-      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
-
     if (!id) {
       return { success: false, error: 'ID tindak lanjut tidak valid.' };
     }
@@ -614,6 +609,14 @@ export async function deleteActionItemAction(id: string) {
     if (!existing) {
       return { success: false, error: 'Tindak lanjut tidak ditemukan.' };
     }
+
+    // Authorization Check: Must have 'delete:action_item' permission
+    // For STAFF, ownership check is applied: user can only delete if assigned to them
+    const currentUser = await requirePermission('delete:action_item', {
+      actionItemPicUserId: existing.picUserId,
+    });
+    const isPrivileged =
+      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
 
     // Bureau Scoping: Non-admin users can only delete action items belonging to their own bureau
     if (!isPrivileged && currentUser.biroId && existing.picBiroId !== currentUser.biroId) {

@@ -132,7 +132,7 @@ export default function BuatRapatPage() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   // AI Extraction dialog state
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);

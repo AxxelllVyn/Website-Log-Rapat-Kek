@@ -26,7 +26,7 @@ export function MeetingMinutesSection({
 }: MeetingMinutesSectionProps) {
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canEditMinutes = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canEditMinutes = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   const [currentMeeting, setCurrentMeeting] = useState<any>(propMeeting || null);
   const [minutes, setMinutes] = useState<any>(propMinutes || propMeeting?.minutes || null);

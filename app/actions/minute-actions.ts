@@ -39,7 +39,7 @@ export async function upsertMeetingMinutesAction(input: MeetingMinutesInput) {
     // Authorization Check: Must have 'create:minutes' permission (SUPER_ADMIN, ADMIN)
     const currentUser = await requirePermission('create:minutes');
     const isPrivileged =
-      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
+      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'STAFF';
 
     // 1. Zod Validation
     const parsed = meetingMinutesSchema.safeParse(input);

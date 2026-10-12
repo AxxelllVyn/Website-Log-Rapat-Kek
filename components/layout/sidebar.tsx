@@ -72,17 +72,13 @@ export function Sidebar({
     }
   };
 
-  const isNonAdminWithBiro = !isSuperAdmin && !isAdmin && !isPimpinan && Boolean(session?.user?.biroCode);
-  const userBiroHref = session?.user?.biroCode ? `/biro/${session.user.biroCode.toLowerCase()}` : '/';
-  const dashboardHref = isNonAdminWithBiro ? userBiroHref : '/';
-  const isDashboardActive = isNonAdminWithBiro
-    ? pathname === userBiroHref || pathname === '/'
-    : pathname === '/';
-  const dashboardLabel = isNonAdminWithBiro ? `Dashboard Biro ${session?.user?.biroCode}` : 'Dashboard';
+  const dashboardHref = '/';
+  const isDashboardActive = pathname === '/';
+  const dashboardLabel = 'Dashboard';
 
   const rapatSubItems = [
     { name: 'Daftar Rapat', href: '/semua-rapat' },
-    ...(isSuperAdmin || isAdmin
+    ...(isSuperAdmin || isAdmin || userRole === 'STAFF'
       ? [{ name: '+ Buat Rapat Baru', href: '/buat-rapat' }]
       : []),
   ];
@@ -250,8 +246,8 @@ export function Sidebar({
                 {!collapsed && <span>Tindak Lanjut</span>}
               </Link>
 
-              {/* Kalender (SUPER_ADMIN, ADMIN, PIMPINAN) */}
-              {(isSuperAdmin || isAdmin || isPimpinan) && (
+              {/* Kalender (SUPER_ADMIN, ADMIN, PIMPINAN, STAFF) */}
+              {(isSuperAdmin || isAdmin || isPimpinan || userRole === 'STAFF') && (
                 <Link
                   href="/kalender"
                   onClick={handleLinkClick}
@@ -271,8 +267,8 @@ export function Sidebar({
                 </Link>
               )}
 
-              {/* Tim Kerja Biro IKK (SUPER_ADMIN, ADMIN, PIMPINAN) */}
-              {(isSuperAdmin || isAdmin || isPimpinan) && (
+              {/* Tim Kerja Biro IKK (Semua Peran: SUPER_ADMIN, ADMIN, PIMPINAN, STAFF) */}
+              {(isSuperAdmin || isAdmin || isPimpinan || Boolean(session?.user?.biroCode)) && (
                 <div>
                   <button
                     type="button"
@@ -325,8 +321,8 @@ export function Sidebar({
                 </div>
               )}
 
-              {/* Laporan (SUPER_ADMIN, ADMIN, PIMPINAN) */}
-              {(isSuperAdmin || isAdmin || isPimpinan) && (
+              {/* Laporan (SUPER_ADMIN, ADMIN, PIMPINAN, STAFF) */}
+              {(isSuperAdmin || isAdmin || isPimpinan || userRole === 'STAFF') && (
                 <Link
                   href="/laporan"
                   onClick={handleLinkClick}

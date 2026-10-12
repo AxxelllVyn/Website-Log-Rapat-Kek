@@ -99,7 +99,7 @@ export async function createMeetingAction(input: CreateMeetingInput) {
     // Authorization Check: Must have 'create:meeting' permission (SUPER_ADMIN, ADMIN)
     const currentUser = await requirePermission('create:meeting');
     const isPrivileged =
-      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
+      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'STAFF';
 
     const effectiveBiroCode = (input.biroCode || currentUser.biroCode || 'IKK').toUpperCase();
 
@@ -528,7 +528,7 @@ export async function updateMeetingNumberAction(meetingId: string, newMeetingNum
     // Authorization Check: Must have 'edit:meeting' permission (SUPER_ADMIN, ADMIN)
     const currentUser = await requirePermission('edit:meeting');
     const isPrivileged =
-      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
+      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'STAFF';
 
     const existingMeeting = await prisma.meeting.findUnique({
       where: { id: meetingId },
@@ -603,7 +603,7 @@ export async function updateMeetingCategoryAction(
   try {
     const currentUser = await requirePermission('edit:meeting');
     const isPrivileged =
-      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
+      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'STAFF';
 
     const existingMeeting = await prisma.meeting.findUnique({
       where: { id: meetingId },
@@ -903,7 +903,7 @@ export async function deleteMeetingAction(meetingId: string) {
     // Authorization Check: Must have 'delete:meeting' permission (SUPER_ADMIN, ADMIN)
     const currentUser = await requirePermission('delete:meeting');
     const isPrivileged =
-      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN';
+      currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'STAFF';
 
     const meeting = await prisma.meeting.findUnique({
       where: { id: meetingId },
@@ -1052,7 +1052,7 @@ export async function getMeetingOptionsAction(excludeMeetingId?: string) {
     } catch { }
 
     const isPrivileged =
-      currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+      currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'STAFF';
 
     const where: any = excludeMeetingId ? { id: { not: excludeMeetingId } } : {};
 
@@ -1104,7 +1104,7 @@ export async function getMeetingDetailAction(meetingId: string) {
     } catch { }
 
     const isPrivileged =
-      currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+      currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'STAFF';
 
     if (!isPrivileged && currentUser?.biroCode) {
       const userCode = currentUser.biroCode.toUpperCase();

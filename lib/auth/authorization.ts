@@ -56,9 +56,16 @@ export const ROLE_PERMISSIONS: Record<UserRole, AppPermission[]> = {
   STAFF: [
     'view:dashboard',
     'view:meeting',
+    'create:meeting',
+    'edit:meeting',
+    'delete:meeting',
+    'manage:participants',
+    'create:minutes',
+    'edit:minutes',
     'view:minutes',
     'create:action_item',
-    'edit:action_item', // Subject to ownership check
+    'edit:action_item', // Subject to ownership check (only their own assigned items)
+    'delete:action_item', // Subject to ownership check
   ],
 };
 
@@ -146,8 +153,8 @@ export function hasPermission(
     return false;
   }
 
-  // Ownership rule: STAFF can only edit action items assigned to them
-  if (role === 'STAFF' && permission === 'edit:action_item') {
+  // Ownership rule: STAFF can only edit or delete action items assigned to them
+  if (role === 'STAFF' && (permission === 'edit:action_item' || permission === 'delete:action_item')) {
     if (!context?.currentUserId || !context?.actionItemPicUserId) {
       return false;
     }

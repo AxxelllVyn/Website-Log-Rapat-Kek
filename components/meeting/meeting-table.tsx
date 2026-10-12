@@ -104,7 +104,7 @@ export function MeetingTable({
   const [progressTabFilter, setProgressTabFilter] = useState<'ALL' | 'Belum Dimulai' | 'Dalam Proses' | 'Selesai'>('ALL');
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
   const canUpdateStatus = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   const countBelumDimulai = useMemo(

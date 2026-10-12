@@ -184,10 +184,10 @@ export function MeetingDetailView({
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canEditMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canEditMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
+  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
   const canManageParticipants =
-    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
   const canEditMinutes = canManageParticipants;
   const canCreateActionItem =
     userRole === 'SUPER_ADMIN' ||
@@ -195,7 +195,7 @@ export function MeetingDetailView({
     userRole === 'STAFF';
 
   // Biro ownership check for status updates & staff permissions
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroId && session.user.biroId === meeting.primaryBiroId) ||
@@ -203,7 +203,7 @@ export function MeetingDetailView({
       meeting.primaryBiro?.code &&
       session.user.biroCode.toUpperCase() === meeting.primaryBiro.code.toUpperCase());
 
-  const canChangeStatus = isPrivileged || (userRole === 'STAFF' && isMeetingBiro);
+  const canChangeStatus = isPrivileged;
 
   const initialResolvedTab: TabType = (initialTab === 'comments' || initialTab === 'history')
     ? 'minutes'

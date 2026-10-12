@@ -24,7 +24,7 @@ import { BIRO_LIST } from '@/lib/mock-data';
 import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { ActivityTrendChart } from '@/components/dashboard/activity-trend-chart';
 import { FollowUpStatusChart } from '@/components/dashboard/follow-up-status-chart';
-import { TeamWorkloadDistribution } from './team-workload-distribution';
+import { BureauDistribution } from '@/components/dashboard/bureau-distribution';
 import { MeetingTable } from '@/components/meeting/meeting-table';
 
 interface TeamItem {
@@ -125,7 +125,7 @@ export function BiroDashboardClient({
   };
 
   const roleConfig = roleLabelMap[userRole] || roleLabelMap.STAFF;
-  const canCreate = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canCreate = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   const todayFormatted = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -567,11 +567,9 @@ export function BiroDashboardClient({
           onManageMatrixClick={() => router.push(`/tindak-lanjut?biro=${encodeURIComponent(biro.code)}`)}
         />
 
-        <TeamWorkloadDistribution
-          biroShortName={biro.shortName}
-          teams={teamItems}
-          totalMeetings={initialMeetings.length}
-          meetingStatusBreakdown={meetingStatusBreakdown}
+        <BureauDistribution
+          meetings={selectedMonth ? monthMeetings : yearMeetings}
+          onCategoryClick={(categoryKey) => router.push(`/semua-rapat?kategori=${categoryKey}`)}
         />
       </div>
 

@@ -74,7 +74,7 @@ export function CreateMeetingDialog({ isOpen, onClose }: CreateMeetingDialogProp
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canCreate = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canCreate = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   const todayStr = (() => {
     const d = new Date();

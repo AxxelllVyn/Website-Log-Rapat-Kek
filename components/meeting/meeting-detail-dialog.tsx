@@ -53,14 +53,14 @@ export function MeetingDetailDialog({
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroCode &&
       meeting?.biroCode &&
       session.user.biroCode.toUpperCase() === meeting.biroCode.toUpperCase());
-  const canChangeStatus = isPrivileged || (userRole === 'STAFF' && Boolean(isMeetingBiro));
+  const canChangeStatus = isPrivileged;
 
   const [activeTab, setActiveTab] = useState<'info' | 'participants' | 'minutes' | 'actionItems'>('info');
   const [isDeleting, setIsDeleting] = useState(false);

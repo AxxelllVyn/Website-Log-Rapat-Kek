@@ -54,7 +54,7 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string; step: number
 export function KalenderClient({ initialMeetings, biros }: KalenderClientProps) {
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canCreate = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canCreate = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   // Calendar current view month and year (defaults to current date or September 2026 if in mock year)
   const [currentDate, setCurrentDate] = useState(() => {

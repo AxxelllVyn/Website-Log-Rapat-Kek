@@ -59,19 +59,60 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
         token.role = user.role;
         token.biroId = user.biroId;
         token.biroCode = user.biroCode;
         token.biroName = user.biroName;
       }
+
+      // Handle client-side session update
+      if (trigger === 'update' && session) {
+        if (session.name) token.name = session.name;
+        if (session.user?.name) token.name = session.user.name;
+        if (session.role) token.role = session.role;
+        if (session.user?.role) token.role = session.user.role;
+        if (session.biroCode) token.biroCode = session.biroCode;
+        if (session.user?.biroCode) token.biroCode = session.user.biroCode;
+        if (session.biroName) token.biroName = session.biroName;
+        if (session.user?.biroName) token.biroName = session.user.biroName;
+      }
+
+      // Realtime sync from database: ensures profile edits are immediately reflected
+      if (token?.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              name: true,
+              role: true,
+              isActive: true,
+              biro: { select: { id: true, code: true, shortName: true } },
+            },
+          });
+          if (dbUser && dbUser.isActive) {
+            token.name = dbUser.name;
+            token.role = dbUser.role;
+            if (dbUser.biro) {
+              token.biroId = dbUser.biro.id;
+              token.biroCode = dbUser.biro.code;
+              token.biroName = dbUser.biro.shortName;
+            }
+          }
+        } catch {
+          // If DB query fails temporarily, retain token data
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.name = (token.name as string) || session.user.name;
         session.user.role = token.role as UserRole;
         session.user.biroId = token.biroId as string;
         session.user.biroCode = token.biroCode as string;

@@ -53,7 +53,7 @@ export function Header({
     : null;
 
   const canCreateMeeting =
-    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   return (
     <header

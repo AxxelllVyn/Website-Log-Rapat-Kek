@@ -92,7 +92,7 @@ export function WelcomeBanner({
   };
 
   const canCreateMeeting =
-    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
 
   const [isMounted, setIsMounted] = useState(false);
   React.useEffect(() => {

@@ -16,6 +16,7 @@ import {
 import { updateCurrentUserProfileAction } from '@/app/actions/user-profile-actions';
 import { toast } from '@/components/providers/toast-provider';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface PengaturanClientProps {
   initialUser: {
@@ -44,6 +45,7 @@ export function PengaturanClient({
   availableBiros = [],
 }: PengaturanClientProps) {
   const router = useRouter();
+  const { update } = useSession();
 
   const [name, setName] = useState(initialUser?.name || '');
   const [email, setEmail] = useState(initialUser?.email || '');
@@ -111,6 +113,9 @@ export function PengaturanClient({
           setNewPassword('');
           setConfirmPassword('');
           setShowPasswordSection(false);
+        }
+        if (update) {
+          await update({ name: res.data.name });
         }
         router.refresh();
       } else {
