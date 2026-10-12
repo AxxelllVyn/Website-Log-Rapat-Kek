@@ -1,219 +1,265 @@
-# DOKUMEN PERANCANGAN TAHAP 1: ENTITY RELATIONSHIP DIAGRAM (ERD) - NOTASI CHEN
-## Sistem Informasi Manajemen Rapat & Tindak Lanjut (SIM-RAPAT KEK RI)
+# DOKUMEN PERANCANGAN BASIS DATA: ENTITY RELATIONSHIP DIAGRAM (ERD)
+## Sistem Informasi Log & Risalah Rapat (SIM-RAPAT KEK RI)
 **Sekretariat Jenderal Dewan Nasional Kawasan Ekonomi Khusus Republik Indonesia**
 
-Dokumen ini memuat spesifikasi lengkap **Entity Relationship Diagram (ERD)** dengan **Standar Notasi Chen Klasik** (Entitas Persegi Panjang, Relasi Belah Ketupat/Diamond, Atribut Elips dengan Primary Key Bergaris Bawah), siap dibuka di **Draw.io (diagrams.net)**, serta sesuai kaidah buku teks akademik untuk laporan skripsi/tugas akhir.
+Dokumen ini memuat spesifikasi lengkap **Entity Relationship Diagram (ERD)** terstandarisasi untuk laporan tugas akhir / skripsi, mencakup seluruh **14 tabel entitas aktif** pada basis data **Neon PostgreSQL** yang terorganisasi dalam **5 Klaster Modul Fungsional**.
 
 ---
 
-## 1. File Draw.io Siap Pakai
+## 1. Klasifikasi 5 Modul Entitas Basis Data
 
-File diagram Draw.io resmi telah disediakan di repository:
-* **Lokasi File Lokal:** [`docs/ERD_SIM_RAPAT.drawio`](file:///c:/Users/nappz/Documents/Project%20Website/Projek%20Log%20Rapat/docs/ERD_SIM_RAPAT.drawio)
-* **Tautan Unduh Web:** [http://localhost:3000/ERD_SIM_RAPAT.drawio](http://localhost:3000/ERD_SIM_RAPAT.drawio)
-* **Pratinjau Visual Notasi Chen:** [http://localhost:3000/erd-chen-preview.html](http://localhost:3000/erd-chen-preview.html)
-* **Viewer Interaktif Web:** [http://localhost:3000/uml-viewer.html](http://localhost:3000/uml-viewer.html)
+Untuk mempermudah penjelasan pada sidang / penguji Tugas Akhir, seluruh entitas dikelompokkan ke dalam 5 klaster fungsional yang ternormalisasi (3NF):
 
-### Kaidah Visual Notasi Chen:
-1. **Persegi Panjang (Rectangle):** Merepresentasikan Entitas (`biro`, `pengguna`, `rapat`, `notulen_rapat`, `tindak_lanjut`, `penomoran_rapat_biro`).
-2. **Belah Ketupat (Rhombus/Diamond):** Merepresentasikan Relasi antar-entitas (`memiliki`, `mengatur`, `menyelenggarakan`, `melibatkan`, `memimpin & notulis`, `menghadiri`, `menghasilkan`, `menetapkan`, `pic_biro`, `pic_user`).
-3. **Elips (Ellipse):** Merepresentasikan Atribut data.
-4. **Teks Bergaris Bawah (Underline):** Menandakan **Primary Key (PK)** entitas (misal: `<u>biro_id</u>`, `<u>user_id</u>`, `<u>meeting_id</u>`).
-5. **Derajat Kardinalitas (1 / N / M):** Dituliskan pada garis penghubung antara entitas dan belah ketupat relasi.
-
----
-
-## 2. Kamus Entitas & Atribut ERD (Tabel Basis Data Resmi di Neon DB: `snake_case`)
-
-Terdapat **8 tabel utama** dalam basis data PostgreSQL (Neon DB) yang memodelkan seluruh proses bisnis tata kelola rapat dan tindak lanjut:
-
-### A. Tabel `biro` (Master 5 Biro KEK)
-Entitas master unit kerja di lingkungan Sekretariat Jenderal Dewan Nasional KEK.
-* **`biro_id` (PK, String)** : Format bersih `BIRO-BPPK`, `BIRO-PKKEK`, `BIRO-IKK`, `BIRO-HSDMO`, `BIRO-UK`.
-* **`code` (UK, String)** : Kode singkatan biro (`BPPK`, `PKKEK`, `IKK`, `HSDMO`, `UK`).
-* **`name` (String)** : Nama resmi biro.
-* **`shortName` (String)** : Nama pendek untuk label kartu antarmuka.
-* **`description` (Text)** : Uraian tupoksi biro.
-* **`isActive` (Boolean)** : Status aktif biro (`true`/`false`).
-* **`createdAt` (DateTime)** : Waktu pembuatan data.
-* **`updatedAt` (DateTime)** : Waktu pembaharuan data.
-
-### B. Tabel `pengguna` (Pengguna, Pegawai, & Pimpinan)
-Entitas pengguna sistem, pimpinan rapat, notulis, dan PIC tindak lanjut.
-* **`user_id` (PK, String)** : Format bersih `USR-001`, `USR-002`, ..., `USR-029`.
-* **`biro_id` (FK, String)** : Mengacu ke `biro(biro_id)` tempat pegawai bertugas.
-* **`name` (String)** : Nama lengkap beserta gelar.
-* **`email` (UK, String)** : Email dinas untuk autentikasi login.
-* **`password` (String)** : Password terenkripsi (Argon2 / Bcrypt).
-* **`role` (Enum)** : Hak akses (`SUPER_ADMIN`, `ADMIN`, `NOTULIS`, `STAFF`, `VIEWER`).
-* **`isActive` (Boolean)** : Status keaktifan akun.
-* **`createdAt` / `updatedAt` (DateTime)** : Audit trail waktu.
-
-### C. Tabel `rapat` (Agenda Rapat Dinas KEK)
-Entitas inti penyelenggaraan sidang dan rapat koordinasi dinas.
-* **`meeting_id` (PK, String)** : Format bersih `MTG-001`, `MTG-002`, ..., `MTG-018`.
-* **`meeting_number` (UK, String)** : Nomor resmi registrasi undangan (contoh: `IKK-015`, `BPPK-001`).
-* **`primary_biro_id` (FK, String)** : Mengacu ke `biro(biro_id)` sebagai biro pemrakarsa/tuan rumah.
-* **`chairperson_id` (FK, String, Nullable)** : Mengacu ke `pengguna(user_id)` yang memimpin sidang.
-* **`secretary_id` (FK, String, Nullable)** : Mengacu ke `pengguna(user_id)` yang mencatat notula.
-* **`previous_meeting_id` (FK, String, Nullable)** : Self-referencing ke `rapat(meeting_id)` jika rapat ini merupakan tindak lanjut langsung dari rapat sebelumnya.
-* **`title` (String)** : Judul agenda rapat.
-* **`date` (Date)** : Tanggal pelaksanaan rapat.
-* **`startTime` / `endTime` (String)** : Rentang jam (WIB).
-* **`location` (String)** : Ruang sidang fisik atau tautan telekonferensi.
-* **`status` (Enum)** : Siklus hidup rapat (`DRAFT`, `REVIEW`, `APPROVED`, `FINAL`).
-* **`createdAt` / `updatedAt` (DateTime)** : Audit trail waktu.
-
-### D. Tabel `notulen_rapat` (Dokumen Notula Resmi)
-Naskah risalah resmi hasil persidangan.
-* **`minutes_id` (PK, String)** : Format bersih `NOT-001`, `NOT-002`, ..., `NOT-007`.
-* **`meeting_id` (FK, String, Unique)** : Relasi unik 1-ke-1 ke `rapat(meeting_id)`.
-* **`agenda` (JSON)** : Butir-butir agenda sidang yang dibahas.
-* **`discussion` (JSON)** : Rangkuman pokok substansi dan dinamika pembahasan.
-* **`decisions` (JSON)** : Keputusan dan kesepakatan final sidang.
-* **`conclusion` (JSON)** : Informasi penandatangan, pimpinan, dan legalitas notula.
-* **`createdAt` / `updatedAt` (DateTime)** : Waktu registrasi dan revisi notula.
-
-### E. Tabel `tindak_lanjut` (Butir Tindak Lanjut / Resolusi)
-Penugasan arahan strategis tindak lanjut hasil rapat kepada biro dan pegawai.
-* **`action_item_id` (PK, String)** : Format bersih `ACT-001`, `ACT-002`, ..., `ACT-010`.
-* **`meeting_id` (FK, String)** : Mengacu ke `rapat(meeting_id)` sumber resolusi.
-* **`pic_biro_id` (FK, String)** : Mengacu ke `biro(biro_id)` penanggung jawab teknis.
-* **`pic_user_id` (FK, String, Nullable)** : Mengacu ke `pengguna(user_id)` sebagai person in charge spesifik.
-* **`title` (String)** : Ringkasan tindakan yang harus diselesaikan.
-* **`description` (Text, Nullable)** : Penjelasan detail arahan pimpinan.
-* **`dueDate` (DateTime)** : Batas akhir (*deadline*) pemenuhan tindak lanjut.
-* **`status` (Enum)** : Status progres (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `OVERDUE`).
-* **`priority` (Enum)** : Tingkat urgensi (`LOW`, `MEDIUM`, `HIGH`, `URGENT`).
-* **`completedAt` (DateTime, Nullable)** : Waktu penyelesaian tugas.
-
-### F. Tabel `peserta_rapat` (Absensi Kehadiran)
-Daftar kehadiran peserta undangan rapat.
-* **`participant_id` (PK, String)** : Format bersih `PRT-001`, ..., `PRT-057`.
-* **`meeting_id` (FK, String)** : Mengacu ke `rapat(meeting_id)`.
-* **`user_id` (FK, String)** : Mengacu ke `pengguna(user_id)`.
-* **`attendanceStatus` (Enum)** : Status kehadiran (`INVITED`, `PRESENT`, `ABSENT`, `EXCUSED`).
-* **`createdAt` (DateTime)** : Waktu pencatatan absensi.
-
-### G. Tabel `rapat_biro` (Tabel Junction Biro Terlibat)
-Tabel relasi *Many-to-Many* (M:N) untuk rapat lintas biro.
-* **`meeting_id` (Composite PK, FK, String)** : Mengacu ke `rapat(meeting_id)`.
-* **`biro_id` (Composite PK, FK, String)** : Mengacu ke `biro(biro_id)`.
-
-### H. Tabel `penomoran_rapat_biro` (Generator Nomor Surat)
-Pencatat nomor counter otomatis per biro (contoh: `IKK-015`).
-* **`sequence_id` (PK, String)** : Format bersih `SEQ-001`, ..., `SEQ-005`.
-* **`biro_id` (FK, String, Unique)** : Mengacu ke `biro(biro_id)` (1:1).
-* **`currentNumber` (Integer)** : Angka urut terakhir yang telah diterbitkan.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        KLASTER BASIS DATA SIM-RAPAT                    │
+├──────────────────────────┬─────────────────────────────────────────────┤
+│ 1. Organisasi & Akun     │ biro, tim_biro, pengguna                    │
+│ 2. Pelaksanaan Rapat     │ rapat, peserta_rapat, penomoran_rapat_biro, │
+│                          │ rapat_biro, lampiran_rapat                  │
+│ 3. Notulensi & Risalah   │ notulen_rapat, riwayat_notulen,             │
+│                          │ komentar_notulen                            │
+│ 4. Tindak Lanjut (Action)│ tindak_lanjut, riwayat_tindak_lanjut        │
+│ 5. Komunikasi Sistem     │ notifikasi                                  │
+└──────────────────────────┴─────────────────────────────────────────────┘
+```
 
 ---
 
-## 3. Matriks Relasi & Kardinalitas (Crow's Foot Notation)
+## 2. Kamus Data Lengkap 14 Entitas Basis Data (Neon PostgreSQL)
 
-| No | Entitas Asal | Relasi Bisnis | Entitas Tujuan | Kardinalitas | Atribut Kunci Penghubung |
-|:---|:---|:---|:---|:---:|:---|
-| 1 | **`biro`** | Mempekerjakan staf & pejabat | **`pengguna`** | `1 : N` | `biro.biro_id` &rarr; `pengguna.biro_id` |
-| 2 | **`biro`** | Menyelenggarakan rapat utama | **`rapat`** | `1 : N` | `biro.biro_id` &rarr; `rapat.primary_biro_id` |
-| 3 | **`biro`** | Memiliki penomoran surat otomatis | **`penomoran_rapat_biro`** | `1 : 1` | `biro.biro_id` &rarr; `penomoran_rapat_biro.biro_id` |
-| 4 | **`biro`** | Bertanggung jawab atas tindak lanjut | **`tindak_lanjut`** | `1 : N` | `biro.biro_id` &rarr; `tindak_lanjut.pic_biro_id` |
-| 5 | **`biro`** | Terlibat dalam rapat gabungan | **`rapat_biro`** | `1 : N` | `biro.biro_id` &rarr; `rapat_biro.biro_id` |
-| 6 | **`pengguna`** | Memimpin jalannya persidangan | **`rapat`** | `1 : N` | `pengguna.user_id` &rarr; `rapat.chairperson_id` |
-| 7 | **`pengguna`** | Menjadi notulis resmi sidang | **`rapat`** | `1 : N` | `pengguna.user_id` &rarr; `rapat.secretary_id` |
-| 8 | **`pengguna`** | Menghadiri persidangan | **`peserta_rapat`** | `1 : N` | `pengguna.user_id` &rarr; `peserta_rapat.user_id` |
-| 9 | **`pengguna`** | Ditugaskan sebagai PIC personal | **`tindak_lanjut`** | `1 : N` | `pengguna.user_id` &rarr; `tindak_lanjut.pic_user_id` |
-| 10 | **`rapat`** | Menghasilkan naskah risalah resmi | **`notulen_rapat`** | `1 : 1` | `rapat.meeting_id` &rarr; `notulen_rapat.meeting_id` |
-| 11 | **`rapat`** | Memiliki daftar absensi kehadiran | **`peserta_rapat`** | `1 : N` | `rapat.meeting_id` &rarr; `peserta_rapat.meeting_id` |
-| 12 | **`rapat`** | Melibatkan biro mitra | **`rapat_biro`** | `1 : N` | `rapat.meeting_id` &rarr; `rapat_biro.meeting_id` |
-| 13 | **`rapat`** | Menetapkan butir tindak lanjut | **`tindak_lanjut`** | `1 : N` | `rapat.meeting_id` &rarr; `tindak_lanjut.meeting_id` |
-| 14 | **`rapat`** | Merujuk agenda rapat sebelumnya | **`rapat`** | `0..1 : N` | `rapat.meeting_id` &rarr; `rapat.previous_meeting_id` |
+### KLASTER 1: ORGANISASI & PENGGUNA
+
+#### 1. Entitas `biro` (Master Biro KEK)
+Menyimpan unit kerja eselon tingkat biro di Sekretariat Jenderal Dewan Nasional KEK.
+* **`id_biro`** `VARCHAR(50)` **[PK]** : Format identifier unik (contoh: `BIRO-IKK`).
+* **`kode_biro`** `VARCHAR(20)` **[UK]** : Kode resmi (`IKK`, `BPPK`, `PKKEK`, `HSDMO`, `UK`).
+* **`nama_biro`** `VARCHAR(255)` : Nama lengkap biro.
+* **`nama_singkat`** `VARCHAR(100)` : Nama ringkas biro.
+* **`deskripsi`** `TEXT` : Tugas pokok dan fungsi biro.
+* **`status_aktif`** `BOOLEAN` : Status aktif (`true`/`false`).
+* **`dibuat_pada`** `TIMESTAMP` : Waktu pembuatan data.
+* **`diperbarui_pada`** `TIMESTAMP` : Waktu pembaharuan data.
+
+#### 2. Entitas `tim_biro` (Tim Kerja di Bawah Biro)
+Menaungi unit kerja teknis pelaksana rapat dinas (Tim Investasi, Tim Kerja Sama, Tim Komunikasi).
+* **`id_tim`** `VARCHAR(50)` **[PK]** : Format identifier unik (contoh: `TIM-001`, `TIM-002`, `TIM-003`).
+* **`id_biro`** `VARCHAR(50)` **[FK]** : Mengacu ke `biro(id_biro)`.
+* **`kode_tim`** `VARCHAR(20)` : Kode singkatan tim (`INV`, `KS`, `KOM`).
+* **`nama_tim`** `VARCHAR(150)` : Nama resmi tim kerja.
+* **`deskripsi_tim`** `TEXT` : Uraian lingkup kerja tim.
+* **`status_aktif`** `BOOLEAN` : Status keaktifan tim kerja.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
+
+#### 3. Entitas `pengguna` (Akun Staf, Notulis, & Administrator)
+Menyimpan akun pengguna dan profil aparatur yang bertugas dalam rapat.
+* **`id_pengguna`** `VARCHAR(50)` **[PK]** : Format identifier unik (contoh: `USR-001`, `USR-030`).
+* **`id_biro`** `VARCHAR(50)` **[FK]** : Mengacu ke `biro(id_biro)`.
+* **`id_tim`** `VARCHAR(50)` **[FK, Nullable]** : Mengacu ke `tim_biro(id_tim)`.
+* **`nama_lengkap`** `VARCHAR(255)` : Nama pegawai beserta gelar resmi.
+* **`email`** `VARCHAR(255)` **[UK]** : Alamat email dinas untuk autentikasi.
+* **`kata_sandi`** `VARCHAR(255)` : Hash password terenkripsi.
+* **`peran`** `ENUM` : Hak akses sistem (`SUPER_ADMIN`, `ADMIN`, `STAFF`).
+* **`status_aktif`** `BOOLEAN` : Status akun aktif.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
 
 ---
 
-## 4. Diagram Visual (Mermaid ERD)
+### KLASTER 2: PELAKSANAAN RAPAT DINAS
+
+#### 4. Entitas `rapat` (Agenda Rapat Dinas & Sidang Pleno)
+Entitas transaksional utama yang mencatat seluruh kegiatan rapat koordinasi dinas.
+* **`id_rapat`** `VARCHAR(50)` **[PK]** : Format identifier unik (contoh: `MTG-001`, `MTG-026`).
+* **`nomor_rapat`** `VARCHAR(100)` **[UK]** : Nomor resmi registrasi undangan (contoh: `01/INV/2026`).
+* **`judul_rapat`** `VARCHAR(255)` : Topik atau agenda rapat.
+* **`id_biro`** `VARCHAR(50)` **[FK]** : Biro penyelenggara (mengacu ke `biro(id_biro)`).
+* **`id_tim`** `VARCHAR(50)` **[FK, Nullable]** : Tim kerja pemrakarsa (mengacu ke `tim_biro(id_tim)`).
+* **`id_pengguna`** `VARCHAR(50)` **[FK, Nullable]** : PIC Rapat / Pimpinan (mengacu ke `pengguna(id_pengguna)`).
+* **`id_notulis`** `VARCHAR(50)` **[FK, Nullable]** : Notulis penyusun risalah (mengacu ke `pengguna(id_pengguna)`).
+* **`id_rapat_sebelumnya`** `VARCHAR(50)` **[FK, Nullable]** : Relasi rekursif ke `rapat(id_rapat)` untuk sesi lanjutan.
+* **`tanggal_rapat`** `DATE` : Tanggal pelaksanaan kegiatan rapat.
+* **`waktu_mulai`** `VARCHAR(10)` : Jam mulai (WIB).
+* **`waktu_selesai`** `VARCHAR(10)` : Jam selesai (WIB).
+* **`lokasi_rapat`** `VARCHAR(255)` : Ruang sidang fisik atau tautan daring.
+* **`jenis_rapat`** `VARCHAR(100)` : Bentuk forum (`Rapat Kerja`, `Kunker`, `Audiensi`, dll).
+* **`pic_rapat`** `VARCHAR(255)` : Keterangan nama/gelar PIC rapat.
+* **`status_rapat`** `ENUM` : Siklus draf risalah (`DRAFT`, `REVIEW`, `APPROVED`, `FINAL`).
+* **`status_progres`** `VARCHAR(50)` : Status operasional (`Belum Dimulai`, `Dalam Proses`, `Selesai`).
+* **`kategori_naskah`** `VARCHAR(100)` : Klasifikasi naskah masuk (`UNDANGAN_INTERNAL`, `DISPOSISI`, dll).
+* **`sub_kategori_naskah`** `VARCHAR(100)` : Sub-klasifikasi naskah.
+* **`asal_naskah_masuk`** `VARCHAR(255)` : Asal kementerian / lembaga pemohon rapat.
+* **`alasan_penundaan`** `TEXT` : Keterangan jika rapat berstatus ditunda.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
+
+#### 5. Entitas `peserta_rapat` (Daftar Hadir & Undangan Internal)
+Tabel asosiatif (Many-to-Many) antara `rapat` dan `pengguna`.
+* **`id_peserta`** `VARCHAR(50)` **[PK]** : Identifier unik record peserta.
+* **`id_rapat`** `VARCHAR(50)` **[FK]** : Mengacu ke `rapat(id_rapat)`.
+* **`id_pengguna`** `VARCHAR(50)` **[FK]** : Mengacu ke `pengguna(id_pengguna)`.
+* **`status_kehadiran`** `ENUM` : Status presensi (`INVITED`, `PRESENT`, `ABSENT`, `EXCUSED`).
+* **`dibuat_pada`** `TIMESTAMP`.
+* *Constraint*: `UNIQUE(id_rapat, id_pengguna)` mencegah duplikasi nama peserta pada satu rapat.
+
+#### 6. Entitas `lampiran_rapat` (Dokumen & Berkas Rapat)
+Menyimpan berkas naskah surat undangan resmi, materi paparan PPT/PDF, dan dokumen pendukung.
+* **`id_lampiran`** `VARCHAR(50)` **[PK]** : Identifier unik lampiran.
+* **`id_rapat`** `VARCHAR(50)` **[FK]** : Mengacu ke `rapat(id_rapat)`.
+* **`nama_berkas`** `VARCHAR(255)` : Nama file dokumen asli.
+* **`url_berkas`** `TEXT` : URL penyimpanan file (Object Storage / Cloud Bucket).
+* **`ukuran_berkas`** `INTEGER` : Ukuran file dalam satuan bytes.
+* **`tipe_berkas`** `VARCHAR(50)` : Format MIME file (PDF, DOCX, PPTX).
+* **`nama_pengunggah`** `VARCHAR(255)` : Staf yang mengunggah berkas.
+* **`kategori`** `VARCHAR(50)` : Kategori dokumen (`INVITATION`, `MATERIAL`, `CATEGORY_DOC`).
+* **`dibuat_pada`** `TIMESTAMP`.
+
+#### 7. Entitas `penomoran_rapat_biro` (Generator Sequence Nomor Urut Rapat)
+Generator urutan counter nomor registrasi surat rapat.
+* **`id_penomoran`** `VARCHAR(50)` **[PK]** : Identifier generator.
+* **`id_biro`** `VARCHAR(50)` **[FK, UK]** : Mengacu ke `biro(id_biro)`.
+* **`nomor_terakhir`** `INTEGER` : Nilai counter angka terakhir.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
+
+#### 8. Entitas `rapat_biro` (Keterlibatan Lintas Biro)
+Tabel relasi asosiatif bila rapat bersifat gabungan antar-biro di KEK.
+* **`id_rapat`** `VARCHAR(50)` **[PK, FK]** : Mengacu ke `rapat(id_rapat)`.
+* **`id_biro`** `VARCHAR(50)` **[PK, FK]** : Mengacu ke `biro(id_biro)`.
+
+---
+
+### KLASTER 3: NOTULENSI & TELAAH RISALAH
+
+#### 9. Entitas `notulen_rapat` (Naskah Risalah Resmi)
+Dokumen resmi hasil kesepakatan dan pembahasan rapat dinas.
+* **`id_notulen`** `VARCHAR(50)` **[PK]** : Identifier unik risalah.
+* **`id_rapat`** `VARCHAR(50)` **[FK, UK]** : Relasi 1-to-1 dengan `rapat(id_rapat)`.
+* **`agenda_pembahasan`** `JSONB` : Butir-butir pokok bahasan sidang.
+* **`hasil_pembahasan`** `JSONB` : Uraian dinamika pembahasan rapat.
+* **`poin_keputusan`** `JSONB` : Ketetapan dan kesepakatan final sidang.
+* **`kesimpulan`** `JSONB` : Ringkasan penutup dan legalitas naskah.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
+
+#### 10. Entitas `riwayat_notulen` (Audit Log Snapshot Revisi Notula)
+Mencatat rekam jejak versi naskah setiap kali dilakukan revisi oleh notulis/tim perumus.
+* **`id_riwayat`** `VARCHAR(50)` **[PK]** : Identifier snapshot riwayat.
+* **`id_rapat`** `VARCHAR(50)` **[FK]** : Mengacu ke `rapat(id_rapat)`.
+* **`id_pengguna`** `VARCHAR(50)` **[FK, Nullable]** : User penyunting.
+* **`tipe_perubahan`** `VARCHAR(50)` : Jenis aksi (`CREATED`, `UPDATED`, `STATUS_CHANGED`).
+* **`nama_kolom`** `VARCHAR(100)` : Bidang yang diubah.
+* **`nilai_lama`** `JSONB` : Konten naskah sebelum diubah.
+* **`nilai_baru`** `JSONB` : Konten naskah setelah diubah.
+* **`ringkasan_perubahan`** `TEXT` : Keterangan revisi.
+* **`dibuat_pada`** `TIMESTAMP`.
+
+#### 11. Entitas `komentar_notulen` (Kolaborasi & Review Naskah)
+Menyimpan komentar, telaah, dan koreksi staf per paragraf naskah notulensi.
+* **`id_komentar`** `VARCHAR(50)` **[PK]** : Identifier komentar.
+* **`id_rapat`** `VARCHAR(50)` **[FK]** : Mengacu ke `rapat(id_rapat)`.
+* **`id_pengguna`** `VARCHAR(50)` **[FK, Nullable]** : Staf pemberi masukan.
+* **`id_induk`** `VARCHAR(50)` **[FK, Nullable]** : Self-referencing untuk thread balasan komentar.
+* **`isi_komentar`** `TEXT` : Pesan komentar telaah.
+* **`seksi`** `VARCHAR(50)` : Bagian risalah (`agenda`, `discussion`, `decisions`).
+* **`sudah_diselesaikan`** `BOOLEAN` : Status koreksi diselesaikan (`true`/`false`).
+* **`diselesaikan_oleh`** `VARCHAR(255)` : Nama yang menyelesaikan koreksi.
+* **`diselesaikan_pada`** `TIMESTAMP`.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
+
+---
+
+### KLASTER 4: TINDAK LANJUT & MONITORING (ACTION ITEMS)
+
+#### 12. Entitas `tindak_lanjut` (Butir Tugas & Resolusi Hasil Rapat)
+Menyimpan butir mandat tindak lanjut yang wajib dieksekusi oleh tim kerja dan staf PIC.
+* **`id_tindak_lanjut`** `VARCHAR(50)` **[PK]** : Identifier tugas tindak lanjut.
+* **`id_rapat`** `VARCHAR(50)` **[FK]** : Mengacu ke `rapat(id_rapat)`.
+* **`judul_tindakan`** `VARCHAR(255)` : Pokok tugas tindak lanjut.
+* **`deskripsi_tindakan`** `TEXT` : Uraian detail instruksi pimpinan.
+* **`id_biro`** `VARCHAR(50)` **[FK]** : Biro penanggung jawab (mengacu ke `biro(id_biro)`).
+* **`id_tim`** `VARCHAR(50)` **[FK, Nullable]** : Tim penanggung jawab (mengacu ke `tim_biro(id_tim)`).
+* **`id_pengguna`** `VARCHAR(50)` **[FK, Nullable]** : Staf PIC pelaksana (mengacu ke `pengguna(id_pengguna)`).
+* **`tenggat_waktu`** `DATE` : Batas akhir eksekusi (deadline).
+* **`status_tindak_lanjut`** `ENUM` : Status (`PENDING`, `IN_PROGRESS`, `COMPLETED`, `OVERDUE`).
+* **`skala_prioritas`** `ENUM` : Tingkat urgensi (`LOW`, `MEDIUM`, `HIGH`, `URGENT`).
+* **`diselesaikan_pada`** `TIMESTAMP, Nullable` : Waktu penyelesaian tugas.
+* **`dibuat_pada` / `diperbarui_pada`** `TIMESTAMP`.
+
+#### 13. Entitas `riwayat_tindak_lanjut` (Log Progres & Bukti Eksekusi Tugas)
+Audit trail perkembangan penyelesaian tindak lanjut oleh PIC.
+* **`id_riwayat`** `VARCHAR(50)` **[PK]** : Identifier log progres.
+* **`id_tindak_lanjut`** `VARCHAR(50)` **[FK]** : Mengacu ke `tindak_lanjut(id_tindak_lanjut)`.
+* **`id_pengguna`** `VARCHAR(50)` **[FK, Nullable]** : Staf yang melaporkan progres.
+* **`status_sebelumnya`** `ENUM, Nullable` : Status awal sebelum update.
+* **`status_terbaru`** `ENUM` : Status baru setelah update.
+* **`catatan_progres`** `TEXT` : Uraian hasil kegiatan yang telah dilakukan.
+* **`persentase_progres`** `INTEGER` : Persentase penyelesaian (0 - 100%).
+* **`dibuat_pada`** `TIMESTAMP`.
+
+---
+
+### KLASTER 5: KOMUNIKASI & NOTIFIKASI
+
+#### 14. Entitas `notifikasi` (Pemberitahuan Sistem)
+Menyampaikan pengingat jadwal rapat, undangan, dan penugasan tindak lanjut kepada staf.
+* **`id_notifikasi`** `VARCHAR(50)` **[PK]** : Identifier notifikasi.
+* **`id_pengguna`** `VARCHAR(50)` **[FK, Nullable]** : Pengguna penerima notifikasi.
+* **`judul`** `VARCHAR(255)` : Judul notifikasi.
+* **`pesan`** `TEXT` : Isi ringkasan pemberitahuan.
+* **`tipe`** `VARCHAR(50)` : Jenis notifikasi (`meeting`, `action_item`, `system`).
+* **`tautan`** `VARCHAR(255)` : Link URL tujuan langsung.
+* **`sudah_dibaca`** `BOOLEAN` : Status baca (`false` = baru).
+* **`dibuat_pada`** `TIMESTAMP`.
+
+---
+
+## 3. Diagram Relasi Entitas (ERD Notasi Chen / Crow's Foot)
+
+Diagram berikut memodelkan seluruh relasi antar entitas yang saling terhubung di database:
 
 ```mermaid
 erDiagram
-    biro ||--o{ pengguna : "1:N mempekerjakan"
-    biro ||--o{ rapat : "1:N menyelenggarakan"
-    biro ||--|| penomoran_rapat_biro : "1:1 penomoran surat"
-    biro ||--o{ tindak_lanjut : "1:N penanggung jawab"
-    biro ||--o{ rapat_biro : "1:N biro terlibat"
+    %% KLASTER ORGANISASI & PENGGUNA
+    biro ||--o{ tim_biro : "1. menaungi (1:N)"
+    biro ||--o{ pengguna : "2. mempekerjakan (1:N)"
+    tim_biro ||--o{ pengguna : "3. beranggotakan (1:N)"
+    biro ||--o| penomoran_rapat_biro : "4. memiliki generator (1:1)"
 
-    pengguna ||--o{ peserta_rapat : "1:N absensi kehadiran"
-    pengguna ||--o{ tindak_lanjut : "0..1:N PIC personal"
-    pengguna ||--o{ rapat : "1:N pimpinan / notulis"
+    %% KLASTER RAPAT & PENGGUNA
+    biro ||--o{ rapat : "5. menyelenggarakan (1:N)"
+    tim_biro ||--o{ rapat : "6. pemrakarsa teknis (1:N)"
+    pengguna ||--o{ rapat : "7. pimpinan / PIC (1:N)"
+    rapat |o--o{ rapat : "8. sesi lanjutan rekursif (0..1:N)"
 
-    rapat ||--|| notulen_rapat : "1:1 naskah notula"
-    rapat ||--o{ tindak_lanjut : "1:N resolusi sidang"
-    rapat ||--o{ peserta_rapat : "1:N daftar peserta"
-    rapat ||--o{ rapat_biro : "1:N junction biro"
-    rapat ||--o| rapat : "0..1 rujukan sebelumnya"
+    %% PESERTA & BIRO TERLIBAT (M:N RESOLVED)
+    rapat ||--o{ peserta_rapat : "9. mengundang (1:N)"
+    pengguna ||--o{ peserta_rapat : "10. hadir sebagai (1:N)"
+    rapat ||--o{ rapat_biro : "11. melibatkan lintas biro (1:N)"
+    biro ||--o{ rapat_biro : "12. berpartisipasi (1:N)"
 
-    biro {
-        string biro_id PK "BIRO-IKK, BIRO-BPPK"
-        string code UK "BPPK, PKKEK, IKK, HSDMO, UK"
-        string name "Nama Lengkap Biro"
-        string shortName "Nama Singkat Biro"
-        string description "Deskripsi Tupoksi"
-        boolean isActive "Status Aktif"
-    }
+    %% KLASTER RISALAH NOTULENSI
+    rapat ||--o| notulen_rapat : "13. menghasilkan risalah (1:1)"
+    rapat ||--o{ lampiran_rapat : "14. memiliki berkas lampiran (1:N)"
+    rapat ||--o{ riwayat_notulen : "15. mencatat audit revisi (1:N)"
+    pengguna ||--o{ riwayat_notulen : "16. disunting oleh (1:N)"
+    rapat ||--o{ komentar_notulen : "17. ditelaah melalui (1:N)"
+    pengguna ||--o{ komentar_notulen : "18. ditulis oleh (1:N)"
+    komentar_notulen |o--o{ komentar_notulen : "19. utas balasan (0..1:N)"
 
-    pengguna {
-        string user_id PK "USR-001, USR-002"
-        string biro_id FK "Relasi ke biro"
-        string name "Nama Pengguna"
-        string email UK "Email Login"
-        string role "SUPER_ADMIN, ADMIN, NOTULIS, STAFF"
-        boolean isActive "Status Akun Aktif"
-    }
+    %% KLASTER TINDAK LANJUT (ACTION ITEMS)
+    rapat ||--o{ tindak_lanjut : "20. menghasilkan resolusi (1:N)"
+    biro ||--o{ tindak_lanjut : "21. biro PIC (1:N)"
+    tim_biro ||--o{ tindak_lanjut : "22. tim PIC (1:N)"
+    pengguna ||--o{ tindak_lanjut : "23. staf pelaksana PIC (1:N)"
+    tindak_lanjut ||--o{ riwayat_tindak_lanjut : "24. mencatat log progres (1:N)"
+    pengguna ||--o{ riwayat_tindak_lanjut : "25. dilaporkan oleh (1:N)"
 
-    rapat {
-        string meeting_id PK "MTG-001, MTG-002"
-        string meeting_number UK "IKK-015, BPPK-001"
-        string primary_biro_id FK "Biro Pemrakarsa"
-        string chairperson_id FK "Pimpinan Sidang"
-        string secretary_id FK "Notulis Sidang"
-        string previous_meeting_id FK "Rujukan Rapat Sebelumnya"
-        string title "Judul Rapat"
-        date date "Tanggal Pelaksanaan"
-        string status "DRAFT, REVIEW, APPROVED, FINAL"
-    }
-
-    notulen_rapat {
-        string minutes_id PK "NOT-001, NOT-002"
-        string meeting_id FK "1:1 Unique ke rapat"
-        json agenda "Agenda Pembahasan"
-        json discussion "Substansi Pembahasan"
-        json decisions "Keputusan / Hasil Sidang"
-        json conclusion "Pengesahan & Legalitas"
-    }
-
-    tindak_lanjut {
-        string action_item_id PK "ACT-001, ACT-002"
-        string meeting_id FK "Relasi ke rapat"
-        string pic_biro_id FK "Biro Penanggung Jawab"
-        string pic_user_id FK "Pegawai PIC Spesifik"
-        string title "Ringkasan Tindak Lanjut"
-        datetime dueDate "Tenggat Waktu Selesai"
-        string status "PENDING, IN_PROGRESS, COMPLETED"
-        string priority "LOW, MEDIUM, HIGH, URGENT"
-    }
-
-    peserta_rapat {
-        string participant_id PK "PRT-001, PRT-002"
-        string meeting_id FK "Relasi ke rapat"
-        string user_id FK "Relasi ke pengguna"
-        string attendanceStatus "INVITED, PRESENT, ABSENT"
-    }
-
-    rapat_biro {
-        string meeting_id PK_FK "Relasi ke rapat"
-        string biro_id PK_FK "Relasi ke biro"
-    }
-
-    penomoran_rapat_biro {
-        string sequence_id PK "SEQ-001, SEQ-002"
-        string biro_id FK "1:1 Unique ke biro"
-        int currentNumber "Nomor Urut Terakhir"
-    }
+    %% KLASTER NOTIFIKASI
+    pengguna ||--o{ notifikasi : "26. menerima pemberitahuan (1:N)"
 ```
+
+---
+
+## 4. Kaidah Normalisasi Basis Data (Derajat 3NF)
+
+Seluruh 14 tabel di atas telah memenuhi kriteria **Normal Form Ketiga (3NF)**:
+1. **1NF (First Normal Form)**: Setiap kolom memiliki nilai tunggal (*atomic value*), tidak terdapat grup nilai berulang, dan setiap tabel memiliki Primary Key unik.
+2. **2NF (Second Normal Form)**: Seluruh tabel telah 1NF dan seluruh atribut bukan kunci (*non-prime attributes*) bergantung penuh (*fully functional dependent*) pada Primary Key, bukan pada sebagian kunci komposit.
+3. **3NF (Third Normal Form)**: Tidak ada ketergantungan transitif (*transitive dependency*) di mana atribut non-kunci bergantung pada atribut non-kunci lainnya. Relasi dipisahkan secara elegan ke tabel referensi (`tim_biro`, `biro`, `pengguna`).

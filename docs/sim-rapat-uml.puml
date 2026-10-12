@@ -10,14 +10,12 @@ skinparam class {
     BorderColor #215865
 }
 
-title SISTEM INFORMASI MANAJEMEN RAPAT & TINDAK LANJUT (SIM-RAPAT KEK RI)\nUML Class Diagram (Standarisasi Relasi 1 to Many)
+title SISTEM INFORMASI LOG & RISALAH RAPAT (SIM-RAPAT KEK RI)\nUML Class Diagram Lengkap (14 Entitas Basis Data)
 
 enum PeranPengguna {
   SUPER_ADMIN
   ADMIN
-  NOTULIS
   STAFF
-  VIEWER
 }
 
 enum StatusRapat {
@@ -48,6 +46,9 @@ enum PrioritasTindakLanjut {
   URGENT
 }
 
+' ==============================================================================
+' KLASTER 1: Organisasi & Akun
+' ==============================================================================
 class Biro {
   + String id_biro <<PK>>
   + String kode_biro <<UK>>
@@ -60,11 +61,27 @@ class Biro {
   --
   + hitungBebanKerja()
   + getDaftarPegawai()
+  + getStatistikTim()
+}
+
+class TimBiro {
+  + String id_tim <<PK>>
+  + String id_biro <<FK>>
+  + String kode_tim
+  + String nama_tim
+  + String deskripsi_tim
+  + Boolean status_aktif
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
+  --
+  + getDaftarStaf()
+  + hitungRapatTim()
 }
 
 class Pengguna {
   + String id_pengguna <<PK>>
   + String id_biro <<FK>>
+  + String id_tim <<FK, Null>>
   + String nama_lengkap
   + String email <<UK>>
   + String kata_sandi
@@ -75,6 +92,20 @@ class Pengguna {
   --
   + autentikasi()
   + ubahProfil()
+  + ambilDaftarTugas()
+}
+
+' ==============================================================================
+' KLASTER 2: Pelaksanaan Rapat
+' ==============================================================================
+class PenomoranRapatBiro {
+  + String id_penomoran <<PK>>
+  + String id_biro <<FK, UK>>
+  + Int nomor_terakhir
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
+  --
+  + ambilNomorBerikutnya()
 }
 
 class Rapat {
@@ -82,34 +113,31 @@ class Rapat {
   + String nomor_rapat <<UK>>
   + String judul_rapat
   + String id_biro <<FK>>
+  + String id_tim <<FK, Null>>
   + String id_pengguna <<FK>>
-  + String id_notulis <<FK>>
-  + String id_rapat_sebelumnya <<FK>>
+  + String id_notulis <<FK, Null>>
+  + String id_rapat_sebelumnya <<FK, Null>>
   + DateTime tanggal_rapat
   + String waktu_mulai
   + String waktu_selesai
   + String lokasi_rapat
   + StatusRapat status_rapat
+  + String jenis_rapat
+  + String pic_rapat
+  + String status_progres
+  + String kategori_naskah
   + DateTime dibuat_pada
   + DateTime diperbarui_pada
   --
   + buatRapat()
   + perbaruiStatus()
-  + eksporPdf()
+  + tambahPeserta()
+  + eksporRisalahPdf()
 }
 
-class NotulenRapat {
-  + String id_notulen <<PK>>
-  + String id_rapat <<FK, UK>>
-  + Json agenda_pembahasan
-  + Json hasil_pembahasan
-  + Json poin_keputusan
-  + Json kesimpulan
-  + DateTime dibuat_pada
-  + DateTime diperbarui_pada
-  --
-  + simpanNotulen()
-  + buatDokumenPdf()
+class RapatBiro {
+  + String id_rapat <<PK, FK>>
+  + String id_biro <<PK, FK>>
 }
 
 class PesertaRapat {
@@ -122,16 +150,76 @@ class PesertaRapat {
   + catatKehadiran()
 }
 
-class RapatBiro {
-  + String id_rapat <<PK, FK>>
-  + String id_biro <<PK, FK>>
+class LampiranRapat {
+  + String id_lampiran <<PK>>
+  + String id_rapat <<FK>>
+  + String nama_berkas
+  + String url_berkas
+  + Int ukuran_berkas
+  + String tipe_berkas
+  + String kategori
+  + DateTime dibuat_pada
+  --
+  + unggahBerkas()
+  + unduhBerkas()
 }
 
+' ==============================================================================
+' KLASTER 3: Notulensi & Risalah
+' ==============================================================================
+class NotulenRapat {
+  + String id_notulen <<PK>>
+  + String id_rapat <<FK, UK>>
+  + Json agenda_pembahasan
+  + Json hasil_pembahasan
+  + Json poin_keputusan
+  + Json kesimpulan
+  + DateTime dibuat_pada
+  + DateTime diperbarui_pada
+  --
+  + simpanNotulen()
+  + validasiNotulen()
+  + cetakDokumenResmi()
+}
+
+class KomentarNotulen {
+  + String id_komentar <<PK>>
+  + String id_rapat <<FK>>
+  + String id_pengguna <<FK>>
+  + String id_induk <<FK, Null>>
+  + String isi_komentar
+  + String seksi
+  + Boolean sudah_diselesaikan
+  + DateTime dibuat_pada
+  --
+  + tambahKomentar()
+  + balasKomentar()
+  + tandaiSelesai()
+}
+
+class RiwayatNotulen {
+  + String id_riwayat <<PK>>
+  + String id_rapat <<FK>>
+  + String id_pengguna <<FK>>
+  + String tipe_perubahan
+  + String nama_kolom
+  + Json nilai_lama
+  + Json nilai_baru
+  + String ringkasan_perubahan
+  + DateTime dibuat_pada
+  --
+  + catatAuditTrail()
+}
+
+' ==============================================================================
+' KLASTER 4: Tindak Lanjut (Action Items)
+' ==============================================================================
 class TindakLanjut {
   + String id_tindak_lanjut <<PK>>
   + String id_rapat <<FK>>
   + String id_biro <<FK>>
-  + String id_pengguna <<FK>>
+  + String id_tim <<FK, Null>>
+  + String id_pengguna <<FK, Null>>
   + String judul_tindakan
   + String deskripsi_tindakan
   + DateTime tenggat_waktu
@@ -142,32 +230,72 @@ class TindakLanjut {
   + DateTime diperbarui_pada
   --
   + perbaruiStatus()
+  + perbaruiProgres()
   + tandaiSelesai()
 }
 
-class PenomoranRapatBiro {
-  + String id_penomoran <<PK>>
-  + String id_biro <<FK, UK>>
-  + Int nomor_terakhir
+class RiwayatTindakLanjut {
+  + String id_riwayat <<PK>>
+  + String id_tindak_lanjut <<FK>>
+  + String id_pengguna <<FK>>
+  + StatusTindakLanjut status_sebelumnya
+  + StatusTindakLanjut status_terbaru
+  + String catatan_progres
+  + Int persentase_progres
   + DateTime dibuat_pada
-  + DateTime diperbarui_pada
   --
-  + ambilNomorBerikutnya()
+  + tambahLogProgres()
 }
 
-' Relasi Antar Kelas 1 to Many
+' ==============================================================================
+' KLASTER 5: Komunikasi Sistem
+' ==============================================================================
+class Notifikasi {
+  + String id_notifikasi <<PK>>
+  + String id_pengguna <<FK>>
+  + String judul
+  + String pesan
+  + String tipe
+  + String tautan
+  + Boolean sudah_dibaca
+  + DateTime dibuat_pada
+  --
+  + kirimNotifikasi()
+  + tandaiDibaca()
+}
+
+' ==============================================================================
+' Hubungan Relasi Antar Kelas
+' ==============================================================================
+Biro "1" --> "0..*" TimBiro : id_biro (1:N)
 Biro "1" --> "0..*" Pengguna : id_biro (1:N)
 Biro "1" --> "0..*" Rapat : id_biro (1:N)
 Biro "1" --> "1" PenomoranRapatBiro : id_biro (1:1)
+Biro "1" --> "0..*" TindakLanjut : id_biro (1:N)
+Biro "1" -- "0..*" RapatBiro : id_biro (M:N)
+
+TimBiro "0..1" --> "0..*" Pengguna : id_tim (1:N)
+TimBiro "0..1" --> "0..*" Rapat : id_tim (1:N)
+TimBiro "0..1" --> "0..*" TindakLanjut : id_tim (1:N)
+
 Pengguna "1" --> "0..*" Rapat : id_pengguna (1:N)
+Pengguna "1" -- "0..*" PesertaRapat : id_pengguna (1:N)
+Pengguna "0..1" --> "0..*" TindakLanjut : id_pengguna (1:N)
+Pengguna "1" --> "0..*" RiwayatTindakLanjut : id_pengguna (1:N)
+Pengguna "1" --> "0..*" KomentarNotulen : id_pengguna (1:N)
+Pengguna "1" --> "0..*" RiwayatNotulen : id_pengguna (1:N)
+Pengguna "1" --> "0..*" Notifikasi : id_pengguna (1:N)
+
 Rapat "1" --> "0..1" Rapat : id_rapat_sebelumnya (0..1:N)
 Rapat "1" *-- "0..1" NotulenRapat : id_rapat (1:1)
 Rapat "1" *-- "0..*" TindakLanjut : id_rapat (1:N)
-Biro "1" --> "0..*" TindakLanjut : id_biro (1:N)
-Pengguna "0..1" --> "0..*" TindakLanjut : id_pengguna (1:N)
 Rapat "1" *-- "0..*" PesertaRapat : id_rapat (1:N)
-Pengguna "1" -- "0..*" PesertaRapat : id_pengguna (1:N)
+Rapat "1" *-- "0..*" LampiranRapat : id_rapat (1:N)
+Rapat "1" *-- "0..*" KomentarNotulen : id_rapat (1:N)
+Rapat "1" *-- "0..*" RiwayatNotulen : id_rapat (1:N)
 Rapat "1" -- "0..*" RapatBiro : id_rapat (M:N)
-Biro "1" -- "0..*" RapatBiro : id_biro (M:N)
+
+KomentarNotulen "1" --> "0..*" KomentarNotulen : id_induk (0..1:N)
+TindakLanjut "1" *-- "0..*" RiwayatTindakLanjut : id_tindak_lanjut (1:N)
 
 @enduml
