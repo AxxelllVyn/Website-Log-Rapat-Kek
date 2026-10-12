@@ -33,6 +33,8 @@ import {
 } from '@/app/actions/meeting-upload-actions';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { PicSelector } from './pic-selector';
+import { AttendeesSelector } from './attendees-selector';
 
 interface CreateMeetingDialogProps {
   isOpen: boolean;
@@ -110,10 +112,9 @@ export function CreateMeetingDialog({ isOpen, onClose }: CreateMeetingDialogProp
   // 7. PIC Rapat
   const [picUserId, setPicUserId] = useState<string>('');
   const [picName, setPicName] = useState<string>('');
-  const [picTeamFilter, setPicTeamFilter] = useState<string>('ALL');
-  const [picSearch, setPicSearch] = useState<string>('');
 
   // 8. Undangan Rapat (Peserta)
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [attendees, setAttendees] = useState<string>('');
 
   // 9. Lokasi Kegiatan
@@ -159,43 +160,6 @@ export function CreateMeetingDialog({ isOpen, onClose }: CreateMeetingDialogProp
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // PIC filtered users based on team filter & search query
-  const filteredPicUsers = useMemo(() => {
-    return availableUsers.filter((u) => {
-      const q = picSearch.trim().toLowerCase();
-      const matchSearch =
-        !q ||
-        u.name?.toLowerCase().includes(q) ||
-        (u.email ? u.email.toLowerCase().includes(q) : false) ||
-        (u.team?.name ? u.team.name.toLowerCase().includes(q) : false);
-
-      const matchTeam =
-        picTeamFilter === 'ALL' ||
-        (u.team?.code && u.team.code.toUpperCase() === picTeamFilter.toUpperCase()) ||
-        (picTeamFilter === 'INV' && (u.team?.id === 'TIM-001' || u.team?.code === 'INV' || u.team?.name?.toLowerCase().includes('investasi'))) ||
-        (picTeamFilter === 'KS' && (u.team?.id === 'TIM-003' || u.team?.code === 'KS' || u.team?.name?.toLowerCase().includes('kerja sama'))) ||
-        (picTeamFilter === 'KOM' && (u.team?.id === 'TIM-002' || u.team?.code === 'KOM' || u.team?.name?.toLowerCase().includes('komunikasi')));
-
-      return matchSearch && matchTeam;
-    });
-  }, [availableUsers, picSearch, picTeamFilter]);
-
-  const picTeamCounts = useMemo(() => {
-    const isInv = (u: any) => u.team?.code === 'INV' || u.team?.id === 'TIM-001' || u.team?.name?.toLowerCase().includes('investasi');
-    const isKs = (u: any) => u.team?.code === 'KS' || u.team?.id === 'TIM-003' || u.team?.name?.toLowerCase().includes('kerja sama');
-    const isKom = (u: any) => u.team?.code === 'KOM' || u.team?.id === 'TIM-002' || u.team?.name?.toLowerCase().includes('komunikasi');
-
-    return {
-      ALL: availableUsers.length,
-      INV: availableUsers.filter(isInv).length,
-      KS: availableUsers.filter(isKs).length,
-      KOM: availableUsers.filter(isKom).length,
-    };
-  }, [availableUsers]);
-
-  const selectedPicUser = useMemo(() => {
-    return availableUsers.find((u) => u.id === picUserId) || null;
-  }, [availableUsers, picUserId]);
 
   if (!isOpen || !canCreate) return null;
 
@@ -290,6 +254,7 @@ export function CreateMeetingDialog({ isOpen, onClose }: CreateMeetingDialogProp
         materialDocUrl: materialDoc?.url || undefined,
         materialDocName: materialDoc?.name || undefined,
         materialDocSize: materialDoc?.size || undefined,
+        participantUserIds: selectedUserIds.length > 0 ? selectedUserIds : undefined,
         attendees: attendees.trim() || undefined,
       });
 
@@ -616,176 +581,58 @@ export function CreateMeetingDialog({ isOpen, onClose }: CreateMeetingDialogProp
           </div>
 
           {/* 8. PIC Rapat */}
-          <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-              <label className="block font-bold text-slate-800 text-xs">
-                8. PIC Rapat <span className="text-red-500">*</span>
-              </label>
-              {selectedPicUser && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-[#1E6B7B]">
-                    ✓ {selectedPicUser.name} {selectedPicUser.team?.name ? `(${selectedPicUser.team.name})` : ''}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPicUserId('');
-                      setPicName('');
-                    }}
-                    className="text-[10px] text-red-500 hover:underline cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Filter Tabs & Search Staf PIC */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-1 overflow-x-auto text-[11px] font-semibold [scrollbar-width:none]">
-                {[
-                  { key: 'ALL', label: 'Semua', count: picTeamCounts.ALL },
-                  { key: 'INV', label: 'Investasi', count: picTeamCounts.INV },
-                  { key: 'KS', label: 'Kerja Sama', count: picTeamCounts.KS },
-                  { key: 'KOM', label: 'Komunikasi', count: picTeamCounts.KOM },
-                ].map((tab) => {
-                  const isActive = picTeamFilter === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setPicTeamFilter(tab.key)}
-                      className={cn(
-                        'px-2 py-1 rounded-md transition-all cursor-pointer shrink-0 text-[11px] flex items-center gap-1',
-                        isActive
-                          ? 'bg-[#1E6B7B] text-white shadow-2xs font-bold'
-                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                      )}
-                    >
-                      <span>{tab.label}</span>
-                      <span
-                        className={cn(
-                          'px-1 py-0.2 rounded-full text-[9px] font-bold',
-                          isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                        )}
-                      >
-                        {tab.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="relative sm:w-44">
-                <Search className="w-3 h-3 absolute left-2.5 top-2 text-slate-400" />
-                <input
-                  type="text"
-                  value={picSearch}
-                  onChange={(e) => setPicSearch(e.target.value)}
-                  placeholder="Cari staf..."
-                  className="w-full pl-7 pr-6 h-[26px] rounded-lg border border-slate-300 bg-white text-[11px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1E6B7B]"
-                />
-                {picSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setPicSearch('')}
-                    className="absolute right-1.5 top-1.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Clickable Chips Grid (Tinggal 1x Klik) */}
-            <div className="space-y-1">
-              <p className="text-[10px] text-slate-500">
-                Klik nama staf untuk memilih ({filteredPicUsers.length} staf tersedia):
-              </p>
-              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 [scrollbar-width:thin]">
-                {filteredPicUsers.length === 0 ? (
-                  <div className="text-center py-3 w-full text-xs text-slate-400">
-                    Tidak ada staf yang sesuai
-                  </div>
-                ) : (
-                  filteredPicUsers.map((u) => {
-                    const isSelected = picUserId === u.id;
-                    return (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            setPicUserId('');
-                            setPicName('');
-                          } else {
-                            setPicUserId(u.id);
-                            setPicName(u.name);
-                          }
-                        }}
-                        className={cn(
-                          'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer border text-left',
-                          isSelected
-                            ? 'bg-[#1E6B7B] text-white border-[#1E6B7B] font-semibold'
-                            : 'bg-white text-slate-700 border-slate-200 hover:border-[#1E6B7B] hover:bg-slate-50'
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 border',
-                            isSelected
-                              ? 'border-white bg-white/20 text-white'
-                              : 'border-slate-300 bg-slate-100 text-slate-600'
-                          )}
-                        >
-                          {isSelected ? <Check className="w-2 h-2 text-white" /> : u.name?.charAt(0).toUpperCase()}
-                        </span>
-                        <span className="truncate max-w-[140px]">{u.name}</span>
-                        {u.team?.name && (
-                          <span
-                            className={cn(
-                              'text-[9px] px-1 py-0.2 rounded font-bold shrink-0',
-                              isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                            )}
-                          >
-                            {u.team.name}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Nama / Keterangan PIC */}
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Nama / Keterangan PIC <span className="text-slate-400 font-normal">(Otomatis terisi saat staf diklik)</span>:
-              </label>
-              <input
-                type="text"
-                required
-                value={picName}
-                onChange={(e) => setPicName(e.target.value)}
-                placeholder="Nama PIC Rapat..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#1E6B7B]"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <label className="block font-bold text-slate-800 text-xs">
+              8. PIC Rapat <span className="text-red-500">*</span>
+            </label>
+            <PicSelector
+              availableUsers={availableUsers}
+              selectedUserId={picUserId}
+              picName={picName}
+              onSelectUser={(u) => {
+                setPicUserId(u ? u.id : '');
+                setPicName(u ? u.name : '');
+              }}
+              onPicNameChange={(name) => setPicName(name)}
+              required
+            />
           </div>
 
           {/* 9. Undangan Rapat (Peserta yang diundang) */}
-          <div>
-            <label className="block font-bold text-slate-800 mb-1">
+          <div className="space-y-2">
+            <label className="block font-bold text-slate-800 text-xs">
               9. Undangan Rapat (Peserta Rapat yang Diundang)
             </label>
-            <textarea
-              rows={2}
-              value={attendees}
-              onChange={(e) => setAttendees(e.target.value)}
-              placeholder="Daftar peserta eksternal, kementerian, atau perwakilan..."
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs"
-            />
+
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-slate-600">
+                A. Staf &amp; Pejabat Internal KEK yang Diundang:
+              </label>
+              <AttendeesSelector
+                availableUsers={availableUsers}
+                selectedUserIds={selectedUserIds}
+                onToggleUser={(id) => {
+                  setSelectedUserIds((prev) =>
+                    prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+                  );
+                }}
+                onSelectUsers={(ids) => setSelectedUserIds(ids)}
+                onClearAll={() => setSelectedUserIds([])}
+              />
+            </div>
+
+            <div className="space-y-1 pt-1">
+              <label className="block text-[11px] font-semibold text-slate-600">
+                B. Peserta Eksternal &amp; Lembaga Terkait yang Diundang:
+              </label>
+              <textarea
+                rows={2}
+                value={attendees}
+                onChange={(e) => setAttendees(e.target.value)}
+                placeholder="Daftar peserta eksternal, kementerian, atau perwakilan..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1E6B7B]"
+              />
+            </div>
           </div>
 
           {/* 10. Lokasi Kegiatan */}
