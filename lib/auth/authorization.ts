@@ -48,6 +48,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, AppPermission[]> = {
     'edit:action_item',
     'delete:action_item',
   ],
+  PIMPINAN: [
+    'view:dashboard',
+    'view:meeting',
+    'view:minutes',
+  ],
   STAFF: [
     'view:dashboard',
     'view:meeting',

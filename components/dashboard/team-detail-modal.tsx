@@ -812,6 +812,8 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
                         ? 'Super Admin'
                         : member.role === 'ADMIN'
                         ? 'Admin'
+                        : member.role === 'PIMPINAN'
+                        ? 'Pimpinan'
                         : 'Staf Pelaksana'}
                     </span>
                   </div>

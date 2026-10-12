@@ -10,7 +10,9 @@ export const revalidate = 0;
 export default async function SemuaRapatPage() {
   const currentUser = await getCurrentUser();
   const isPrivileged =
-    currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'PIMPINAN';
 
   // Strict Bureau Scoping: Non-admin users only see meetings for their own bureau
   const userBiroCode = !isPrivileged && currentUser?.biroCode ? currentUser.biroCode : undefined;

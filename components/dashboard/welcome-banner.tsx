@@ -19,6 +19,10 @@ const ROLE_LABELS: Record<string, { label: string; badgeClass: string }> = {
     label: 'Administrator',
     badgeClass: 'bg-blue-100 text-blue-900 border-blue-300',
   },
+  PIMPINAN: {
+    label: 'Pimpinan / Pengawas',
+    badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+  },
   STAFF: {
     label: 'Staf Tim',
     badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',
@@ -54,7 +58,11 @@ export function WelcomeBanner({
 
     try {
       setIsDownloading(true);
-      const isBiroUser = userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN' && currentUser?.biroCode;
+      const isBiroUser =
+        userRole !== 'SUPER_ADMIN' &&
+        userRole !== 'ADMIN' &&
+        userRole !== 'PIMPINAN' &&
+        currentUser?.biroCode;
       const biroParam = isBiroUser ? `&biro=${currentUser?.biroCode}` : '';
       const res = await fetch(`/api/reports/summary/pdf?period=YEAR${biroParam}`);
       if (!res.ok) {

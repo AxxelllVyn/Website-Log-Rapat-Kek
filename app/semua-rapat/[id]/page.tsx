@@ -18,7 +18,9 @@ export default async function MeetingDetailPage({ params, searchParams }: Meetin
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const currentUser = await getCurrentUser();
   const isPrivileged =
-    currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'PIMPINAN';
 
   const [meeting, biros, users] = await withDbRetry(async () =>
     Promise.all([

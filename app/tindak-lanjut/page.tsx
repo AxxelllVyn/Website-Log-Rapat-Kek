@@ -10,7 +10,9 @@ export const revalidate = 0;
 export default async function TindakLanjutPage() {
   const currentUser = await getCurrentUser();
   const isPrivileged =
-    currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'PIMPINAN';
 
   // Strict Bureau Scoping: Non-admin users only see and manage action items for their own bureau
   const userBiroCode = !isPrivileged && currentUser?.biroCode ? currentUser.biroCode : undefined;

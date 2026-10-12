@@ -14,6 +14,7 @@ export default async function DashboardPage() {
     currentUser &&
     currentUser.role !== 'SUPER_ADMIN' &&
     currentUser.role !== 'ADMIN' &&
+    currentUser.role !== 'PIMPINAN' &&
     currentUser.biroCode &&
     !['ikk', 'biro-ikk'].includes(currentUser.biroCode.toLowerCase())
   ) {

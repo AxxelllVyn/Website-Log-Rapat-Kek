@@ -114,6 +114,10 @@ export function BiroDashboardClient({
       label: 'Administrator Biro',
       badgeClass: 'bg-blue-100 text-blue-900 border-blue-300',
     },
+    PIMPINAN: {
+      label: 'Pimpinan / Pengawas',
+      badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+    },
     STAFF: {
       label: 'Staf Pelaksana Teknis',
       badgeClass: 'bg-purple-100 text-purple-900 border-purple-300',

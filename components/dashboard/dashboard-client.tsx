@@ -361,6 +361,8 @@ export function DashboardClient({
           onManageMatrixClick={() => router.push('/tindak-lanjut')}
         />
         <BureauDistribution
+          meetings={selectedMonth ? monthMeetings : yearMeetings}
+          onCategoryClick={(categoryKey) => router.push(`/semua-rapat?kategori=${categoryKey}`)}
           workload={workload}
           teamWorkload={sanitizedTeamWorkload}
           onTeamClick={handleOpenTeamModal}

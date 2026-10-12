@@ -40,12 +40,14 @@ const SECTION_LABELS: Record<string, string> = {
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
   ADMIN: 'Admin',
+  PIMPINAN: 'Pimpinan',
   STAFF: 'Staf',
 };
 
 const ROLE_COLORS: Record<string, string> = {
   SUPER_ADMIN: 'bg-rose-100 text-rose-700',
   ADMIN: 'bg-violet-100 text-violet-700',
+  PIMPINAN: 'bg-amber-100 text-amber-700',
   STAFF: 'bg-blue-100 text-blue-700',
 };
 

@@ -786,6 +786,71 @@ export async function getDashboardStats() {
         };
       });
 
+      // Category Distribution
+      const allMeetingsCategory = await prisma.meeting.findMany({
+        select: { documentCategory: true, documentSubCategory: true },
+      });
+
+      const countUndanganInternal = allMeetingsCategory.filter(
+        (m) => (m.documentCategory || 'UNDANGAN_INTERNAL').toUpperCase() === 'UNDANGAN_INTERNAL'
+      ).length;
+      const countDisposisiSekjen = allMeetingsCategory.filter((m) => {
+        const cat = (m.documentCategory || '').toUpperCase();
+        const sub = (m.documentSubCategory || '').toUpperCase();
+        return cat === 'DISPOSISI_SEKJEN' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_SEKJEN');
+      }).length;
+      const countNaskahMasuk = allMeetingsCategory.filter((m) => {
+        const cat = (m.documentCategory || '').toUpperCase();
+        const sub = (m.documentSubCategory || '').toUpperCase();
+        return (
+          (cat === 'NASKAH_MASUK' || cat === 'DAFTAR_NASKAH_MASUK') &&
+          sub !== 'DISPOSISI_SEKJEN' &&
+          sub !== 'DISPOSISI_BIRO'
+        );
+      }).length;
+      const countDisposisiBiro = allMeetingsCategory.filter((m) => {
+        const cat = (m.documentCategory || '').toUpperCase();
+        const sub = (m.documentSubCategory || '').toUpperCase();
+        return cat === 'DISPOSISI_BIRO' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_BIRO');
+      }).length;
+      const countTundaRapat = allMeetingsCategory.filter((m) => {
+        const cat = (m.documentCategory || '').toUpperCase();
+        return cat === 'SURAT_DITUNDA' || cat === 'TUNDA_RAPAT';
+      }).length;
+
+      const categoryDistribution = [
+        {
+          key: 'UNDANGAN_INTERNAL',
+          label: 'Undangan Internal',
+          count: countUndanganInternal,
+          percentage: totalMeetings > 0 ? Math.round((countUndanganInternal / totalMeetings) * 100) : 0,
+        },
+        {
+          key: 'DISPOSISI_SEKJEN',
+          label: 'Disposisi Sekjen',
+          count: countDisposisiSekjen,
+          percentage: totalMeetings > 0 ? Math.round((countDisposisiSekjen / totalMeetings) * 100) : 0,
+        },
+        {
+          key: 'NASKAH_MASUK',
+          label: 'Daftar Naskah Masuk',
+          count: countNaskahMasuk,
+          percentage: totalMeetings > 0 ? Math.round((countNaskahMasuk / totalMeetings) * 100) : 0,
+        },
+        {
+          key: 'DISPOSISI_BIRO',
+          label: 'Disposisi Biro',
+          count: countDisposisiBiro,
+          percentage: totalMeetings > 0 ? Math.round((countDisposisiBiro / totalMeetings) * 100) : 0,
+        },
+        {
+          key: 'SURAT_DITUNDA',
+          label: 'Tunda Rapat',
+          count: countTundaRapat,
+          percentage: totalMeetings > 0 ? Math.round((countTundaRapat / totalMeetings) * 100) : 0,
+        },
+      ];
+
       return {
         totalMeetings,
         totalUsers,
@@ -796,6 +861,7 @@ export async function getDashboardStats() {
         finalMeetings,
         bureauWorkload,
         teamWorkload,
+        categoryDistribution,
         metrics,
         monthlyActivity,
         actionItemStats: {

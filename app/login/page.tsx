@@ -58,9 +58,10 @@ function LoginForm() {
     }
   };
 
-  // Demo accounts helper for quick evaluation (Super Admin, Admin, Staf)
+  // Demo accounts helper for quick evaluation (Super Admin, Pimpinan, Admin, Staf)
   const demoAccounts = [
-    { label: 'Super Admin (Pak Bambang)', email: 'superadmin@simrapat.local', icon: '👑', desc: 'Akses Penuh 3 Tim IKK' },
+    { label: 'Super Admin', email: 'superadmin@simrapat.local', icon: '👑', desc: 'Akses Penuh IT' },
+    { label: 'Pimpinan', email: 'pimpinan@simrapat.local', icon: '🏛️', desc: 'Monitoring & Pengawas' },
     { label: 'Admin IKK', email: 'admin@simrapat.local', icon: '⚙️', desc: 'Pengelola Sistem IKK' },
     { label: 'Staf IKK', email: 'staff@simrapat.local', icon: '💼', desc: 'PIC Tindak Lanjut Tim' },
   ];
@@ -287,7 +288,7 @@ function LoginForm() {
                   Pilih salah satu peran di bawah untuk mengisi kredensial uji coba secara instan:
                 </p>
 
-                <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
                   {demoAccounts.map((acc) => {
                     const isSelected = selectedDemoRole === acc.label;
 

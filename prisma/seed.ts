@@ -83,6 +83,13 @@ async function main() {
       isActive: true,
     },
     {
+      name: 'Dr. H. Bambang Soeprapto (Pimpinan Dewan KEK)',
+      email: 'pimpinan@simrapat.local',
+      role: UserRole.PIMPINAN,
+      biroCode: 'UK',
+      isActive: true,
+    },
+    {
       name: 'Administrator Operasional Rapat',
       email: 'admin@simrapat.local',
       role: UserRole.ADMIN,

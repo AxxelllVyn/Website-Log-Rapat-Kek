@@ -19,11 +19,12 @@ export default async function BiroDetailPage({ params, searchParams }: BiroPageP
   const currentUser = await getCurrentUser();
 
   // Access Control:
-  // If user is NOT Super Admin or Admin, they can ONLY access their own Biro!
+  // If user is NOT Super Admin, Admin, or Pimpinan, they can ONLY access their own Biro!
   if (
     currentUser &&
     currentUser.role !== 'SUPER_ADMIN' &&
     currentUser.role !== 'ADMIN' &&
+    currentUser.role !== 'PIMPINAN' &&
     currentUser.biroCode &&
     currentUser.biroCode.toLowerCase() !== code.toLowerCase()
   ) {

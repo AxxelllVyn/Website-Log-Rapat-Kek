@@ -287,6 +287,12 @@ export function UserManagementView({
             Administrator
           </span>
         );
+      case 'PIMPINAN':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold">
+            Pimpinan
+          </span>
+        );
       case 'STAFF':
       default:
         return (
@@ -340,6 +346,7 @@ export function UserManagementView({
             <option value="ALL">Semua Peran (Role)</option>
             <option value="SUPER_ADMIN">Super Admin</option>
             <option value="ADMIN">Administrator</option>
+            <option value="PIMPINAN">Pimpinan</option>
             <option value="STAFF">Staf</option>
           </select>
 
@@ -639,6 +646,7 @@ export function UserManagementView({
                   >
                     <option value="SUPER_ADMIN">SUPER_ADMIN (Penuh)</option>
                     <option value="ADMIN">ADMIN (Operasional)</option>
+                    <option value="PIMPINAN">PIMPINAN (Pengawas &amp; Monitoring)</option>
                     <option value="STAFF">STAFF (Pelaksana)</option>
                   </select>
                 </div>
