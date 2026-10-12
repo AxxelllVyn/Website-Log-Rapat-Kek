@@ -183,17 +183,25 @@ export function AttendeesSelector({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 pl-2">
-            <span
-              className={cn(
-                'text-[10.5px] px-2 py-0.5 rounded-full font-bold transition-colors',
-                selectedUserIds.length > 0
-                  ? 'bg-teal-100 text-[#1E6B7B]'
-                  : 'bg-slate-100 text-slate-500'
-              )}
-            >
-              {selectedUserIds.length} Dipilih
-            </span>
+          <div className="flex items-center gap-1.5 shrink-0 pl-2">
+            {selectedUserIds.length > 0 && !disabled && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClearAll();
+                  }}
+                  className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  title="Hapus semua pilihan staf"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full font-bold bg-teal-100 text-[#1E6B7B]">
+                  {selectedUserIds.length} Dipilih
+                </span>
+              </>
+            )}
             <ChevronDown
               className={cn(
                 'w-4 h-4 text-slate-400 transition-transform duration-200',
@@ -211,10 +219,10 @@ export function AttendeesSelector({
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-700 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-[#1E6B7B]" />
-                  <span>Filter Tim Kerja Undangan:</span>
+                  <span>Filter Tim Kerja Peserta:</span>
                 </span>
-                <span className="text-[11px] text-slate-500 font-medium">
-                  {selectedUserIds.length} staf dipilih
+                <span className="text-[11px] text-slate-400">
+                  {filteredUsers.length} staf
                 </span>
               </div>
 
@@ -270,46 +278,61 @@ export function AttendeesSelector({
                   </button>
                 )}
               </div>
-
-              {/* Batch Actions: Select All / Deselect All */}
-              <div className="flex items-center justify-between pt-1 text-[11px]">
-                <div className="flex items-center gap-2">
-                  {!areAllFilteredSelected ? (
-                    <button
-                      type="button"
-                      onClick={handleSelectAllInFilter}
-                      className="text-[#1E6B7B] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <CheckSquare className="w-3 h-3" />
-                      <span>Pilih Semua di Tim Ini ({filteredUsers.length})</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleDeselectAllInFilter}
-                      className="text-amber-600 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <Square className="w-3 h-3" />
-                      <span>Batal Pilih Semua di Tim Ini</span>
-                    </button>
-                  )}
-                </div>
-
-                {selectedUserIds.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={onClearAll}
-                    className="text-rose-600 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Hapus Semua Pilihan</span>
-                  </button>
-                )}
-              </div>
             </div>
 
-            {/* List of Staff Items with Checkboxes */}
+            {/* List of Staff Items */}
             <div className="max-h-60 overflow-y-auto p-1.5 space-y-1 [scrollbar-width:thin]">
+              {/* Option: Clear / Manual External Option */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClearAll();
+                  setIsOpen(false);
+                  const el = document.querySelector(
+                    'textarea[placeholder*="Kementerian"], textarea[name="attendees"]'
+                  );
+                  if (el) (el as HTMLTextAreaElement).focus();
+                }}
+                className={cn(
+                  'w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer',
+                  selectedUserIds.length === 0
+                    ? 'bg-teal-50/80 text-[#1E6B7B] font-semibold'
+                    : 'text-slate-600 hover:bg-slate-50'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-slate-400">
+                    —
+                  </span>
+                  <span>Ketik Peserta Manual / Eksternal (tanpa akun)</span>
+                </span>
+                {selectedUserIds.length === 0 && <Check className="w-3.5 h-3.5 text-[#1E6B7B]" />}
+              </button>
+
+              {/* Option: Pilih Semua di Tim Ini */}
+              <button
+                type="button"
+                onClick={areAllFilteredSelected ? handleDeselectAllInFilter : handleSelectAllInFilter}
+                className={cn(
+                  'w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer',
+                  areAllFilteredSelected
+                    ? 'bg-teal-50/80 text-[#1E6B7B] font-semibold'
+                    : 'text-slate-600 hover:bg-slate-50'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-slate-400">
+                    {areAllFilteredSelected ? '✓' : '—'}
+                  </span>
+                  <span>
+                    {areAllFilteredSelected
+                      ? 'Batal Pilih Semua di Tim Ini'
+                      : `Pilih Semua Peserta di Tim Ini (${filteredUsers.length} staf)`}
+                  </span>
+                </span>
+                {areAllFilteredSelected && <Check className="w-3.5 h-3.5 text-[#1E6B7B]" />}
+              </button>
+
               {filteredUsers.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
                   Tidak ada staf yang sesuai dengan filter tim atau pencarian
@@ -321,45 +344,48 @@ export function AttendeesSelector({
                   const style = teamCode ? TEAM_STYLE[teamCode] : null;
 
                   return (
-                    <div
+                    <button
                       key={u.id}
+                      type="button"
                       onClick={() => onToggleUser(u.id)}
                       className={cn(
-                        'w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-between cursor-pointer border select-none group',
+                        'w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-between cursor-pointer border group',
                         isSelected
-                          ? 'bg-teal-50/70 border-[#1E6B7B]/40 text-slate-900 font-medium'
+                          ? 'bg-[#1E6B7B] text-white border-[#1E6B7B] font-bold shadow-2xs'
                           : 'bg-white text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-200'
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Checkbox icon */}
                         <div
                           className={cn(
-                            'w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0',
+                            'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
                             isSelected
-                              ? 'bg-[#1E6B7B] border-[#1E6B7B] text-white shadow-2xs'
-                              : 'border-slate-300 bg-white group-hover:border-slate-400'
+                              ? 'bg-white/20 text-white'
+                              : style?.avatarBg || 'bg-slate-100 text-slate-600'
                           )}
                         >
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
-                        </div>
-
-                        {/* Avatar Initials */}
-                        <div
-                          className={cn(
-                            'w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
-                            style?.avatarBg || 'bg-slate-100 text-slate-600'
+                          {isSelected ? (
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          ) : (
+                            u.name.charAt(0).toUpperCase()
                           )}
-                        >
-                          {u.name.charAt(0).toUpperCase()}
                         </div>
-
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-slate-800 truncate">
+                          <p
+                            className={cn(
+                              'text-xs font-semibold truncate',
+                              isSelected ? 'text-white' : 'text-slate-800 group-hover:text-slate-900'
+                            )}
+                          >
                             {u.name}
                           </p>
                           {u.email && (
-                            <p className="text-[10px] text-slate-400 truncate">
+                            <p
+                              className={cn(
+                                'text-[10px] truncate',
+                                isSelected ? 'text-white/80' : 'text-slate-400'
+                              )}
+                            >
                               {u.email}
                             </p>
                           )}
@@ -369,8 +395,10 @@ export function AttendeesSelector({
                       {u.team?.name && (
                         <span
                           className={cn(
-                            'text-[10px] px-2 py-0.5 rounded-md font-bold shrink-0 ml-2 border',
-                            style
+                            'text-[10px] px-2 py-0.5 rounded-md font-bold shrink-0 ml-2 border transition-all',
+                            isSelected
+                              ? 'bg-white/20 text-white border-white/30'
+                              : style
                               ? cn(style.bg, style.text, style.border)
                               : 'bg-slate-100 text-slate-600 border-slate-200'
                           )}
@@ -378,24 +406,10 @@ export function AttendeesSelector({
                           {u.team.name}
                         </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })
               )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-500 font-medium">
-                {selectedUserIds.length} staf internal dipilih
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-3.5 py-1.5 rounded-lg bg-[#1E6B7B] text-white hover:bg-[#175360] font-bold text-xs transition-colors cursor-pointer"
-              >
-                Selesai
-              </button>
             </div>
           </div>
         )}
