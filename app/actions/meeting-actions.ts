@@ -130,7 +130,11 @@ export async function createMeetingAction(input: CreateMeetingInput) {
 
     const result = await prisma.$transaction(async (tx) => {
       // Resolve canonical team code (Investasi: INV, Kerja Sama: KS, Komunikasi: KOM)
-      const effectiveTeamId = input.primaryTeamId || 'TIM-001';
+      // Khusus staf, nomor registrasi dan tim pelaksana otomatis dikunci ke tim kerja mereka sendiri
+      let effectiveTeamId = input.primaryTeamId || 'TIM-001';
+      if (currentUser.role === 'STAFF' && currentUser.teamId) {
+        effectiveTeamId = currentUser.teamId;
+      }
       let teamCode: string | null = null;
       const team = await tx.biroTeam.findUnique({
         where: { id: effectiveTeamId },

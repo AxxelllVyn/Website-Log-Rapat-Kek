@@ -133,6 +133,21 @@ export default function BuatRapatPage() {
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
   const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
+  const isStaff = userRole === 'STAFF';
+
+  // Deteksi tim kerja resmi staf jika login sebagai STAFF
+  const staffMatchedTeam = useMemo(() => {
+    if (session?.user?.role !== 'STAFF') return null;
+    const staffCode = session.user.teamCode?.toUpperCase();
+    const staffId = session.user.teamId;
+    return (
+      TIM_OPTIONS.find(
+        (t) =>
+          (staffId && t.id === staffId) ||
+          (staffCode && t.code.toUpperCase() === staffCode)
+      ) || null
+    );
+  }, [session]);
 
   // AI Extraction dialog state
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -189,6 +204,19 @@ export default function BuatRapatPage() {
   const [registrationNumber, setRegistrationNumber] = useState<string>('');
   const [isManualNumber, setIsManualNumber] = useState<boolean>(false);
   const [isLoadingNumber, setIsLoadingNumber] = useState<boolean>(false);
+
+  // Otomatis sinkronisasi tim kerja dengan tim staf begitu sesi tersedia
+  useEffect(() => {
+    if (staffMatchedTeam && selectedTeamId !== staffMatchedTeam.id) {
+      setSelectedTeamId(staffMatchedTeam.id);
+      setIsManualNumber(false);
+    }
+  }, [staffMatchedTeam, selectedTeamId]);
+
+  const currentTeam = useMemo(
+    () => TIM_OPTIONS.find((t) => t.id === selectedTeamId) || TIM_OPTIONS[0],
+    [selectedTeamId]
+  );
 
   // Status Rapat: Otomatis 'Belum Dimulai' saat pembuatan rapat baru
   const [statusRapat, setStatusRapat] = useState<string>('Belum Dimulai');
@@ -247,13 +275,13 @@ export default function BuatRapatPage() {
 
     if (prevId) setPreviousMeetingId(prevId);
     if (paramTitle) setTitle(paramTitle);
-    if (paramTim) {
+    if (paramTim && session?.user?.role !== 'STAFF') {
       const match = TIM_OPTIONS.find(
         (t) => t.code.toUpperCase() === paramTim.toUpperCase() || t.id === paramTim
       );
       if (match) setSelectedTeamId(match.id);
     }
-  }, [searchParams]);
+  }, [searchParams, session]);
 
   // Handle PIC selection from users list
   const handleSelectPicUser = (userId: string) => {
@@ -268,7 +296,8 @@ export default function BuatRapatPage() {
   const handleResetToAutoNumber = () => {
     setIsManualNumber(false);
     setIsLoadingNumber(true);
-    previewNextMeetingNumberAction('IKK', selectedTeamId)
+    const targetTeamId = isStaff && staffMatchedTeam ? staffMatchedTeam.id : selectedTeamId;
+    previewNextMeetingNumberAction('IKK', targetTeamId)
       .then((res) => {
         if (res.success && res.data) {
           setRegistrationNumber(res.data);
@@ -560,54 +589,72 @@ export default function BuatRapatPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                {/* 3 Teams Selection List (matching the user's design) */}
+                {/* 3 Teams Selection List (Locked for STAFF, Selectable for Admins) */}
                 <div className="md:col-span-7 space-y-2">
                   <label className="block text-xs font-bold text-slate-700">
                     Pilih Tim Kerja:
                   </label>
-                  <div className="bg-white p-1.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
-                    {TIM_OPTIONS.map((tim) => {
-                      const isSelected = selectedTeamId === tim.id;
-                      return (
-                        <button
-                          key={tim.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedTeamId(tim.id);
-                            setIsManualNumber(false);
-                          }}
-                          className={cn(
-                            'w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-all text-left flex items-center justify-between cursor-pointer',
-                            isSelected
-                              ? 'bg-[#E8F5F7] text-[#1E6B7B] shadow-2xs font-bold'
-                              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                          )}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span
-                              className={cn(
-                                'w-3 h-3 rounded-full flex items-center justify-center border',
-                                isSelected ? 'border-[#1E6B7B] bg-[#1E6B7B]' : 'border-slate-300 bg-white'
-                              )}
-                            >
-                              {isSelected && <span className="w-1 h-1 rounded-full bg-white" />}
-                            </span>
-                            <span>{tim.name}</span>
-                          </div>
-                          <span
+                  {isStaff && staffMatchedTeam ? (
+                    <div className="bg-[#E8F5F7] px-4 py-2.5 rounded-lg border border-[#BCE3EB] shadow-2xs flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-3 h-3 rounded-full flex items-center justify-center border border-[#1E6B7B] bg-[#1E6B7B]">
+                          <span className="w-1 h-1 rounded-full bg-white" />
+                        </span>
+                        <span className="text-sm font-bold text-[#1E6B7B]">
+                          {staffMatchedTeam.name}
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono px-2 py-0.5 rounded font-bold bg-[#1E6B7B] text-white">
+                        {staffMatchedTeam.code}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-1.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
+                      {TIM_OPTIONS.map((tim) => {
+                        const isSelected = selectedTeamId === tim.id;
+                        return (
+                          <button
+                            key={tim.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTeamId(tim.id);
+                              setIsManualNumber(false);
+                            }}
                             className={cn(
-                              'text-xs font-mono px-2 py-0.5 rounded font-bold',
-                              isSelected ? 'bg-[#1E6B7B] text-white' : 'bg-slate-100 text-slate-500'
+                              'w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-all text-left flex items-center justify-between cursor-pointer',
+                              isSelected
+                                ? 'bg-[#E8F5F7] text-[#1E6B7B] shadow-2xs font-bold'
+                                : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                             )}
                           >
-                            {tim.code}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className={cn(
+                                  'w-3 h-3 rounded-full flex items-center justify-center border',
+                                  isSelected ? 'border-[#1E6B7B] bg-[#1E6B7B]' : 'border-slate-300 bg-white'
+                                )}
+                              >
+                                {isSelected && <span className="w-1 h-1 rounded-full bg-white" />}
+                              </span>
+                              <span>{tim.name}</span>
+                            </div>
+                            <span
+                              className={cn(
+                                'text-xs font-mono px-2 py-0.5 rounded font-bold',
+                                isSelected ? 'bg-[#1E6B7B] text-white' : 'bg-slate-100 text-slate-500'
+                              )}
+                            >
+                              {tim.code}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <p className="text-[11px] text-slate-500">
-                    Pilih salah satu dari 3 tim untuk penomoran registrasi &amp; pengarsipan rapat.
+                    {isStaff && staffMatchedTeam
+                      ? `Nomor registrasi rapat otomatis disesuaikan dengan tim kerja Anda (${staffMatchedTeam.name}).`
+                      : 'Pilih salah satu dari 3 tim untuk penomoran registrasi & pengarsipan rapat.'}
                   </p>
                 </div>
 
@@ -632,21 +679,24 @@ export default function BuatRapatPage() {
                         setRegistrationNumber(e.target.value);
                         setIsManualNumber(true);
                       }}
-                      placeholder="Contoh: INV-001"
+                      placeholder={`Contoh: ${currentTeam.code}-001`}
                       className="w-full px-3.5 h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 font-mono font-bold text-sm tracking-wide focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] shadow-2xs"
                     />
+                    {isLoadingNumber && (
+                      <Loader2 className="w-4 h-4 text-[#1E6B7B] animate-spin absolute right-3 top-3.5" />
+                    )}
                   </div>
                   <div className="p-3 bg-white/80 rounded-xl border border-[#BCE3EB] text-[11px] text-slate-600 space-y-1">
                     <div className="flex items-center justify-between font-semibold text-slate-700">
                       <span>Tim Aktif:</span>
                       <span className="text-[#1E6B7B] font-bold">
-                        {TIM_OPTIONS.find((t) => t.id === selectedTeamId)?.name || 'Tim Investasi'}
+                        {currentTeam.name}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-500 font-mono">
                       <span>Format Otomatis:</span>
                       <span className="font-semibold text-slate-700">
-                        {TIM_OPTIONS.find((t) => t.id === selectedTeamId)?.code || 'INV'}-001
+                        {currentTeam.code}-001
                       </span>
                     </div>
                   </div>
