@@ -204,8 +204,8 @@ export function ActionItemMatrixView({
       targetProgress !== undefined
         ? targetProgress
         : targetStatus === 'COMPLETED'
-        ? 100
-        : task.latestProgress
+          ? 100
+          : task.latestProgress
     );
   };
 
@@ -392,8 +392,8 @@ export function ActionItemMatrixView({
           newStatus === 'COMPLETED'
             ? 'Status tindak lanjut diperbarui: Selesai.'
             : newStatus === 'IN_PROGRESS'
-            ? 'Status tindak lanjut diperbarui: Dalam Proses.'
-            : 'Status tindak lanjut diperbarui: Belum Dimulai.'
+              ? 'Status tindak lanjut diperbarui: Dalam Proses.'
+              : 'Status tindak lanjut diperbarui: Belum Dimulai.'
         );
         router.refresh();
       } else {
@@ -1139,8 +1139,8 @@ export function ActionItemMatrixView({
                               isItemOverdue
                                 ? "text-rose-600 font-bold"
                                 : isItemNearDeadline
-                                ? "text-amber-700 font-bold"
-                                : "text-slate-700"
+                                  ? "text-amber-700 font-bold"
+                                  : "text-slate-700"
                             )}
                           >
                             {formatIndonesianDate(task.dueDate)}

@@ -1193,29 +1193,28 @@ export function MeetingDetailView({
             );
           })()}
 
-          {/* Ketua Sidang */}
+          {/* PIC */}
           <div className="flex items-start gap-2.5">
             <UserCheck className="w-4 h-4 text-[#31889C] shrink-0 mt-0.5" />
             <div>
-              <p className="text-[11px] text-slate-400 font-semibold uppercase">Ketua Sidang</p>
+              <p className="text-[11px] text-slate-400 font-semibold uppercase">PIC</p>
               <p className="font-bold text-slate-800">
-                {(meeting.minutes?.conclusion as any)?.chairpersonName ||
+                {meeting.picName ||
+                  (meeting.chairperson ? meeting.chairperson.name : null) ||
+                  (meeting.minutes?.conclusion as any)?.chairpersonName ||
                   (meeting.minutes?.decisions as any)?.chairpersonName ||
                   (meeting.minutes?.discussion as any)?.chairpersonName ||
                   (meeting.minutes?.agenda as any)?.chairpersonName ||
-                  (meeting.chairperson ? meeting.chairperson.name : 'Belum Ditugaskan')}
+                  'Belum Ditugaskan'}
               </p>
-              {meeting.chairperson?.biro && (
-                <p className="text-[11px] text-slate-500">{meeting.chairperson.biro.shortName}</p>
-              )}
             </div>
           </div>
 
-          {/* Notulis Sidang */}
+          {/* Notulen */}
           <div className="flex items-start gap-2.5">
             <FileText className="w-4 h-4 text-[#31889C] shrink-0 mt-0.5" />
             <div>
-              <p className="text-[11px] text-slate-400 font-semibold uppercase">Notulis Sidang</p>
+              <p className="text-[11px] text-slate-400 font-semibold uppercase">Notulen</p>
               <p className="font-bold text-slate-800">
                 {(meeting.minutes?.conclusion as any)?.signerName ||
                   (meeting.minutes?.decisions as any)?.signerName ||

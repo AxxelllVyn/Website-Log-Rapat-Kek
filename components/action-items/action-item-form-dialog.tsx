@@ -76,13 +76,20 @@ export function ActionItemFormDialog({
       title: currentMeeting.title || '',
       date: currentMeeting.date,
       primaryBiro: currentMeeting.primaryBiro,
-      primaryTeamId: currentMeeting.primaryTeamId,
+      primaryTeamId: currentMeeting.primaryTeamId || currentMeeting.primaryTeam?.id,
+      chairpersonId: currentMeeting.chairpersonId || currentMeeting.chairperson?.id,
+      picName: currentMeeting.picName,
     } as any;
   }, [
     currentMeeting?.id,
     currentMeeting?.meetingNumber,
     currentMeeting?.title,
     currentMeeting?.date,
+    currentMeeting?.primaryTeamId,
+    currentMeeting?.primaryTeam?.id,
+    currentMeeting?.chairpersonId,
+    currentMeeting?.chairperson?.id,
+    currentMeeting?.picName,
   ]);
 
   // Is meeting selection locked? (e.g. from a meeting page/dialog, editing item, or explicitly locked)
@@ -102,6 +109,22 @@ export function ActionItemFormDialog({
     actionItem?.meetingId || meetingId || normalizedCurrentMeeting?.id || availableMeetings[0]?.id || ''
   );
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+
+  // Ensure that if currentMeeting has chairperson, that user is included in users list
+  const effectiveUsers = React.useMemo(() => {
+    let list = [...usersList];
+    const chair = currentMeeting?.chairperson;
+    if (chair?.id && !list.some((u) => u.id === chair.id)) {
+      list.unshift({
+        id: chair.id,
+        name: chair.name,
+        email: chair.email,
+        biroId: chair.biroId,
+        teamId: chair.teamId,
+      });
+    }
+    return list;
+  }, [usersList, currentMeeting?.chairperson]);
 
   const isMatchTeamOption = (m: any, code: string) => {
     const c = code.toUpperCase();
@@ -130,6 +153,26 @@ export function ActionItemFormDialog({
       return isMatchTeamOption(m, effectiveLockedTeamCode);
     });
   }, [normalizedCurrentMeeting, meetingsList, effectiveLockedTeamCode, actionItem?.meetingId, meetingId]);
+
+  const findMeetingById = React.useCallback(
+    (mId: string) => {
+      if (!mId) return null;
+      const mUpper = mId.toUpperCase();
+      const inList = effectiveMeetings.find(
+        (m) => m.id === mId || (m.meetingNumber && m.meetingNumber.toUpperCase() === mUpper)
+      );
+      if (inList) return inList;
+      if (
+        normalizedCurrentMeeting &&
+        (normalizedCurrentMeeting.id === mId ||
+          normalizedCurrentMeeting.meetingNumber?.toUpperCase() === mUpper)
+      ) {
+        return normalizedCurrentMeeting;
+      }
+      return null;
+    },
+    [effectiveMeetings, normalizedCurrentMeeting]
+  );
 
   // Sync state if props change
   useEffect(() => {
@@ -168,6 +211,58 @@ export function ActionItemFormDialog({
     { id: 'TIM-002', code: 'KOM', name: 'Tim Komunikasi', biroId: 'BIRO-IKK' },
   ], []);
 
+  // Synchronize title, PIC, and team automatically from a meeting
+  const applyMeetingDefaults = React.useCallback(
+    (m: any, usersToSearch: any[] = effectiveUsers) => {
+      if (!m) return;
+
+      // 1. Sync title automatically to meeting title
+      if (m.title) {
+        setTitle(m.title);
+      }
+
+      // 2. Sync team
+      const num = m.meetingNumber?.toUpperCase() || '';
+      let targetTeamId = m.primaryTeamId || m.primaryTeam?.id || '';
+      if (!targetTeamId) {
+        if (num.startsWith('INV-')) targetTeamId = 'TIM-001';
+        else if (num.startsWith('KS-')) targetTeamId = 'TIM-003';
+        else if (num.startsWith('KOM-')) targetTeamId = 'TIM-002';
+      }
+      if (effectiveLockedTeamCode) {
+        const teamForCode = displayTeams.find(
+          (t) => t.code.toUpperCase() === effectiveLockedTeamCode.toUpperCase()
+        );
+        if (teamForCode) targetTeamId = teamForCode.id;
+      }
+      if (targetTeamId) {
+        setPicTeamId(targetTeamId);
+        const matchedT = displayTeams.find((t) => t.id === targetTeamId);
+        if (matchedT?.biroId) {
+          setPicBiroId(matchedT.biroId);
+        }
+      }
+
+      // 3. Sync PIC (User) automatically to chairperson / PIC from meeting registration
+      const directChairId = m.chairpersonId || m.chairperson?.id;
+      if (directChairId) {
+        setPicUserId(directChairId);
+      } else if (m.picName && usersToSearch.length > 0) {
+        const cleanPicName = m.picName.trim().toLowerCase();
+        const matchedUser =
+          usersToSearch.find((u) => u.name.trim().toLowerCase() === cleanPicName) ||
+          usersToSearch.find((u) => {
+            const uName = u.name.trim().toLowerCase();
+            return uName.includes(cleanPicName) || cleanPicName.includes(uName);
+          });
+        if (matchedUser) {
+          setPicUserId(matchedUser.id);
+        }
+      }
+    },
+    [effectiveLockedTeamCode, displayTeams, effectiveUsers]
+  );
+
   // Auto-fetch biros, users, teams & meetings when dialog opens if lists are empty
   useEffect(() => {
     if (!isOpen) return;
@@ -188,6 +283,17 @@ export function ActionItemFormDialog({
         }
         if (res.meetings && res.meetings.length > 0) {
           setMeetingsList(res.meetings);
+        }
+
+        if (!actionItem) {
+          const currentTargetId =
+            selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || res.meetings?.[0]?.id;
+          const m =
+            (res.meetings || []).find((x: any) => x.id === currentTargetId) ||
+            normalizedCurrentMeeting;
+          if (m) {
+            applyMeetingDefaults(m, res.users || []);
+          }
         }
       })
       .finally(() => {
@@ -239,35 +345,25 @@ export function ActionItemFormDialog({
         initialMeetingId = effectiveMeetings[0]?.id || availableMeetings[0]?.id || '';
       }
       setSelectedMeetingId(initialMeetingId);
-      setTitle('');
       setDescription('');
       setDriveLink('');
-
-      // Auto-detect team from meeting number prefix or primaryTeam
-      const currMeeting = (effectiveMeetings.length > 0 ? effectiveMeetings : (normalizedCurrentMeeting ? [normalizedCurrentMeeting] : availableMeetings)).find(
-        (m) => m.id === initialMeetingId || (m.meetingNumber && m.meetingNumber.toUpperCase() === initialMeetingId.toUpperCase())
-      ) || normalizedCurrentMeeting;
-      let detectedTeamId = 'TIM-001';
-      if (effectiveLockedTeamCode) {
-        const teamForCode = displayTeams.find(
-          (t) => t.code.toUpperCase() === effectiveLockedTeamCode.toUpperCase()
-        );
-        if (teamForCode) detectedTeamId = teamForCode.id;
-      } else if (currMeeting) {
-        const num = currMeeting.meetingNumber?.toUpperCase() || '';
-        if (num.startsWith('INV-')) detectedTeamId = 'TIM-001';
-        else if (num.startsWith('KS-')) detectedTeamId = 'TIM-003';
-        else if (num.startsWith('KOM-')) detectedTeamId = 'TIM-002';
-        else if ((currMeeting as any).primaryTeamId) detectedTeamId = (currMeeting as any).primaryTeamId;
-      }
-
-      setPicTeamId(detectedTeamId);
-      const matched = teamsList.find((t) => t.id === detectedTeamId);
-      setPicBiroId(matched?.biroId || 'BIRO-IKK');
-      setPicUserId(session?.user?.role === 'STAFF' ? (session?.user?.id || '') : '');
       setDueDate(`${yyyy}-${mm}-${dd}`);
       setPriority('MEDIUM');
       setStatus('PENDING');
+
+      // Find initial meeting and automatically set Title, PIC, and Team
+      const currMeeting =
+        findMeetingById(initialMeetingId) ||
+        normalizedCurrentMeeting ||
+        effectiveMeetings[0] ||
+        availableMeetings[0];
+
+      if (currMeeting) {
+        applyMeetingDefaults(currMeeting, effectiveUsers);
+      } else {
+        setTitle('');
+        setPicUserId('');
+      }
     }
   }, [isOpen, actionItem?.id, meetingId]);
 
@@ -276,10 +372,19 @@ export function ActionItemFormDialog({
     if (!isOpen || isMeetingLocked || isEditing) return;
     if (effectiveMeetings.length > 0) {
       if (!selectedMeetingId || !effectiveMeetings.some((m) => m.id === selectedMeetingId)) {
-        setSelectedMeetingId(effectiveMeetings[0].id);
+        const firstM = effectiveMeetings[0];
+        setSelectedMeetingId(firstM.id);
+        applyMeetingDefaults(firstM, effectiveUsers);
       }
     }
-  }, [isOpen, isMeetingLocked, isEditing, effectiveMeetings, selectedMeetingId]);
+  }, [isOpen, isMeetingLocked, isEditing, effectiveMeetings, selectedMeetingId, applyMeetingDefaults, effectiveUsers]);
+
+  const currentMeetingObj = React.useMemo(() => {
+    const targetMId = selectedMeetingId || meetingId || normalizedCurrentMeeting?.id;
+    return findMeetingById(targetMId || '') || normalizedCurrentMeeting;
+  }, [findMeetingById, selectedMeetingId, meetingId, normalizedCurrentMeeting]);
+
+  const activeTitle = title || currentMeetingObj?.title || normalizedCurrentMeeting?.title || '';
 
   if (!isOpen) return null;
 
@@ -325,10 +430,18 @@ export function ActionItemFormDialog({
         : '') ||
       'BIRO-IKK';
 
+    const currentM = findMeetingById(finalMeetingId);
+    const finalTitle = (
+      title.trim() ||
+      currentM?.title?.trim() ||
+      normalizedCurrentMeeting?.title?.trim() ||
+      'Tindak Lanjut Rapat'
+    ).slice(0, 255);
+
     // Zod client validation
     const rawData = {
       meetingId: finalMeetingId,
-      title,
+      title: finalTitle,
       description: finalDescription || null,
       picBiroId: finalPicBiroId,
       picTeamId: finalPicTeamId,
@@ -452,19 +565,9 @@ export function ActionItemFormDialog({
                     });
                   }
                   if (!isEditing) {
-                    const selM = effectiveMeetings.find((m) => m.id === mId);
+                    const selM = findMeetingById(mId);
                     if (selM) {
-                      const num = selM.meetingNumber?.toUpperCase() || '';
-                      let newTId = '';
-                      if (num.startsWith('INV-')) newTId = 'TIM-001';
-                      else if (num.startsWith('KS-')) newTId = 'TIM-003';
-                      else if (num.startsWith('KOM-')) newTId = 'TIM-002';
-                      else if ((selM as any).primaryTeamId) newTId = (selM as any).primaryTeamId;
-                      if (newTId) {
-                        setPicTeamId(newTId);
-                        const matchedT = displayTeams.find((t) => t.id === newTId);
-                        if (matchedT?.biroId) setPicBiroId(matchedT.biroId);
-                      }
+                      applyMeetingDefaults(selM, effectiveUsers);
                     }
                   }
                 }}
@@ -492,18 +595,20 @@ export function ActionItemFormDialog({
               )}
             </div>
 
-            {/* Judul Tindak Lanjut (Required) */}
-            <div>
-              <label className="block font-bold text-slate-800 mb-1">
-                Judul Tindak Lanjut <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: Menyusun laporan progres pembangunan infrastruktur KEK"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] font-medium text-slate-900 text-[13px]"
-              />
+            {/* Judul Tindak Lanjut (Otomatis Sesuai Agenda Rapat) */}
+            <div className="p-3.5 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#215865] uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Judul Tindak Lanjut</span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs">
+                  <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
+                  <span>Otomatis Sesuai Agenda Rapat</span>
+                </span>
+              </div>
+              <p className="text-[13.5px] font-bold text-slate-800 leading-snug break-words">
+                {activeTitle || '(Mengikuti judul agenda rapat yang dipilih)'}
+              </p>
               {fieldErrors.title && (
                 <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.title}</p>
               )}
@@ -645,15 +750,16 @@ export function ActionItemFormDialog({
                 <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between text-[13px]">
                   <span>Pejabat / PIC Pelaksana <span className="text-slate-400 font-normal">(Opsional)</span></span>
                   {picUserId && (
-                    <span className="text-[11px] text-[#1E6B7B] font-semibold">
-                      ✓ Terpilih
+                    <span className="inline-flex items-center gap-1 text-[10.5px] text-[#1E6B7B] font-bold bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
+                      <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
+                      <span>Otomatis Sesuai Rapat</span>
                     </span>
                   )}
                 </label>
                 <PicCombobox
                   value={picUserId}
                   onChange={(val) => setPicUserId(val)}
-                  users={usersList}
+                  users={effectiveUsers}
                   biros={birosList}
                   selectedBiroId={
                     picBiroId ||
@@ -667,7 +773,7 @@ export function ActionItemFormDialog({
                   placeholder="Pilih Pejabat / PIC Pelaksana..."
                 />
                 <p className="mt-1 text-[11px] text-slate-400">
-                  Dapat dikosongkan jika penugasan ditujukan secara kolektif kepada tim kerja.
+                  Otomatis terpilih sesuai pimpinan/PIC saat pendaftaran rapat. Dapat disesuaikan bila diperlukan.
                 </p>
               </div>
             </div>

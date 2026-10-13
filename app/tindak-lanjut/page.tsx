@@ -46,8 +46,14 @@ export default async function TindakLanjutPage() {
           meetingNumber: true,
           title: true,
           date: true,
+          chairpersonId: true,
+          picName: true,
+          primaryTeamId: true,
           primaryBiro: {
             select: { code: true, name: true },
+          },
+          primaryTeam: {
+            select: { id: true, code: true, name: true },
           },
         },
         orderBy: { date: 'desc' },

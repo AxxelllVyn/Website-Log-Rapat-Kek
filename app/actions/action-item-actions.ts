@@ -220,6 +220,8 @@ export async function getActionItemFormOptionsAction() {
           title: true,
           date: true,
           primaryTeamId: true,
+          chairpersonId: true,
+          picName: true,
           primaryBiro: {
             select: { code: true, name: true },
           },

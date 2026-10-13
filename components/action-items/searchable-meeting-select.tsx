@@ -20,6 +20,9 @@ export interface MeetingOption {
   meetingNumber: string;
   title: string;
   date?: Date | string | null;
+  primaryTeamId?: string | null;
+  chairpersonId?: string | null;
+  picName?: string | null;
   primaryBiro?: {
     code: string;
     name?: string;
