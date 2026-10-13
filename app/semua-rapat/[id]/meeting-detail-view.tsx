@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Trash2,
   ChevronRight,
+  ChevronDown,
   Shield,
   Layers,
   CheckSquare,
@@ -45,7 +46,14 @@ import {
 
 import { MeetingStatusBadge, MeetingProgressBadge } from '@/components/meeting/meeting-status-badge';
 import { MeetingStatusGuideDialog } from '@/components/meeting/meeting-status-guide-dialog';
-import { getMeetingStatusDetail, MEETING_STATUS_DETAILS, normalizeProgressStatus } from '@/lib/meeting-status';
+import {
+  getMeetingStatusDetail,
+  MEETING_STATUS_DETAILS,
+  normalizeProgressStatus,
+  mapProgressToStatus,
+  mapStatusToProgress,
+} from '@/lib/meeting-status';
+import { cn } from '@/lib/utils';
 import { MeetingMinutesSection } from '@/components/meeting/meeting-minutes/meeting-minutes-section';
 import { MeetingFilePreviewPanel } from '@/components/meeting/file-preview';
 import { ActionItemList } from '@/components/action-items/action-item-list';
@@ -246,6 +254,25 @@ export function MeetingDetailView({
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
   const [status, setStatus] = useState<MeetingStatus>(meeting.status);
+  const [progressStatus, setProgressStatus] = useState<string>(
+    (meeting as any).progressStatus || mapStatusToProgress(meeting.status)
+  );
+  const [isStatusPopoverOpen, setIsStatusPopoverOpen] = useState(false);
+  const statusPopoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusPopoverRef.current && !statusPopoverRef.current.contains(event.target as Node)) {
+        setIsStatusPopoverOpen(false);
+      }
+    }
+    if (isStatusPopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStatusPopoverOpen]);
 
   // Custom Meeting Number state
   const [currentMeetingNumber, setCurrentMeetingNumber] = useState<string>(meeting.meetingNumber);
@@ -557,9 +584,47 @@ export function MeetingDetailView({
   };
 
   const currentProgress = normalizeProgressStatus(
-    (meeting as any).progressStatus || (status === 'DRAFT' ? 'Belum Dimulai' : status === 'REVIEW' ? 'Dalam Proses' : 'Selesai')
+    progressStatus || (status === 'DRAFT' ? 'Belum Dimulai' : status === 'REVIEW' ? 'Dalam Proses' : 'Selesai')
   );
   const isBelumDimulai = currentProgress === 'Belum Dimulai' || status === 'DRAFT';
+
+  const handleUpdateProgressStatus = async (newProg: 'Belum Dimulai' | 'Dalam Proses' | 'Selesai') => {
+    if (normalizeProgressStatus(progressStatus) === newProg || isUpdatingStatus) {
+      setIsStatusPopoverOpen(false);
+      return;
+    }
+
+    if (newProg === 'Selesai') {
+      const confirmed = await confirmModal({
+        title: `Tandai Rapat Selesai?`,
+        message: `Mengubah status menjadi "Selesai" menandakan pelaksanaan rapat dan perumusan risalah telah rampung dan disahkan. Lanjutkan?`,
+        confirmText: 'Ya, Tandai Selesai',
+        variant: 'primary',
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      setIsUpdatingStatus(true);
+      const res = await updateMeetingStatusAction(meeting.id, newProg);
+      if (res.success) {
+        setProgressStatus(newProg);
+        const mappedStatus = mapProgressToStatus(newProg);
+        setStatus(mappedStatus);
+        (meeting as any).progressStatus = newProg;
+        (meeting as any).status = mappedStatus;
+        toast.success(`Status rapat berhasil diperbarui ke "${newProg}".`);
+        setIsStatusPopoverOpen(false);
+        router.refresh();
+      } else {
+        toast.error(res.error || 'Gagal memperbarui status rapat.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const handleStartMeeting = async () => {
     const confirmed = await confirmModal({
@@ -575,6 +640,7 @@ export function MeetingDetailView({
       const res = await updateMeetingStatusAction(meeting.id, 'Dalam Proses');
       if (res.success) {
         setStatus('REVIEW');
+        setProgressStatus('Dalam Proses');
         (meeting as any).progressStatus = 'Dalam Proses';
         toast.success(`Rapat "${meeting.title}" resmi dimulai. Status kini "Dalam Proses".`);
         router.refresh();
@@ -824,34 +890,6 @@ export function MeetingDetailView({
             <span>Google Kalender</span>
           </button>
 
-          {/* Export PDF Button (All roles) */}
-          <button
-            type="button"
-            disabled={isExporting}
-            onClick={handleExportPdf}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#31889C] hover:bg-[#266F80] text-white text-[12px] font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-            title="Unduh Risalah Rapat Resmi Format PDF"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span>{isExporting ? 'Membuat PDF...' : 'Export PDF'}</span>
-          </button>
-
-          {/* Export Word (.docx) Button (All roles) */}
-          <button
-            type="button"
-            disabled={isExportingDocx}
-            onClick={() => handleExportDocx()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#2B579A] hover:bg-[#1E3E6D] text-white text-[12px] font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-            title="Unduh Risalah Rapat Resmi Format Word (.docx)"
-          >
-            {isExportingDocx ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <FileText className="w-3.5 h-3.5" />
-            )}
-            <span>{isExportingDocx ? 'Membuat Word...' : 'Export Word'}</span>
-          </button>
-
           {/* Delete button (SUPER_ADMIN, ADMIN) */}
           {canDeleteMeeting && (
             <button
@@ -871,7 +909,7 @@ export function MeetingDetailView({
       {/* Main Header Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {isEditingMeetingNumber ? (
               <div className="flex items-center gap-1.5 bg-[#F0F9FA] p-1 rounded-xl border border-[#BCE3EB]">
                 <input
@@ -923,12 +961,151 @@ export function MeetingDetailView({
                 )}
               </div>
             )}
-            <MeetingProgressBadge progressStatus={(meeting as any).progressStatus} status={status} size="lg" showSubtitle />
+
+            {/* Status Rapat (Progress Badge) & Quick Status Changer */}
+            <div className="relative flex items-center gap-1.5" ref={statusPopoverRef}>
+              <button
+                type="button"
+                onClick={() => canChangeStatus && setIsStatusPopoverOpen((prev) => !prev)}
+                disabled={!canChangeStatus || isUpdatingStatus}
+                className={cn(
+                  "rounded-full text-left transition-all",
+                  canChangeStatus
+                    ? "cursor-pointer hover:ring-2 hover:ring-[#31889C]/30 hover:opacity-95"
+                    : "cursor-default"
+                )}
+                title={canChangeStatus ? "Klik untuk ubah status rapat" : undefined}
+              >
+                <MeetingProgressBadge progressStatus={progressStatus} status={status} size="lg" showSubtitle />
+              </button>
+
+              {canChangeStatus && (
+                <button
+                  type="button"
+                  onClick={() => setIsStatusPopoverOpen((prev) => !prev)}
+                  disabled={isUpdatingStatus}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50",
+                    isStatusPopoverOpen
+                      ? "text-[#31889C] bg-[#F0F9FA]"
+                      : "text-slate-400 hover:text-[#31889C] hover:bg-[#F0F9FA]"
+                  )}
+                  title="Ubah Status Rapat"
+                >
+                  {isUpdatingStatus ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#31889C]" />
+                  ) : (
+                    <Edit3 className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+
+              {/* Status Popover Dropdown Menu */}
+              {isStatusPopoverOpen && (
+                <div className="absolute left-0 top-full mt-2 z-50 w-80 sm:w-84 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 space-y-2 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 px-1">
+                    <div>
+                      <p className="text-[12.5px] font-bold text-slate-800">Ubah Status Rapat</p>
+                      <p className="text-[10.5px] text-slate-500">Pilih tahapan progres rapat saat ini</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsStatusPopoverOpen(false)}
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {[
+                      {
+                        key: 'Belum Dimulai' as const,
+                        label: 'Belum Dimulai',
+                        sublabel: 'Persiapan / Terjadwal',
+                        desc: 'Rapat terjadwal & persiapan administrasi berjalan.',
+                        color: 'bg-sky-50/70 hover:bg-sky-100 text-sky-900 border-sky-200',
+                        activeColor: 'bg-sky-100 text-sky-950 border-sky-400 ring-2 ring-sky-300/40 shadow-2xs font-bold',
+                        dot: 'bg-sky-500',
+                      },
+                      {
+                        key: 'Dalam Proses' as const,
+                        label: 'Dalam Proses',
+                        sublabel: 'Sedang Berlangsung / Draft Risalah',
+                        desc: 'Rapat sedang berjalan atau draf risalah sedang disusun.',
+                        color: 'bg-amber-50/70 hover:bg-amber-100 text-amber-900 border-amber-200',
+                        activeColor: 'bg-amber-100 text-amber-950 border-amber-400 ring-2 ring-amber-300/40 shadow-2xs font-bold',
+                        dot: 'bg-amber-500 animate-pulse',
+                      },
+                      {
+                        key: 'Selesai' as const,
+                        label: 'Selesai',
+                        sublabel: 'Risalah Disahkan / Final',
+                        desc: 'Risalah rapat final & tindak lanjut siap dimonitor.',
+                        color: 'bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 border-emerald-200',
+                        activeColor: 'bg-emerald-100 text-emerald-950 border-emerald-400 ring-2 ring-emerald-300/40 shadow-2xs font-bold',
+                        dot: 'bg-emerald-500',
+                      },
+                    ].map((item) => {
+                      const isCurrent = normalizeProgressStatus(progressStatus) === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          disabled={isUpdatingStatus}
+                          onClick={() => handleUpdateProgressStatus(item.key)}
+                          className={cn(
+                            "w-full text-left p-2.5 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer disabled:opacity-50",
+                            isCurrent ? item.activeColor : item.color
+                          )}
+                        >
+                          <span className={cn("w-2.5 h-2.5 rounded-full mt-1.5 shrink-0", item.dot)} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[12px] font-bold">{item.label}</span>
+                              {isCurrent && (
+                                <span className="text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded-md bg-white/90 border border-current shadow-2xs">
+                                  Aktif
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10.5px] font-medium opacity-85">{item.sublabel}</p>
+                            <p className="text-[10px] opacity-70 mt-0.5 leading-snug">{item.desc}</p>
+                          </div>
+                          {isCurrent && (
+                            <Check className="w-4 h-4 shrink-0 text-current mt-1" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStatusPopoverOpen(false);
+                        setIsStatusGuideOpen(true);
+                      }}
+                      className="text-[11px] text-[#31889C] hover:text-[#215865] hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                      <span>Pelajari Alur Status Risalah</span>
+                    </button>
+                    {isUpdatingStatus && (
+                      <span className="text-[10.5px] text-slate-400 flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Menyimpan...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Kategori Rapat */}
             {(() => {
               const catInfo = getMeetingCategoryInfo(categoryData.category, categoryData.subCategory);
               return (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-bold border shadow-2xs ${catInfo.badgeClass}`}
                     title={catInfo.description}
@@ -936,6 +1113,11 @@ export function MeetingDetailView({
                     <span>{catInfo.badgeIcon}</span>
                     <span>{catInfo.label}</span>
                   </span>
+                  {categoryData.sourceOrigin && (
+                    <span className="text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200" title="Nomor Disposisi / Asal Naskah Masuk">
+                      Ref: {categoryData.sourceOrigin}
+                    </span>
+                  )}
                   {canEditMeeting && (
                     <button
                       type="button"
@@ -952,28 +1134,12 @@ export function MeetingDetailView({
                 </div>
               );
             })()}
-            {invitationDoc && (
-              <a
-                href={invitationDoc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-50 border border-teal-200 text-[#175360] hover:bg-teal-100 text-[12px] font-bold transition-all shadow-2xs hover:shadow-xs group cursor-pointer"
-                title={`Buka Dokumen Undangan Resmi: ${invitationDoc.name}`}
-              >
-                <Paperclip className="w-3.5 h-3.5 text-[#1E6B7B] group-hover:rotate-45 transition-transform" />
-                <span className="truncate max-w-[150px] sm:max-w-[220px]">
-                  {invitationDoc.name}
-                </span>
-                <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-[#1E6B7B]" />
-              </a>
-            )}
           </div>
         </div>
 
 
 
-        {/* Banner Khusus: Surat Ditunda */}
-        {/* Banner Khusus: Tunda Rapat */}
+        {/* Banner Khusus: Surat Ditunda / Tunda Rapat */}
         {(categoryData.category === 'SURAT_DITUNDA' || categoryData.category === 'TUNDA_RAPAT') && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-xl p-4 text-amber-950 shadow-xs flex items-start gap-3.5">
             <div className="p-2 bg-amber-500 text-white rounded-lg font-bold shrink-0 text-base shadow-xs">
@@ -1010,118 +1176,6 @@ export function MeetingDetailView({
             </div>
           </div>
         )}
-
-        {/* Banner Khusus: Disposisi Sekjen */}
-        {(categoryData.category === 'DISPOSISI_SEKJEN' ||
-          (categoryData.category === 'NASKAH_MASUK' && categoryData.subCategory === 'DISPOSISI_SEKJEN')) && (
-          <div className="bg-gradient-to-r from-indigo-50/70 via-sky-50/50 to-blue-50/70 border border-indigo-200 rounded-xl p-3.5 text-indigo-950 shadow-xs flex items-start gap-3">
-            <div className="p-2 bg-indigo-600 text-white rounded-lg font-bold shrink-0 text-sm shadow-xs">
-              🏛️
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-900">
-                  Disposisi Sekjen
-                </span>
-                {canEditMeeting && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditCategoryForm({ ...categoryData });
-                      setIsEditCategoryModalOpen(true);
-                    }}
-                    className="text-xs font-bold text-indigo-700 hover:text-indigo-950 underline cursor-pointer"
-                  >
-                    Edit Kategori
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-indigo-900 mt-1.5 leading-relaxed">
-                <span className="font-semibold">Mandat Pimpinan:</span> Rapat koordinasi tindak lanjut berdasarkan arahan dan disposisi Sekretariat Jenderal Dewan Nasional KEK.
-                {categoryData.sourceOrigin && (
-                  <span className="block mt-1 font-mono text-[11.5px] text-indigo-950 bg-white/80 px-2.5 py-1 rounded border border-indigo-100">
-                    No. Disposisi / Agenda: {categoryData.sourceOrigin}
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Banner Khusus: Disposisi Biro */}
-        {(categoryData.category === 'DISPOSISI_BIRO' ||
-          (categoryData.category === 'NASKAH_MASUK' && categoryData.subCategory === 'DISPOSISI_BIRO')) && (
-          <div className="bg-gradient-to-r from-purple-50/70 via-fuchsia-50/30 to-pink-50/50 border border-purple-200 rounded-xl p-3.5 text-purple-950 shadow-xs flex items-start gap-3">
-            <div className="p-2 bg-purple-600 text-white rounded-lg font-bold shrink-0 text-sm shadow-xs">
-              📑
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-900">
-                  Disposisi Biro
-                </span>
-                {canEditMeeting && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditCategoryForm({ ...categoryData });
-                      setIsEditCategoryModalOpen(true);
-                    }}
-                    className="text-xs font-bold text-purple-700 hover:text-purple-950 underline cursor-pointer"
-                  >
-                    Edit Kategori
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-purple-900 mt-1.5 leading-relaxed">
-                <span className="font-semibold">Arahan Unit Kerja:</span> Rapat koordinasi berdasarkan disposisi atau arahan Kepala Biro.
-                {categoryData.sourceOrigin && (
-                  <span className="block mt-1 font-mono text-[11.5px] text-purple-950 bg-white/80 px-2.5 py-1 rounded border border-purple-100">
-                    No. / Catatan Disposisi: {categoryData.sourceOrigin}
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Banner Khusus: Daftar Naskah Masuk */}
-        {categoryData.category === 'NASKAH_MASUK' &&
-          categoryData.subCategory !== 'DISPOSISI_SEKJEN' &&
-          categoryData.subCategory !== 'DISPOSISI_BIRO' && (
-            <div className="bg-gradient-to-r from-amber-50/70 via-yellow-50/40 to-orange-50/50 border border-amber-200 rounded-xl p-3.5 text-amber-950 shadow-xs flex items-start gap-3">
-              <div className="p-2 bg-amber-600 text-white rounded-lg font-bold shrink-0 text-sm shadow-xs">
-                📥
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900">
-                    Daftar Naskah Masuk
-                  </span>
-                  {canEditMeeting && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditCategoryForm({ ...categoryData });
-                        setIsEditCategoryModalOpen(true);
-                      }}
-                      className="text-xs font-bold text-amber-700 hover:text-amber-950 underline cursor-pointer"
-                    >
-                      Edit Kategori
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-amber-900 mt-1.5 leading-relaxed">
-                  <span className="font-semibold">Naskah Dinas Masuk:</span> Rapat koordinasi tindak lanjut atas surat naskah dinas masuk via SRIKANDI.
-                  {categoryData.sourceOrigin && (
-                    <span className="block mt-1 text-[11.5px] text-amber-950 bg-white/80 px-2.5 py-1 rounded border border-amber-100">
-                      Asal Instansi / No. Surat: {categoryData.sourceOrigin}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          )}
 
         <div>
           <span className="text-[12px] font-bold text-[#31889C] uppercase tracking-wider block">
