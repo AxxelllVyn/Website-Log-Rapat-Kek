@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,6 +21,8 @@ import {
   Layers,
   ExternalLink,
   Play,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { Meeting, BiroCode, MeetingStatus, getMeetingCategoryInfo } from '@/lib/types';
 import { MOCK_MEETINGS } from '@/lib/mock-data';
@@ -102,6 +104,22 @@ export function MeetingTable({
   const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [progressTabFilter, setProgressTabFilter] = useState<'ALL' | 'Belum Dimulai' | 'Dalam Proses' | 'Selesai'>('ALL');
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setIsStatusDropdownOpen(false);
+      }
+    }
+    if (isStatusDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStatusDropdownOpen]);
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
   const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
@@ -555,78 +573,203 @@ export function MeetingTable({
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Quick 1-Click Status Filter Tabs for Atasan */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/90 overflow-x-auto no-scrollbar">
+            {/* Clickable Status Filter Dropdown */}
+            <div className="relative shrink-0" ref={statusDropdownRef}>
               <button
                 type="button"
-                onClick={() => setProgressTabFilter('ALL')}
+                onClick={() => setIsStatusDropdownOpen((prev) => !prev)}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none shrink-0",
+                  "inline-flex items-center justify-between gap-2.5 px-3.5 py-1.5 rounded-xl border text-[12px] font-bold shadow-2xs transition-all cursor-pointer select-none",
                   progressTabFilter === 'ALL'
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/70"
+                    ? "bg-[#F0F9FA] text-[#215865] border-[#BCE3EB] hover:bg-[#E2F4F7] ring-2 ring-[#31889C]/20"
+                    : progressTabFilter === 'Belum Dimulai'
+                    ? "bg-sky-50 text-sky-900 border-sky-300 ring-2 ring-sky-300/40 hover:bg-sky-100"
+                    : progressTabFilter === 'Dalam Proses'
+                    ? "bg-amber-50 text-amber-900 border-amber-300 ring-2 ring-amber-300/40 hover:bg-amber-100"
+                    : "bg-emerald-50 text-emerald-900 border-emerald-300 ring-2 ring-emerald-300/40 hover:bg-emerald-100"
                 )}
-                title="Tampilkan semua rapat"
+                title="Pilih filter status rapat"
               >
-                <span>Semua</span>
-                <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", progressTabFilter === 'ALL' ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-600")}>
-                  {meetings.length}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      progressTabFilter === 'ALL'
+                        ? "bg-[#31889C]"
+                        : progressTabFilter === 'Belum Dimulai'
+                        ? "bg-sky-500"
+                        : progressTabFilter === 'Dalam Proses'
+                        ? "bg-amber-500 animate-pulse"
+                        : "bg-emerald-500"
+                    )}
+                  />
+                  <span>
+                    {progressTabFilter === 'ALL'
+                      ? 'Semua Status'
+                      : progressTabFilter}
+                  </span>
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.2 rounded-full text-[10px] font-extrabold",
+                      progressTabFilter === 'ALL'
+                        ? "bg-[#D8F0F4] text-[#1B4B56]"
+                        : progressTabFilter === 'Belum Dimulai'
+                        ? "bg-sky-200/80 text-sky-900"
+                        : progressTabFilter === 'Dalam Proses'
+                        ? "bg-amber-200/80 text-amber-900"
+                        : "bg-emerald-200/80 text-emerald-900"
+                    )}
+                  >
+                    {progressTabFilter === 'ALL'
+                      ? meetings.length
+                      : progressTabFilter === 'Belum Dimulai'
+                      ? countBelumDimulai
+                      : progressTabFilter === 'Dalam Proses'
+                      ? countDalamProses
+                      : countSelesai}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "w-3.5 h-3.5 transition-transform duration-200",
+                    progressTabFilter === 'ALL' ? "text-[#31889C]" : "text-current opacity-70",
+                    isStatusDropdownOpen && "rotate-180"
+                  )}
+                />
               </button>
 
-              <button
-                type="button"
-                onClick={() => setProgressTabFilter('Belum Dimulai')}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none shrink-0",
-                  progressTabFilter === 'Belum Dimulai'
-                    ? "bg-sky-600 text-white border-sky-700 shadow-2xs ring-2 ring-sky-300/40"
-                    : "bg-white text-sky-800 border-sky-200 hover:bg-sky-50"
-                )}
-                title="Filter rapat tahap Belum Dimulai (Persiapan / Terjadwal)"
-              >
-                <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-                <span>Belum Dimulai</span>
-                <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", progressTabFilter === 'Belum Dimulai' ? "bg-sky-700 text-white" : "bg-sky-100 text-sky-800")}>
-                  {countBelumDimulai}
-                </span>
-              </button>
+              {/* Dropdown Menu Popover */}
+              {isStatusDropdownOpen && (
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 z-40 w-56 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 space-y-1 animate-in fade-in zoom-in-95">
+                  <div className="px-2 py-1 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Filter Status Rapat
+                  </div>
 
-              <button
-                type="button"
-                onClick={() => setProgressTabFilter('Dalam Proses')}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none shrink-0",
-                  progressTabFilter === 'Dalam Proses'
-                    ? "bg-amber-600 text-white border-amber-700 shadow-2xs ring-2 ring-amber-300/40"
-                    : "bg-white text-amber-800 border-amber-200 hover:bg-amber-50"
-                )}
-                title="Filter rapat tahap Dalam Proses (Sedang Berjalan / Telaah)"
-              >
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                <span>Dalam Proses</span>
-                <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", progressTabFilter === 'Dalam Proses' ? "bg-amber-700 text-white" : "bg-amber-100 text-amber-800")}>
-                  {countDalamProses}
-                </span>
-              </button>
+                  {/* Semua Status */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgressTabFilter('ALL');
+                      setIsStatusDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[12px] transition-colors cursor-pointer text-left border",
+                      progressTabFilter === 'ALL'
+                        ? "bg-[#F0F9FA] text-[#215865] border-[#BCE3EB] font-bold shadow-2xs"
+                        : "border-transparent text-slate-700 hover:bg-slate-50 font-medium"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={cn("w-2 h-2 rounded-full", progressTabFilter === 'ALL' ? "bg-[#31889C]" : "bg-slate-400")} />
+                      <span>Semua Status</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                          progressTabFilter === 'ALL' ? "bg-[#D8F0F4] text-[#1B4B56]" : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {meetings.length}
+                      </span>
+                      {progressTabFilter === 'ALL' && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                    </div>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setProgressTabFilter('Selesai')}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none shrink-0",
-                  progressTabFilter === 'Selesai'
-                    ? "bg-emerald-600 text-white border-emerald-700 shadow-2xs ring-2 ring-emerald-300/40"
-                    : "bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-50"
-                )}
-                title="Filter rapat tahap Selesai (Disahkan)"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Selesai</span>
-                <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", progressTabFilter === 'Selesai' ? "bg-emerald-700 text-white" : "bg-emerald-100 text-emerald-800")}>
-                  {countSelesai}
-                </span>
-              </button>
+                  {/* Belum Dimulai */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgressTabFilter('Belum Dimulai');
+                      setIsStatusDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[12px] transition-colors cursor-pointer text-left border",
+                      progressTabFilter === 'Belum Dimulai'
+                        ? "bg-sky-50 text-sky-950 border-sky-200 font-bold shadow-2xs"
+                        : "border-transparent text-slate-700 hover:bg-sky-50/60 font-medium"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-500" />
+                      <span>Belum Dimulai</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                          progressTabFilter === 'Belum Dimulai' ? "bg-sky-200/80 text-sky-900" : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {countBelumDimulai}
+                      </span>
+                      {progressTabFilter === 'Belum Dimulai' && <Check className="w-3.5 h-3.5 text-sky-700" />}
+                    </div>
+                  </button>
+
+                  {/* Dalam Proses */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgressTabFilter('Dalam Proses');
+                      setIsStatusDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[12px] transition-colors cursor-pointer text-left border",
+                      progressTabFilter === 'Dalam Proses'
+                        ? "bg-amber-50 text-amber-950 border-amber-200 font-bold shadow-2xs"
+                        : "border-transparent text-slate-700 hover:bg-amber-50/60 font-medium"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span>Dalam Proses</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                          progressTabFilter === 'Dalam Proses' ? "bg-amber-200/80 text-amber-900" : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {countDalamProses}
+                      </span>
+                      {progressTabFilter === 'Dalam Proses' && <Check className="w-3.5 h-3.5 text-amber-700" />}
+                    </div>
+                  </button>
+
+                  {/* Selesai */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgressTabFilter('Selesai');
+                      setIsStatusDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[12px] transition-colors cursor-pointer text-left border",
+                      progressTabFilter === 'Selesai'
+                        ? "bg-emerald-50 text-emerald-950 border-emerald-200 font-bold shadow-2xs"
+                        : "border-transparent text-slate-700 hover:bg-emerald-50/60 font-medium"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>Selesai</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                          progressTabFilter === 'Selesai' ? "bg-emerald-200/80 text-emerald-900" : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {countSelesai}
+                      </span>
+                      {progressTabFilter === 'Selesai' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Quick Filter Input */}
