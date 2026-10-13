@@ -62,6 +62,22 @@ export async function GET(request: NextRequest) {
   if (params.biro && params.biro !== 'ALL') {
     where.picBiro = { code: params.biro };
   }
+
+  // Team scoping for STAFF
+  if (authUser.role === 'STAFF' && (authUser.teamId || authUser.teamCode)) {
+    const teamOrs: Prisma.ActionItemWhereInput[] = [];
+    if (authUser.teamId) {
+      teamOrs.push({ picTeamId: authUser.teamId });
+    }
+    if (authUser.teamCode) {
+      teamOrs.push({ picTeam: { code: authUser.teamCode.toUpperCase() } });
+      teamOrs.push({ meeting: { meetingNumber: { startsWith: `${authUser.teamCode.toUpperCase()}-` } } });
+    }
+    if (authUser.id) {
+      teamOrs.push({ picUserId: authUser.id });
+    }
+    where.OR = teamOrs;
+  }
   if (params.status && params.status !== 'ALL') {
     if (params.status === 'OVERDUE') {
       where.status = { not: 'COMPLETED' };

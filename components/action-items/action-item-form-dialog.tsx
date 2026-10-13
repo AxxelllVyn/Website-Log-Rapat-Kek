@@ -35,6 +35,7 @@ interface ActionItemFormDialogProps {
   availableBiros?: { id: string; code: string; shortName: string; name: string }[];
   availableUsers?: { id: string; name: string; email?: string; biroId?: string; teamId?: string | null }[];
   lockedBiroCode?: string;
+  lockedTeamCode?: string;
   onClose: () => void;
   onSuccess?: (item: any) => void;
 }
@@ -49,6 +50,7 @@ export function ActionItemFormDialog({
   availableBiros = [],
   availableUsers = [],
   lockedBiroCode,
+  lockedTeamCode,
   onClose,
   onSuccess,
 }: ActionItemFormDialogProps) {
@@ -56,6 +58,9 @@ export function ActionItemFormDialog({
   const effectiveLockedBiroCode =
     lockedBiroCode ||
     (session?.user?.role === 'STAFF' ? session.user.biroCode : undefined);
+  const effectiveLockedTeamCode =
+    lockedTeamCode ||
+    (session?.user?.role === 'STAFF' ? session.user.teamCode : undefined);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -221,7 +226,12 @@ export function ActionItemFormDialog({
         (m) => m.id === initialMeetingId || (m.meetingNumber && m.meetingNumber.toUpperCase() === initialMeetingId.toUpperCase())
       ) || normalizedCurrentMeeting;
       let detectedTeamId = 'TIM-001';
-      if (currMeeting) {
+      if (effectiveLockedTeamCode) {
+        const teamForCode = displayTeams.find(
+          (t) => t.code.toUpperCase() === effectiveLockedTeamCode.toUpperCase()
+        );
+        if (teamForCode) detectedTeamId = teamForCode.id;
+      } else if (currMeeting) {
         const num = currMeeting.meetingNumber?.toUpperCase() || '';
         if (num.startsWith('INV-')) detectedTeamId = 'TIM-001';
         else if (num.startsWith('KS-')) detectedTeamId = 'TIM-003';
@@ -546,6 +556,7 @@ export function ActionItemFormDialog({
                       </div>
                       <select
                         value={picTeamId}
+                        disabled={Boolean(effectiveLockedTeamCode)}
                         onChange={(e) => {
                           const newTeamId = e.target.value;
                           setPicTeamId(newTeamId);
@@ -561,7 +572,9 @@ export function ActionItemFormDialog({
                             });
                           }
                         }}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer shadow-2xs"
+                        className={`w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] font-medium text-slate-800 text-[13px] shadow-2xs ${
+                          effectiveLockedTeamCode ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-white cursor-pointer'
+                        }`}
                       >
                         <option value="">
                           {isLoadingOptions ? '-- Memuat Tim Kerja... --' : '-- Pilih Tim Kerja --'}
@@ -575,9 +588,15 @@ export function ActionItemFormDialog({
                       {fieldErrors.picTeamId && (
                         <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.picTeamId}</p>
                       )}
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        Penanggung jawab operasional tindak lanjut per tim kerja Sekretariat KEK.
-                      </p>
+                      {effectiveLockedTeamCode ? (
+                        <p className="mt-1 text-[11px] text-[#215865] font-semibold">
+                          🔒 Tim kerja terkunci sesuai penugasan tim peran Anda ({effectiveLockedTeamCode}).
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          Penanggung jawab operasional tindak lanjut per tim kerja Sekretariat KEK.
+                        </p>
+                      )}
                     </>
                   );
                 })()}

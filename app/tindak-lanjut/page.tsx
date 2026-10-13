@@ -17,10 +17,30 @@ export default async function TindakLanjutPage() {
   // Strict Bureau Scoping: Non-admin users only see and manage action items for their own bureau
   const userBiroCode = !isPrivileged && currentUser?.biroCode ? currentUser.biroCode : undefined;
 
+  // Strict Team Scoping: Staff only sees and manages action items for their own assigned work team
+  const isStaff = currentUser?.role === 'STAFF';
+  const userTeamCode = isStaff && currentUser?.teamCode ? currentUser.teamCode : undefined;
+  const userTeamName = isStaff && currentUser?.teamName ? currentUser.teamName : undefined;
+  const userTeamId = isStaff && currentUser?.teamId ? currentUser.teamId : undefined;
+
   const [items, meetings, biros, users, teams] = await withDbRetry(async () =>
     Promise.all([
-      getActionItemsFromDb(userBiroCode ? { biroCode: userBiroCode } : undefined),
+      getActionItemsFromDb({
+        biroCode: userBiroCode,
+        teamCode: userTeamCode,
+        teamId: userTeamId,
+        userId: isStaff && currentUser?.id ? currentUser.id : undefined,
+      }),
       prisma.meeting.findMany({
+        where: userTeamCode
+          ? {
+              OR: [
+                { primaryTeam: { code: userTeamCode } },
+                { meetingNumber: { startsWith: `${userTeamCode}-` } },
+                ...(userTeamId ? [{ primaryTeamId: userTeamId }] : []),
+              ],
+            }
+          : undefined,
         select: {
           id: true,
           meetingNumber: true,
@@ -43,7 +63,7 @@ export default async function TindakLanjutPage() {
         orderBy: { name: 'asc' },
       }),
       prisma.biroTeam.findMany({
-        where: { isActive: true },
+        where: userTeamCode ? { code: userTeamCode, isActive: true } : { isActive: true },
         select: { id: true, code: true, name: true, biroId: true },
         orderBy: { code: 'asc' },
       }),
@@ -59,8 +79,11 @@ export default async function TindakLanjutPage() {
         availableUsers={users}
         availableTeams={teams}
         lockedBiroCode={userBiroCode}
+        lockedTeamCode={userTeamCode}
+        lockedTeamName={userTeamName}
         currentUserRole={currentUser?.role}
         currentUserBiroName={currentUser?.biroName}
+        currentUserTeamId={userTeamId}
       />
     </Suspense>
   );

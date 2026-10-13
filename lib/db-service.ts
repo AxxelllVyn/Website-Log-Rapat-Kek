@@ -211,29 +211,56 @@ export async function getActionItemsFromDb(filters?: {
   meetingId?: string;
   biroCode?: string;
   status?: string;
+  teamCode?: string | null;
+  teamId?: string | null;
+  userId?: string | null;
 }) {
   try {
     return await withDbRetry(async () => {
-      const whereClause: any = {};
+      const andConditions: any[] = [];
 
       if (filters?.meetingId) {
-        whereClause.meetingId = filters.meetingId;
+        andConditions.push({ meetingId: filters.meetingId });
       }
 
       if (filters?.biroCode) {
-        whereClause.picBiro = {
-          code: filters.biroCode.toUpperCase(),
-        };
+        andConditions.push({
+          picBiro: {
+            code: filters.biroCode.toUpperCase(),
+          },
+        });
+      }
+
+      if (filters?.teamCode || filters?.teamId || filters?.userId) {
+        const teamOrs: any[] = [];
+        if (filters.teamCode) {
+          const tCode = filters.teamCode.toUpperCase();
+          teamOrs.push({ picTeam: { code: tCode } });
+          teamOrs.push({ meeting: { meetingNumber: { startsWith: `${tCode}-` } } });
+        }
+        if (filters.teamId) {
+          teamOrs.push({ picTeamId: filters.teamId });
+        }
+        if (filters.userId) {
+          teamOrs.push({ picUserId: filters.userId });
+        }
+        if (teamOrs.length > 0) {
+          andConditions.push({ OR: teamOrs });
+        }
       }
 
       if (filters?.status && filters.status !== 'ALL') {
         if (filters.status === 'OVERDUE') {
-          whereClause.status = { not: 'COMPLETED' };
-          whereClause.dueDate = { lt: new Date() };
+          andConditions.push({
+            status: { not: 'COMPLETED' },
+            dueDate: { lt: new Date() },
+          });
         } else {
-          whereClause.status = filters.status;
+          andConditions.push({ status: filters.status });
         }
       }
+
+      const whereClause: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
       const items = await prisma.actionItem.findMany({
         where: whereClause,

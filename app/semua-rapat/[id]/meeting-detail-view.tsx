@@ -32,7 +32,6 @@ import {
   Eye,
   ExternalLink,
   Edit3,
-  MessageCircle,
   History,
   HelpCircle,
   Paperclip,
@@ -53,7 +52,6 @@ import { ActionItemList } from '@/components/action-items/action-item-list';
 import { PreviousMeetingModal } from '@/components/meeting/previous-meeting-modal';
 import { LinkMeetingDialog } from '@/components/meeting/link-meeting-dialog';
 import { AgendaSeriesModal } from '@/components/meeting/agenda-series-modal';
-import { MeetingCommentsSection } from '@/components/meeting/meeting-comments/meeting-comments-section';
 import { MinutesHistorySection } from '@/components/meeting/meeting-history/minutes-history-section';
 import { GoogleCalendarModal } from '@/components/meeting/google-calendar-modal';
 import {
@@ -93,7 +91,7 @@ interface MeetingDetailViewProps {
 }
 
 type TabType = 'overview' | 'participants' | 'minutes' | 'actionItems';
-type MinutesSubTab = 'document' | 'materials' | 'comments' | 'history';
+type MinutesSubTab = 'document' | 'materials' | 'history';
 const VALID_TABS: TabType[] = ['overview', 'participants', 'minutes', 'actionItems'];
 
 const MEETING_WORKFLOW: {
@@ -205,16 +203,14 @@ export function MeetingDetailView({
 
   const canChangeStatus = isPrivileged;
 
-  const initialResolvedTab: TabType = (initialTab === 'comments' || initialTab === 'history')
+  const initialResolvedTab: TabType = initialTab === 'history'
     ? 'minutes'
     : (initialTab && VALID_TABS.includes(initialTab as TabType))
       ? (initialTab as TabType)
       : (meeting.minutes ? 'minutes' : 'overview');
 
   const initialMinutesSubTab: MinutesSubTab =
-    initialTab === 'comments'
-      ? 'comments'
-      : initialTab === 'history'
+    initialTab === 'history'
       ? 'history'
       : initialTab === 'materials'
       ? 'materials'
@@ -1997,7 +1993,7 @@ export function MeetingDetailView({
       {/* Tab 3: Notulen & Hasil Rapat */}
       {activeTab === 'minutes' && (
         <div className="space-y-4">
-          {/* Sub Navigation Bar: Naskah, Catatan & Komentar, Riwayat Perubahan */}
+          {/* Sub Navigation Bar: Naskah, Berkas & Paparan, Riwayat Perubahan */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
             <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-lg text-[13px] font-semibold">
               <button
@@ -2033,18 +2029,6 @@ export function MeetingDetailView({
 
               <button
                 type="button"
-                onClick={() => handleMinutesSubTabChange('comments')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${minutesSubTab === 'comments'
-                  ? 'bg-white text-[#31889C] font-bold shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Catatan &amp; Komentar</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => handleMinutesSubTabChange('history')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${minutesSubTab === 'history'
                   ? 'bg-white text-[#31889C] font-bold shadow-xs border border-slate-200/60'
@@ -2059,7 +2043,6 @@ export function MeetingDetailView({
             <div className="text-[12px] text-slate-500 px-2 hidden md:block">
               {minutesSubTab === 'document' && 'Format resmi Notula & Nota Dinas Sekretariat KEK'}
               {minutesSubTab === 'materials' && 'Preview bahan paparan, slide presentasi, dan dokumen tindak lanjut'}
-              {minutesSubTab === 'comments' && 'Kolaborasi masukan dan catatan perumusan risalah'}
               {minutesSubTab === 'history' && 'Audit trail riwayat revisi dan versi naskah risalah'}
             </div>
           </div>
@@ -2081,10 +2064,6 @@ export function MeetingDetailView({
               meetingTitle={meeting.title}
               initialAttachments={meeting.attachments || []}
             />
-          )}
-
-          {minutesSubTab === 'comments' && (
-            <MeetingCommentsSection meetingId={meeting.id} />
           )}
 
           {minutesSubTab === 'history' && (

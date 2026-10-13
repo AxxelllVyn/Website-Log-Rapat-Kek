@@ -108,14 +108,29 @@ export function ActionItemList({
     setDialogDefaultProgress(item.latestProgress);
   };
 
+  const userStaffTeamCode = userRole === 'STAFF' && currentUser?.teamCode ? currentUser.teamCode.toUpperCase() : null;
+  const userStaffTeamId = userRole === 'STAFF' && currentUser?.teamId ? currentUser.teamId : null;
+
+  // Filter items sesuai dengan tim kerja staf
+  const visibleItems = useMemo(() => {
+    if (!userStaffTeamCode && !userStaffTeamId) return items;
+    return items.filter((item) => {
+      const itemTeamCode = item.picTeam?.code?.toUpperCase() || (item.picBiro?.code === 'IKK' ? 'INV' : '');
+      const isSameTeamCode = Boolean(userStaffTeamCode && itemTeamCode === userStaffTeamCode);
+      const isSameTeamId = Boolean(userStaffTeamId && item.picTeamId && userStaffTeamId === item.picTeamId);
+      const isUserPic = Boolean(currentUserId && item.picUserId && currentUserId === item.picUserId);
+      return isSameTeamCode || isSameTeamId || isUserPic;
+    });
+  }, [items, userStaffTeamCode, userStaffTeamId, currentUserId]);
+
   // Compute stats
-  const total = items.length;
-  const completed = items.filter((i) => i.status === 'COMPLETED').length;
-  const inProgress = items.filter((i) => i.status === 'IN_PROGRESS').length;
-  const overdue = items.filter((i) => {
+  const total = visibleItems.length;
+  const completed = visibleItems.filter((i) => i.status === 'COMPLETED').length;
+  const inProgress = visibleItems.filter((i) => i.status === 'IN_PROGRESS').length;
+  const overdue = visibleItems.filter((i) => {
     return i.status !== 'COMPLETED' && new Date(i.dueDate).getTime() < Date.now();
   }).length;
-  const pending = items.filter(
+  const pending = visibleItems.filter(
     (i) => i.status === 'PENDING' && new Date(i.dueDate).getTime() >= Date.now()
   ).length;
 
@@ -123,43 +138,47 @@ export function ActionItemList({
   const [filterSearch, setFilterSearch] = useState('');
   const [filterPic, setFilterPic] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const [filterTeam, setFilterTeam] = useState('ALL');
+  const [filterTeam, setFilterTeam] = useState(userStaffTeamCode || 'ALL');
 
   // Unique PICs from items
   const uniquePics = useMemo(() => {
     const map = new Map<string, string>();
-    items.forEach((it) => {
+    visibleItems.forEach((it) => {
       if (it.picUserId && it.picUser?.name) {
         map.set(it.picUserId, it.picUser.name);
       }
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [items]);
+  }, [visibleItems]);
 
   // Available Teams for filter
   const availableTeamFilters = useMemo(() => {
-    return [
+    const canonical = [
       { code: 'INV', name: 'Tim Investasi' },
       { code: 'KS', name: 'Tim Kerja Sama' },
       { code: 'KOM', name: 'Tim Komunikasi' },
     ];
-  }, []);
+    if (userStaffTeamCode) {
+      return canonical.filter((t) => t.code === userStaffTeamCode);
+    }
+    return canonical;
+  }, [userStaffTeamCode]);
 
   // Has active filters
   const hasActiveFilters = Boolean(
-    filterSearch.trim() || filterPic !== 'ALL' || filterStatus !== 'ALL' || filterTeam !== 'ALL'
+    filterSearch.trim() || filterPic !== 'ALL' || filterStatus !== 'ALL' || (!userStaffTeamCode && filterTeam !== 'ALL')
   );
 
   const resetFilters = () => {
     setFilterSearch('');
     setFilterPic('ALL');
     setFilterStatus('ALL');
-    setFilterTeam('ALL');
+    setFilterTeam(userStaffTeamCode || 'ALL');
   };
 
   // Filtered items
   const displayedItems = useMemo(() => {
-    return items.filter((item) => {
+    return visibleItems.filter((item) => {
       // Search text
       if (filterSearch.trim()) {
         const q = filterSearch.toLowerCase();
@@ -449,7 +468,7 @@ export function ActionItemList({
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#31889C] hover:bg-[#266F80] text-white font-semibold text-[13px] shadow-sm transition-all cursor-pointer mt-2"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Buat Tindak Lanjut Pertama</span>
+                <span>Buat Tindak Lanjut Pertama</span>
               </button>
             )}
           </div>
@@ -710,6 +729,7 @@ export function ActionItemList({
         availableBiros={availableBiros}
         availableUsers={availableUsers}
         lockedBiroCode={userRole === 'STAFF' ? currentUser?.biroCode : undefined}
+        lockedTeamCode={userStaffTeamCode || undefined}
         onClose={() => {
           setIsFormOpen(false);
           setEditingItem(null);

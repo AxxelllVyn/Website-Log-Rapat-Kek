@@ -44,13 +44,28 @@ export async function getActionItemsAction(meetingId?: string) {
     } catch {}
 
     const isPrivileged =
-      currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+      currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'PIMPINAN';
 
     const where: any = meetingId ? { meetingId } : {};
 
     // Bureau Scoping: Non-admin users are strictly restricted to action items of their own bureau
     if (!isPrivileged && currentUser?.biroId) {
       where.picBiroId = currentUser.biroId;
+    }
+
+    // Team Scoping: Staff users are strictly restricted to action items of their own work team
+    if (currentUser?.role === 'STAFF' && (currentUser.teamId || currentUser.teamCode)) {
+      const teamOrs: any[] = [];
+      if (currentUser.teamId) {
+        teamOrs.push({ picTeamId: currentUser.teamId });
+      }
+      if (currentUser.teamCode) {
+        teamOrs.push({ picTeam: { code: currentUser.teamCode.toUpperCase() } });
+      }
+      if (currentUser.id) {
+        teamOrs.push({ picUserId: currentUser.id });
+      }
+      where.OR = teamOrs;
     }
 
     const items = await prisma.actionItem.findMany({
@@ -286,6 +301,14 @@ export async function createActionItemAction(input: ActionItemInput) {
       };
     }
 
+    // Team Scoping: Staff users can only assign action items to their own work team
+    if (currentUser.role === 'STAFF' && currentUser.teamId && effectiveTeamId && effectiveTeamId !== currentUser.teamId) {
+      return {
+        success: false,
+        error: 'Anda hanya dapat menugaskan tindak lanjut ke tim kerja Anda sendiri.',
+      };
+    }
+
     // 4. Validate picUser if provided
     let validPicUserId: string | null = null;
     if (picUserId && picUserId.trim() !== '') {
@@ -420,6 +443,22 @@ export async function updateActionItemAction(input: UpdateActionItemInput) {
         return {
           success: false,
           error: 'Anda hanya dapat mengelola tindak lanjut untuk biro/tim Anda sendiri.',
+        };
+      }
+    }
+
+    // Team Scoping: Staff users cannot reassign or manage action items of another team
+    if (currentUser.role === 'STAFF' && currentUser.teamId) {
+      if (existing.picTeamId && existing.picTeamId !== currentUser.teamId && existing.picUserId !== currentUser.id) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat mengelola tindak lanjut untuk tim kerja Anda sendiri.',
+        };
+      }
+      if (effectiveTeamId && effectiveTeamId !== currentUser.teamId) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat menugaskan tindak lanjut ke tim kerja Anda sendiri.',
         };
       }
     }

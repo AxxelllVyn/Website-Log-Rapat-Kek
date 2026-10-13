@@ -58,8 +58,11 @@ interface ActionItemMatrixViewProps {
   availableUsers: { id: string; name: string; email?: string; biroId?: string }[];
   availableTeams?: { id: string; code: string; name: string; biroId?: string }[];
   lockedBiroCode?: string;
+  lockedTeamCode?: string;
+  lockedTeamName?: string;
   currentUserRole?: string;
   currentUserBiroName?: string;
+  currentUserTeamId?: string;
 }
 
 export function ActionItemMatrixView({
@@ -69,8 +72,11 @@ export function ActionItemMatrixView({
   availableUsers = [],
   availableTeams = [],
   lockedBiroCode,
+  lockedTeamCode,
+  lockedTeamName,
   currentUserRole,
   currentUserBiroName,
+  currentUserTeamId,
 }: ActionItemMatrixViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -104,9 +110,13 @@ export function ActionItemMatrixView({
   const teamParam = searchParams.get('tim') || 'ALL';
   const priorityParam = searchParams.get('prioritas') || 'ALL';
 
+  const effectiveLockedTeamCode =
+    lockedTeamCode ||
+    (userRole === 'STAFF' && session?.user?.teamCode ? session.user.teamCode.toUpperCase() : undefined);
+
   const [items, setItems] = useState<any[]>(initialItems);
   const [search, setSearch] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState<string>(teamParam);
+  const [selectedTeam, setSelectedTeam] = useState<string>(effectiveLockedTeamCode || teamParam);
   const [selectedPriority, setSelectedPriority] = useState<string>(priorityParam);
   const [openDropdown, setOpenDropdown] = useState<'TIM' | 'STATUS' | 'PRIORITAS' | null>(null);
   const filterToolbarRef = useRef<HTMLDivElement>(null);
@@ -341,6 +351,7 @@ export function ActionItemMatrixView({
   };
 
   const handleSelectTeam = (code: string) => {
+    if (effectiveLockedTeamCode) return;
     setSelectedTeam(code);
     const params = new URLSearchParams(searchParams.toString());
     if (code === 'ALL') {
@@ -364,9 +375,9 @@ export function ActionItemMatrixView({
 
   const handleResetAllFilters = () => {
     setSearch('');
-    setSelectedTeam('ALL');
+    setSelectedTeam(effectiveLockedTeamCode || 'ALL');
     setSelectedPriority('ALL');
-    router.push('/tindak-lanjut');
+    router.push(effectiveLockedTeamCode ? `/tindak-lanjut?tim=${effectiveLockedTeamCode}` : '/tindak-lanjut');
   };
 
   const handleStatusChange = async (itemId: string, newStatus: ActionItemStatus) => {
@@ -412,7 +423,13 @@ export function ActionItemMatrixView({
       }
 
       // Team filter
-      if (selectedTeam !== 'ALL') {
+      if (effectiveLockedTeamCode) {
+        const teamInfo = getTaskTeamInfo(task);
+        const isUserPic = Boolean(task.picUserId && currentUserId && task.picUserId === currentUserId);
+        if (teamInfo.code !== effectiveLockedTeamCode && !isUserPic) {
+          return false;
+        }
+      } else if (selectedTeam !== 'ALL') {
         const teamInfo = getTaskTeamInfo(task);
         if (teamInfo.code !== selectedTeam) {
           return false;
@@ -444,7 +461,7 @@ export function ActionItemMatrixView({
 
   const selectedTeamLabel = selectedTeam === 'ALL'
     ? 'Semua Tim Kerja'
-    : (ikkTeamsList.find((t) => t.code === selectedTeam)?.name || selectedTeam);
+    : (ikkTeamsList.find((t) => t.code === selectedTeam)?.name || lockedTeamName || selectedTeam);
 
   const selectedStatusObj = statusOptions.find((s) => s.value === statusParam) || statusOptions[0];
   const selectedStatusLabel = selectedStatusObj.label;
@@ -457,7 +474,7 @@ export function ActionItemMatrixView({
   const hasAnyActiveFilter = Boolean(
     search.trim() ||
     (statusParam && statusParam !== 'ALL') ||
-    selectedTeam !== 'ALL' ||
+    (!effectiveLockedTeamCode && selectedTeam !== 'ALL') ||
     selectedPriority !== 'ALL'
   );
 
@@ -713,93 +730,95 @@ export function ActionItemMatrixView({
 
           {/* 2. Kelompok Filter Dropdown & Aksi */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Dropdown: Tim Kerja */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setOpenDropdown(openDropdown === 'TIM' ? null : 'TIM')}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all cursor-pointer border select-none",
-                  selectedTeam !== 'ALL'
-                    ? "bg-[#F0F9FA] border-[#31889C] text-[#164E59] shadow-2xs font-bold"
-                    : openDropdown === 'TIM'
-                      ? "bg-slate-100 border-slate-300 text-slate-900"
-                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                )}
-                title="Filter berdasarkan Tim Kerja Pelaksana"
-              >
-                <Layers className={cn("w-3.5 h-3.5 shrink-0", selectedTeam !== 'ALL' ? "text-[#31889C]" : "text-slate-500")} />
-                <span className="truncate max-w-[130px]">{selectedTeamLabel}</span>
-                <span
+            {/* Dropdown: Tim Kerja (Hanya untuk Admin / Pimpinan - Disembunyikan saat tim terkunci) */}
+            {!effectiveLockedTeamCode && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenDropdown(openDropdown === 'TIM' ? null : 'TIM')}
                   className={cn(
-                    "text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5",
-                    selectedTeam !== 'ALL' ? "bg-[#31889C] text-white" : "bg-slate-100 text-slate-600"
+                    "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all border select-none",
+                    selectedTeam !== 'ALL'
+                      ? "bg-[#F0F9FA] border-[#31889C] text-[#164E59] shadow-2xs font-bold cursor-pointer"
+                      : openDropdown === 'TIM'
+                        ? "bg-slate-100 border-slate-300 text-slate-900 cursor-pointer"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 cursor-pointer"
                   )}
+                  title="Filter berdasarkan Tim Kerja Pelaksana"
                 >
-                  {selectedTeam !== 'ALL' ? items.filter((i) => getTaskTeamInfo(i).code === selectedTeam).length : items.length}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "w-3 h-3 transition-transform text-slate-400",
-                    openDropdown === 'TIM' && "rotate-180 text-[#31889C]"
-                  )}
-                />
-              </button>
-
-              {openDropdown === 'TIM' && (
-                <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                    Pilih Tim Kerja
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => { handleSelectTeam('ALL'); setOpenDropdown(null); }}
+                  <Layers className={cn("w-3.5 h-3.5 shrink-0", "text-[#31889C]")} />
+                  <span className="truncate max-w-[130px]">{selectedTeamLabel}</span>
+                  <span
                     className={cn(
-                      "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
-                      selectedTeam === 'ALL' ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                      "text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5",
+                      selectedTeam !== 'ALL' ? "bg-[#31889C] text-white" : "bg-slate-100 text-slate-600"
                     )}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      <span>Semua Tim Kerja</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
-                        {items.length}
+                    {selectedTeam !== 'ALL' ? items.filter((i) => getTaskTeamInfo(i).code === selectedTeam).length : items.length}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "w-3 h-3 transition-transform text-slate-400",
+                      openDropdown === 'TIM' && "rotate-180 text-[#31889C]"
+                    )}
+                  />
+                </button>
+
+                {openDropdown === 'TIM' && (
+                  <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                      Pilih Tim Kerja
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { handleSelectTeam('ALL'); setOpenDropdown(null); }}
+                      className={cn(
+                        "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
+                        selectedTeam === 'ALL' ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        <span>Semua Tim Kerja</span>
                       </span>
-                      {selectedTeam === 'ALL' && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
-                    </span>
-                  </button>
-                  <div className="my-1 border-t border-slate-100" />
-                  {ikkTeamsList.map((t) => {
-                    const isSelected = selectedTeam === t.code;
-                    const countForTeam = items.filter((i) => getTaskTeamInfo(i).code === t.code).length;
-                    return (
-                      <button
-                        key={t.code}
-                        type="button"
-                        onClick={() => { handleSelectTeam(t.code); setOpenDropdown(null); }}
-                        className={cn(
-                          "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
-                          isSelected ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
-                        )}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className={cn("w-1.5 h-1.5 rounded-full", t.dotColor)} />
-                          <span>{t.name}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                          {items.length}
                         </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
-                            {countForTeam}
+                        {selectedTeam === 'ALL' && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                      </span>
+                    </button>
+                    <div className="my-1 border-t border-slate-100" />
+                    {ikkTeamsList.map((t) => {
+                      const isSelected = selectedTeam === t.code;
+                      const countForTeam = items.filter((i) => getTaskTeamInfo(i).code === t.code).length;
+                      return (
+                        <button
+                          key={t.code}
+                          type="button"
+                          onClick={() => { handleSelectTeam(t.code); setOpenDropdown(null); }}
+                          className={cn(
+                            "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
+                            isSelected ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                          )}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={cn("w-1.5 h-1.5 rounded-full", t.dotColor)} />
+                            <span>{t.name}</span>
                           </span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                              {countForTeam}
+                            </span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Dropdown: Status */}
             <div className="relative">
@@ -962,7 +981,7 @@ export function ActionItemMatrixView({
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#31889C] hover:bg-[#266F80] text-white font-semibold text-[12px] shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Tindak Lanjut</span>
+                <span>Tindak Lanjut</span>
               </button>
             )}
 
@@ -1258,6 +1277,7 @@ export function ActionItemMatrixView({
         availableBiros={availableBiros}
         availableUsers={availableUsers}
         lockedBiroCode={lockedBiroCode}
+        lockedTeamCode={effectiveLockedTeamCode}
         onClose={() => {
           setIsFormOpen(false);
           setEditingItem(null);

@@ -67,6 +67,22 @@ export async function GET(request: NextRequest) {
     where.picBiro = { code: params.biro };
   }
 
+  // Team scoping for STAFF
+  if (authUser.role === 'STAFF' && (authUser.teamId || authUser.teamCode)) {
+    const teamOrs: Prisma.ActionItemWhereInput[] = [];
+    if (authUser.teamId) {
+      teamOrs.push({ picTeamId: authUser.teamId });
+    }
+    if (authUser.teamCode) {
+      teamOrs.push({ picTeam: { code: authUser.teamCode.toUpperCase() } });
+      teamOrs.push({ meeting: { meetingNumber: { startsWith: `${authUser.teamCode.toUpperCase()}-` } } });
+    }
+    if (authUser.id) {
+      teamOrs.push({ picUserId: authUser.id });
+    }
+    where.OR = teamOrs;
+  }
+
   // Status filter
   // OVERDUE is a computed state (not stored). We fetch non-COMPLETED with past dueDate.
   if (params.status && params.status !== 'ALL') {
