@@ -31,6 +31,7 @@ interface SearchableMeetingSelectProps {
   selectedMeetingId: string;
   onSelectMeeting: (meetingId: string) => void;
   userBiroCode?: string;
+  userTeamCode?: string;
   disabled?: boolean;
   isLocked?: boolean;
   isLoading?: boolean;
@@ -71,6 +72,7 @@ export function SearchableMeetingSelect({
   selectedMeetingId,
   onSelectMeeting,
   userBiroCode,
+  userTeamCode,
   disabled = false,
   isLocked = false,
   isLoading = false,
@@ -290,8 +292,15 @@ export function SearchableMeetingSelect({
                 Semua ({meetings.length})
               </button>
 
-              {/* Biro Saya (If applicable) */}
-              {userBiroCode && availableBiroCodes.includes(userBiroCode.toUpperCase()) && (
+              {/* Tim Anda (Saat staf dengan tim terkunci) */}
+              {userTeamCode && (
+                <span className="px-2.5 py-1 rounded-full font-bold bg-[#E8F5F7] text-[#215865] border border-[#BCE3EB] shrink-0">
+                  ⭐ Tim Anda ({userTeamCode})
+                </span>
+              )}
+
+              {/* Biro Saya (Hanya jika bukan mode tim khusus) */}
+              {!userTeamCode && userBiroCode && availableBiroCodes.includes(userBiroCode.toUpperCase()) && (
                 <button
                   type="button"
                   onClick={() => setSelectedBiroFilter(userBiroCode.toUpperCase())}
@@ -305,8 +314,8 @@ export function SearchableMeetingSelect({
                 </button>
               )}
 
-              {/* Individual Biro Chips */}
-              {availableBiroCodes.map((code) => {
+              {/* Individual Biro Chips (Hanya jika bukan mode tim khusus) */}
+              {!userTeamCode && availableBiroCodes.map((code) => {
                 if (userBiroCode && code === userBiroCode.toUpperCase()) return null;
                 const count = meetings.filter((m) => getMeetingBiroCode(m) === code).length;
                 return (

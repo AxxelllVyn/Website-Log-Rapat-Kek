@@ -153,6 +153,32 @@ export async function getActionItemFormOptionsAction() {
       userWhere.biro = { code: currentUser.biroCode.toUpperCase() };
     }
 
+    const isStaff = currentUser?.role === 'STAFF';
+    let meetingWhere: any = undefined;
+
+    if (isStaff && (currentUser?.teamCode || currentUser?.teamId)) {
+      const tCode = currentUser.teamCode?.toUpperCase();
+      const tId = currentUser.teamId;
+      meetingWhere = {
+        OR: [
+          ...(tCode
+            ? [
+                { primaryTeam: { code: tCode } },
+                { meetingNumber: { startsWith: `${tCode}-` } },
+              ]
+            : []),
+          ...(tId ? [{ primaryTeamId: tId }] : []),
+        ],
+      };
+    } else if (!isPrivileged && currentUser?.biroCode) {
+      meetingWhere = {
+        OR: [
+          { primaryBiro: { code: currentUser.biroCode.toUpperCase() } },
+          { meetingNumber: { startsWith: `${currentUser.biroCode.toUpperCase()}-` } },
+        ],
+      };
+    }
+
     const [biros, users, teams, meetings] = await Promise.all([
       prisma.biro.findMany({
         where: biroWhere,
@@ -187,6 +213,7 @@ export async function getActionItemFormOptionsAction() {
         orderBy: { code: 'asc' },
       }),
       prisma.meeting.findMany({
+        where: meetingWhere,
         select: {
           id: true,
           meetingNumber: true,
@@ -307,6 +334,27 @@ export async function createActionItemAction(input: ActionItemInput) {
         success: false,
         error: 'Anda hanya dapat menugaskan tindak lanjut ke tim kerja Anda sendiri.',
       };
+    }
+
+    // Meeting Scoping: Staff users can only create action items on meetings belonging to their own work team
+    if (currentUser.role === 'STAFF') {
+      const userTeamCode = currentUser.teamCode?.toUpperCase();
+      const userTeamId = currentUser.teamId;
+      const meetingTeamCode = meeting.primaryTeam?.code?.toUpperCase();
+      const meetingTeamId = meeting.primaryTeamId;
+      const meetingNumber = meeting.meetingNumber?.toUpperCase() || '';
+
+      const isMatch =
+        (userTeamId && meetingTeamId === userTeamId) ||
+        (userTeamCode && meetingTeamCode === userTeamCode) ||
+        (userTeamCode && meetingNumber.startsWith(`${userTeamCode}-`));
+
+      if (!isMatch) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat menambahkan tindak lanjut pada rapat tim kerja peran Anda sendiri.',
+        };
+      }
     }
 
     // 4. Validate picUser if provided

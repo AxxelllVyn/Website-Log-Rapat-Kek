@@ -103,14 +103,33 @@ export function ActionItemFormDialog({
   );
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
-  // Guaranteed unified meetings list including normalizedCurrentMeeting
+  const isMatchTeamOption = (m: any, code: string) => {
+    const c = code.toUpperCase();
+    if (c === 'ALL' || c === 'IKK' || c === 'BIRO-IKK') return true;
+    const mNum = m.meetingNumber?.toUpperCase() || '';
+    if (mNum.startsWith(`${c}-`)) return true;
+    const primaryTeamCode = m.primaryTeam?.code?.toUpperCase() || m.primaryTeamCode?.toUpperCase();
+    if (primaryTeamCode === c) return true;
+    const primaryTeamId = m.primaryTeamId?.toUpperCase() || m.primaryTeam?.id?.toUpperCase();
+    if (c === 'INV' && (primaryTeamId === 'TIM-001' || m.title?.toLowerCase().includes('investasi'))) return true;
+    if (c === 'KS' && (primaryTeamId === 'TIM-003' || m.title?.toLowerCase().includes('kerja sama'))) return true;
+    if (c === 'KOM' && (primaryTeamId === 'TIM-002' || m.title?.toLowerCase().includes('komunikasi'))) return true;
+    return false;
+  };
+
+  // Guaranteed unified meetings list including normalizedCurrentMeeting & scoped by team for staff
   const effectiveMeetings = React.useMemo(() => {
-    if (!normalizedCurrentMeeting) return meetingsList;
-    if (meetingsList.some((m) => m.id === normalizedCurrentMeeting.id)) {
-      return meetingsList;
+    let combined = meetingsList;
+    if (normalizedCurrentMeeting && !meetingsList.some((m) => m.id === normalizedCurrentMeeting.id)) {
+      combined = [normalizedCurrentMeeting, ...meetingsList];
     }
-    return [normalizedCurrentMeeting, ...meetingsList];
-  }, [normalizedCurrentMeeting, meetingsList]);
+    if (!effectiveLockedTeamCode) return combined;
+    return combined.filter((m: any) => {
+      if (actionItem?.meetingId && m.id === actionItem.meetingId) return true;
+      if (meetingId && m.id === meetingId) return true;
+      return isMatchTeamOption(m, effectiveLockedTeamCode);
+    });
+  }, [normalizedCurrentMeeting, meetingsList, effectiveLockedTeamCode, actionItem?.meetingId, meetingId]);
 
   // Sync state if props change
   useEffect(() => {
@@ -215,7 +234,10 @@ export function ActionItemFormDialog({
       const mm = String(nextWeek.getMonth() + 1).padStart(2, '0');
       const dd = String(nextWeek.getDate()).padStart(2, '0');
 
-      const initialMeetingId = meetingId || normalizedCurrentMeeting?.id || availableMeetings[0]?.id || '';
+      let initialMeetingId = meetingId || normalizedCurrentMeeting?.id || '';
+      if (!initialMeetingId) {
+        initialMeetingId = effectiveMeetings[0]?.id || availableMeetings[0]?.id || '';
+      }
       setSelectedMeetingId(initialMeetingId);
       setTitle('');
       setDescription('');
@@ -248,6 +270,16 @@ export function ActionItemFormDialog({
       setStatus('PENDING');
     }
   }, [isOpen, actionItem?.id, meetingId]);
+
+  // Ensure selected meeting is always from the scoped list when form opens
+  useEffect(() => {
+    if (!isOpen || isMeetingLocked || isEditing) return;
+    if (effectiveMeetings.length > 0) {
+      if (!selectedMeetingId || !effectiveMeetings.some((m) => m.id === selectedMeetingId)) {
+        setSelectedMeetingId(effectiveMeetings[0].id);
+      }
+    }
+  }, [isOpen, isMeetingLocked, isEditing, effectiveMeetings, selectedMeetingId]);
 
   if (!isOpen) return null;
 
@@ -437,6 +469,7 @@ export function ActionItemFormDialog({
                   }
                 }}
                 userBiroCode={effectiveLockedBiroCode}
+                userTeamCode={effectiveLockedTeamCode}
                 isLocked={isMeetingLocked}
                 disabled={isMeetingLocked}
                 isLoading={isLoadingOptions}
@@ -446,6 +479,11 @@ export function ActionItemFormDialog({
                 <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
                   <span>Tindak lanjut ini otomatis terhubung langsung ke rapat ini (tidak perlu memilih rapat lain).</span>
+                </p>
+              ) : effectiveLockedTeamCode ? (
+                <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
+                  <span>Daftar rapat disesuaikan khusus untuk agenda penugasan {displayTeams.find((t) => t.code === effectiveLockedTeamCode)?.name || `Tim ${effectiveLockedTeamCode}`}.</span>
                 </p>
               ) : (
                 <p className="mt-1.5 text-[11px] text-slate-400">

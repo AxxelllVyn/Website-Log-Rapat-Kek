@@ -13,19 +13,16 @@ import {
   Check,
   X,
   UserCheck,
-  Link2,
   FileText,
   UploadCloud,
   Sparkles,
   Search,
   Paperclip,
-  ExternalLink,
   Trash2,
   FileCheck,
   RefreshCw,
   FolderOpen,
   MapPin,
-  Tag,
   Clock,
   ChevronDown,
 } from 'lucide-react';
@@ -44,7 +41,6 @@ import {
 import { toast } from '@/components/providers/toast-provider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { PreviousMeetingSelector } from '@/components/meeting/previous-meeting-selector';
 import { PicSelector } from '@/components/meeting/pic-selector';
 import { AttendeesSelector } from '@/components/meeting/attendees-selector';
 
@@ -427,7 +423,7 @@ export default function BuatRapatPage() {
 
       if (res.success && res.data) {
         toast.success(
-          `Rapat "${title}" (${res.data.meetingNumber}) berhasil dijadwalkan dengan status Sedang Berlangsung!`
+          `Rapat "${title}" (${res.data.meetingNumber}) berhasil dijadwalkan!`
         );
         router.refresh();
         router.push(`/semua-rapat/${res.data.id}`);
@@ -1169,76 +1165,6 @@ export default function BuatRapatPage() {
           </div>
         </div>
 
-        {/* ========================================================================= */}
-        {/* BAGIAN IV: STATUS OTOMATIS & RANGKAIAN AGENDA                             */}
-        {/* ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden border-t-4 border-t-[#2E7D32]">
-          <div className="px-6 py-4.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#ECF8E9] border border-[#D2EFCA] flex items-center justify-center text-[#15803D]">
-                <Tag className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Bagian IV: Status Otomatis &amp; Rangkaian Agenda
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Status awal rapat terotomasi langsung &amp; pengelolaan progres dilakukan saat tindak lanjut
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs">
-              Sedang Berlangsung (Otomatis)
-            </span>
-          </div>
-
-          <div className="p-6 sm:p-7 space-y-6">
-            {/* Status Otomatis Card */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/50 to-slate-50 border border-emerald-200/80 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
-                    <Check className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-sm">Status Rapat Baru:</span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-300">
-                        <span className="w-2 h-2 rounded-full bg-sky-500" />
-                        Belum Dimulai (Terjadwal)
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Saat rapat dibuat, status otomatis diset <strong>Belum Dimulai</strong>. Ketika pelaksanaan rapat dimulai, cukup klik tombol <strong>Mulai Rapat</strong> untuk langsung mengubah status menjadi <strong>Dalam Proses</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                <Link
-                  href="/tindak-lanjut"
-                  target="_blank"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-all shadow-2xs shrink-0 cursor-pointer self-start sm:self-auto"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Lihat Matriks Tindak Lanjut</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Optional: Tautkan Rapat Sebelumnya */}
-            <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2">
-              <label className="font-semibold text-slate-800 flex items-center gap-2 text-xs">
-                <Link2 className="w-4 h-4 text-[#1E6B7B]" />
-                <span>Tautkan Rapat Lanjutan / Rangkaian Terdahulu (Opsional):</span>
-              </label>
-              <PreviousMeetingSelector
-                value={previousMeetingId}
-                onChange={setPreviousMeetingId}
-                availableMeetings={availableMeetings}
-              />
-            </div>
-          </div>
-        </div>
 
         {/* ========================================================================= */}
         {/* SUBMIT BUTTON BAR                                                         */}
@@ -1251,7 +1177,7 @@ export default function BuatRapatPage() {
                 Formulir Rapat Siap Disimpan
               </p>
               <p className="text-[11px] text-slate-500">
-                Nomor: <span className="font-mono font-semibold text-[#1E6B7B]">{registrationNumber || 'Otomatis'}</span> • Status: <span className="font-semibold text-emerald-700">Sedang Berlangsung (Otomatis)</span>
+                Nomor: <span className="font-mono font-semibold text-[#1E6B7B]">{registrationNumber || 'Otomatis'}</span>
               </p>
             </div>
           </div>
