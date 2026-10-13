@@ -46,12 +46,12 @@ export async function uploadMeetingAttachmentAction(formData: FormData): Promise
       return { success: false, error: 'Tidak ada berkas yang dipilih.' };
     }
 
-    // Maximum file size: 35MB
-    const MAX_SIZE = 35 * 1024 * 1024;
+    // Maximum file size: 100MB
+    const MAX_SIZE = 100 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return {
         success: false,
-        error: 'Ukuran berkas melebihi batas maksimum 35MB. Silakan kompresi berkas terlebih dahulu.',
+        error: 'Ukuran berkas melebihi batas maksimum 100MB. Silakan kompresi berkas terlebih dahulu.',
       };
     }
 

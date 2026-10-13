@@ -318,8 +318,8 @@ export function MeetingDetailView({
   };
 
   const handleUploadInvitation = async (file: File) => {
-    if (file.size > 25 * 1024 * 1024) {
-      toast.error('Ukuran berkas melebihi batas 25MB.');
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Ukuran berkas melebihi batas 100MB.');
       return;
     }
     setIsUploadingInvitation(true);

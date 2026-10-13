@@ -447,9 +447,9 @@ export async function uploadInvitationFileAction(
       return { success: false, error: 'Tidak ada berkas yang dipilih.' };
     }
 
-    // Maximum file size: 25MB
-    if (file.size > 25 * 1024 * 1024) {
-      return { success: false, error: 'Ukuran berkas melebihi batas maksimum 25MB.' };
+    // Maximum file size: 100MB
+    if (file.size > 100 * 1024 * 1024) {
+      return { success: false, error: 'Ukuran berkas melebihi batas maksimum 100MB.' };
     }
 
     const validExtensions = ['pdf', 'docx', 'doc', 'txt', 'png', 'jpg', 'jpeg'];
@@ -563,9 +563,9 @@ export async function uploadGenericMeetingFileAction(
       return { success: false, error: 'Tidak ada berkas yang dipilih.' };
     }
 
-    // Maximum file size: 30MB
-    if (file.size > 30 * 1024 * 1024) {
-      return { success: false, error: 'Ukuran berkas melebihi batas maksimum 30MB.' };
+    // Maximum file size: 100MB
+    if (file.size > 100 * 1024 * 1024) {
+      return { success: false, error: 'Ukuran berkas melebihi batas maksimum 100MB.' };
     }
 
     const validExtensions = [
