@@ -28,6 +28,7 @@ import {
   ChevronDown,
   X,
   MoreVertical,
+  Download,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
@@ -1088,15 +1089,27 @@ export function ActionItemMatrixView({
                         <p className="font-bold text-slate-900 leading-snug">{task.title}</p>
                         {(() => {
                           let rawDesc = task.description || '';
-                          if (rawDesc.trim().startsWith('{') && rawDesc.includes('"notes"')) {
+                          let explicitLink = '';
+                          let explicitLinkTitle = '';
+                          let explicitFile = '';
+                          let explicitFileName = '';
+
+                          if (rawDesc.trim().startsWith('{') && rawDesc.endsWith('}')) {
                             try {
-                              const parsed = JSON.parse(rawDesc);
-                              rawDesc = parsed.notes || parsed.description || rawDesc;
+                              const parsed = JSON.parse(rawDesc.trim());
+                              rawDesc = parsed.notes || parsed.description || '';
+                              explicitLink = parsed.linkUrl || '';
+                              explicitLinkTitle = parsed.linkTitle || '';
+                              explicitFile = parsed.fileUrl || '';
+                              explicitFileName = parsed.fileName || '';
                             } catch {
-                              // fallback to raw text
+                              // fallback
                             }
                           }
                           const allUrls = extractAllLinks(rawDesc);
+                          if (explicitLink && !allUrls.includes(explicitLink)) {
+                            allUrls.unshift(explicitLink);
+                          }
                           const cleanDesc = allUrls.length > 0 ? cleanTextWithoutLink(rawDesc) : rawDesc;
 
                           return (
@@ -1106,16 +1119,28 @@ export function ActionItemMatrixView({
                                   <RenderTextWithLinks text={cleanDesc} />
                                 </p>
                               ) : null}
-                              {allUrls.length > 0 ? (
+                              {(allUrls.length > 0 || explicitFile) ? (
                                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                                   {allUrls.map((url, idx) => (
                                     <GoogleDriveLinkCard
                                       key={url + idx}
                                       url={url}
-                                      label={allUrls.length > 1 ? `Output / Bukti ${idx + 1}` : 'Output / Bukti Hasil'}
+                                      label={url === explicitLink && explicitLinkTitle ? explicitLinkTitle : (allUrls.length > 1 ? `Output / Bukti ${idx + 1}` : 'Output / Bukti Hasil')}
                                       variant="badge"
                                     />
                                   ))}
+                                  {explicitFile && (
+                                    <a
+                                      href={explicitFile}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors shadow-2xs"
+                                      title={explicitFileName}
+                                    >
+                                      <Download className="w-3 h-3 text-[#1E6B7B]" />
+                                      <span className="truncate max-w-[130px]">{explicitFileName || 'Berkas Output'}</span>
+                                    </a>
+                                  )}
                                 </div>
                               ) : null}
                             </div>

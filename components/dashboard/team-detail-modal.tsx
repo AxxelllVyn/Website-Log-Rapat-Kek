@@ -20,7 +20,10 @@ import {
   Search,
   Filter,
   RotateCcw,
+  Link2,
+  Download,
 } from 'lucide-react';
+import { parsePicDeliverableDescription } from '@/lib/pic-deliverables';
 import { TeamWorkloadMetric } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { MeetingProgressBadge } from '@/components/meeting/meeting-status-badge';
@@ -558,48 +561,6 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
           </div>
         </div>
 
-        {/* Executive KPI Bar (Jumlah Kegiatan & Status Pemantauan: Selesai, Dalam Proses, Belum Dimulai) */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 p-4 bg-slate-50/80 border-b border-slate-200 text-center">
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Kegiatan</p>
-            <p className="text-[20px] font-extrabold text-[#215865] mt-0.5">{kpiMeetingCount}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              {dateFilter === 'ALL' ? 'Agenda resmi tim' : 'Kegiatan periode ini'}
-            </p>
-          </div>
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/90 shadow-2xs">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pekerjaan</p>
-            <p className="text-[20px] font-extrabold text-slate-800 mt-0.5">{kpiTotalJobs}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              {dateFilter === 'ALL' ? 'Tindak lanjut aktif' : 'Tenggat periode ini'}
-            </p>
-          </div>
-          <div className="bg-white p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/40 shadow-2xs">
-            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center justify-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Selesai
-            </p>
-            <p className="text-[20px] font-extrabold text-emerald-800 mt-0.5">{kpiCompletedJobs}</p>
-            <p className="text-[10px] text-emerald-700 font-semibold mt-0.5">Selesai tuntas</p>
-          </div>
-          <div className="bg-white p-2.5 rounded-xl border border-amber-300 bg-amber-50/40 shadow-2xs">
-            <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center justify-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Dalam Proses
-            </p>
-            <p className="text-[20px] font-extrabold text-amber-800 mt-0.5">{kpiInProgressJobs}</p>
-            <p className="text-[10px] text-amber-700 font-semibold mt-0.5">Sedang berjalan</p>
-          </div>
-          <div className="bg-white p-2.5 rounded-xl border border-sky-300 bg-sky-50/40 shadow-2xs col-span-2 sm:col-span-1">
-            <p className="text-[11px] font-bold text-sky-800 uppercase tracking-wider flex items-center justify-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-              Belum Dimulai
-            </p>
-            <p className="text-[20px] font-extrabold text-sky-800 mt-0.5">{kpiPendingJobs}</p>
-            <p className="text-[10px] text-sky-700 font-semibold mt-0.5">Persiapan awal</p>
-          </div>
-        </div>
-
         {/* Tab Navigation & Search */}
         <div className="px-5 pt-3 pb-2.5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
@@ -778,6 +739,71 @@ export function TeamDetailModal({ isOpen, onClose, team }: TeamDetailModalProps)
                               </span>
                             )}
                           </div>
+
+                          {/* Output / Tautan Luaran PIC yang Langsung Bisa Diklik Pimpinan */}
+                          {(() => {
+                            const parsed = parsePicDeliverableDescription(job.description);
+                            const effectiveLinkUrl = job.linkUrl || parsed.linkUrl;
+                            const effectiveFileUrl = job.fileUrl || parsed.fileUrl;
+                            const effectiveLinkTitle = job.linkTitle || parsed.linkTitle || (effectiveLinkUrl ? 'Buka Tautan Luaran / Output' : '');
+                            const effectiveFileName = job.fileName || parsed.fileName || (effectiveFileUrl ? 'Berkas Output PIC' : '');
+                            const effectiveNotes = job.notes || parsed.notes;
+
+                            return (
+                              <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1.5">
+                                {(effectiveLinkUrl || effectiveFileUrl) ? (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {effectiveLinkUrl && (
+                                      <a
+                                        href={effectiveLinkUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11.5px] font-bold shadow-2xs transition-all group/outlink cursor-pointer hover:border-emerald-400"
+                                        title={`Buka tautan luaran PIC: ${effectiveLinkUrl}`}
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5 text-emerald-600 group-hover/outlink:scale-110 transition-transform shrink-0" />
+                                        <span className="truncate max-w-[220px] sm:max-w-[320px]">
+                                          {effectiveLinkTitle}
+                                        </span>
+                                        <span className="text-[9.5px] font-mono px-1 py-0.2 rounded bg-emerald-200/70 text-emerald-900 shrink-0 font-bold">
+                                          Buka Link ↗
+                                        </span>
+                                      </a>
+                                    )}
+
+                                    {effectiveFileUrl && (
+                                      <a
+                                        href={effectiveFileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-[11.5px] font-bold shadow-2xs transition-all group/filelink cursor-pointer"
+                                        title={`Unduh berkas fisik: ${effectiveFileName}`}
+                                      >
+                                        <Download className="w-3.5 h-3.5 text-[#1E6B7B] group-hover/filelink:translate-y-0.5 transition-transform shrink-0" />
+                                        <span className="truncate max-w-[180px] sm:max-w-[240px]">
+                                          {effectiveFileName}
+                                        </span>
+                                      </a>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 italic">
+                                    <Link2 className="w-3 h-3 text-slate-300 shrink-0" />
+                                    <span>Belum ada tautan online dilampirkan PIC</span>
+                                  </div>
+                                )}
+
+                                {effectiveNotes && (
+                                  <p className="text-[11.5px] text-slate-600 bg-slate-50/90 px-2.5 py-1.5 rounded-lg border border-slate-200/70 line-clamp-2 leading-relaxed">
+                                    <span className="font-bold text-slate-700">Catatan PIC: </span>
+                                    {effectiveNotes}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Status Lifecycle Indicator & Link Detail Kegiatan */}

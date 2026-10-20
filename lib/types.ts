@@ -408,6 +408,12 @@ export interface TeamWorkloadMetric {
   actionItems?: Array<{
     id: string;
     title: string;
+    description?: string | null;
+    linkUrl?: string | null;
+    linkTitle?: string | null;
+    fileUrl?: string | null;
+    fileName?: string | null;
+    notes?: string | null;
     status: string;
     dueDate?: string | null;
     priority?: string | null;

@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { Biro, Meeting, BiroCode, MeetingStatus, BureauWorkload, DashboardMetric, MonthlyActivity, TeamWorkloadMetric, TeamWithMembers, TeamMember } from './types';
+import { parsePicDeliverableDescription } from './pic-deliverables';
 
 /**
  * Service to fetch official data directly from Neon PostgreSQL database.
@@ -800,6 +801,7 @@ export async function getDashboardStats() {
             select: {
               id: true,
               title: true,
+              description: true,
               status: true,
               dueDate: true,
               priority: true,
@@ -863,18 +865,27 @@ export async function getDashboardStats() {
           completionRate,
           memberCount: teamMembers.length,
           members: teamMembers,
-          actionItems: t.actionItems.map((a) => ({
-            id: a.id,
-            title: a.title,
-            status: a.status,
-            dueDate: a.dueDate ? a.dueDate.toISOString().slice(0, 10) : null,
-            priority: a.priority,
-            picName: a.picUser?.name || null,
-            progress: a.status === 'COMPLETED' ? 100 : a.status === 'IN_PROGRESS' ? 50 : 0,
-            meetingId: a.meetingId || a.meeting?.id || null,
-            meetingNumber: a.meeting?.meetingNumber || null,
-            meetingTitle: a.meeting?.title || null,
-          })),
+          actionItems: t.actionItems.map((a) => {
+            const parsed = parsePicDeliverableDescription(a.description);
+            return {
+              id: a.id,
+              title: a.title,
+              description: a.description,
+              linkUrl: parsed.linkUrl || null,
+              linkTitle: parsed.linkTitle || null,
+              fileUrl: parsed.fileUrl || null,
+              fileName: parsed.fileName || null,
+              notes: parsed.notes || null,
+              status: a.status,
+              dueDate: a.dueDate ? a.dueDate.toISOString().slice(0, 10) : null,
+              priority: a.priority,
+              picName: a.picUser?.name || null,
+              progress: a.status === 'COMPLETED' ? 100 : a.status === 'IN_PROGRESS' ? 50 : 0,
+              meetingId: a.meetingId || a.meeting?.id || null,
+              meetingNumber: a.meeting?.meetingNumber || null,
+              meetingTitle: a.meeting?.title || null,
+            };
+          }),
           meetings: t.primaryMeetings.map((m) => ({
             id: m.id,
             meetingNumber: m.meetingNumber,

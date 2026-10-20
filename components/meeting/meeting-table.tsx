@@ -1001,7 +1001,7 @@ export function MeetingTable({
                               {meeting.title}
                             </Link>
 
-                            {/* Kategori, Jenis, & Rencana Aksi */}
+                            {/* Kategori & Jenis Kegiatan (Bersih, Lega & Nyaman di Mata) */}
                             {(() => {
                               const catInfo = getMeetingCategoryInfo(meeting.documentCategory, meeting.documentSubCategory);
                               const isPostponed = meeting.documentCategory === 'SURAT_DITUNDA' || meeting.documentCategory === 'TUNDA_RAPAT';
@@ -1014,16 +1014,6 @@ export function MeetingTable({
                                   {meeting.meetingKind && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                       {meeting.meetingKind}
-                                    </span>
-                                  )}
-                                  {meeting.actionPlan && (
-                                    <span className={cn(
-                                      "inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold border",
-                                      meeting.actionPlan.toLowerCase().includes('non')
-                                        ? "bg-purple-50 text-purple-700 border-purple-200"
-                                        : "bg-teal-50 text-teal-800 border-teal-200"
-                                    )}>
-                                      Rencana Aksi: {meeting.actionPlan}
                                     </span>
                                   )}
                                   {isPostponed && meeting.postponeReason && (
@@ -1039,41 +1029,6 @@ export function MeetingTable({
                                 </div>
                               );
                             })()}
-
-                            {/* Link Hasil & Tautan Pendukung (Google Drive, Nd Konsum, Rilis Berita) */}
-                            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                              {meeting.driveLink && (
-                                <a
-                                  href={meeting.driveLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors shadow-2xs"
-                                  title="Buka Dokumen/Folder Hasil di Google Drive"
-                                >
-                                  <ExternalLink className="w-3 h-3 text-blue-600" />
-                                  <span>Google Drive</span>
-                                </a>
-                              )}
-                              {meeting.releaseUrl && (
-                                <a
-                                  href={meeting.releaseUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
-                                  title={meeting.releaseTitle || "Buka Tautan Rilis Berita"}
-                                >
-                                  <ExternalLink className="w-3 h-3 text-emerald-600" />
-                                  <span>Rilis Berita</span>
-                                </a>
-                              )}
-                              {meeting.ndConsumptionNumber && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-medium bg-amber-50 text-amber-800 border border-amber-200" title={`Status Nd Konsum: ${meeting.ndConsumptionStatus || 'Diproses'}`}>
-                                  <span>Nd Konsum: <strong>{meeting.ndConsumptionNumber}</strong></span>
-                                </span>
-                              )}
-                            </div>
 
                             <div className="flex items-center gap-2 flex-wrap text-slate-500">
                               <div className="flex items-center gap-1 text-[12px]">
