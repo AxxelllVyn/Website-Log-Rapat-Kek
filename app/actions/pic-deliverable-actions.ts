@@ -232,28 +232,81 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
     // Sync to Meeting record if requested or if it's a press release / drive link
     if (syncToMeeting && linkUrl) {
       const isDrive = linkUrl.includes('drive.google.com');
-      const updatePayload: any = {};
 
-      if (isDrive) {
-        updatePayload.driveLink = linkUrl;
-      } else {
-        updatePayload.releaseUrl = linkUrl;
-        updatePayload.releaseTitle = linkTitle || existing.title || 'Rilis Berita';
+      // 1. Store as a MeetingAttachment so it appears in the meeting's documents
+      try {
+        const existingAttachment = await prisma.meetingAttachment.findFirst({
+          where: {
+            meetingId: effectiveMeetingId,
+            fileUrl: linkUrl,
+          },
+        });
+
+        if (!existingAttachment) {
+          await prisma.meetingAttachment.create({
+            data: {
+              meetingId: effectiveMeetingId,
+              fileName: linkTitle || (isDrive ? 'Google Drive Luaran PIC' : (existing.title || 'Tautan Luaran PIC')),
+              fileUrl: linkUrl,
+              fileType: 'link',
+              uploadedBy: currentUser.name || 'PIC',
+              category: isDrive ? 'DRIVE' : 'MATERIAL',
+            },
+          });
+        }
+      } catch (attachErr) {
+        console.warn('Could not create meeting attachment for link:', attachErr);
       }
 
-      if (notes) {
-        updatePayload.notes = notes;
+      // 2. Also attach physical file if uploaded
+      if (uploadedFileUrl) {
+        try {
+          const existingFileAttachment = await prisma.meetingAttachment.findFirst({
+            where: {
+              meetingId: effectiveMeetingId,
+              fileUrl: uploadedFileUrl,
+            },
+          });
+          if (!existingFileAttachment) {
+            await prisma.meetingAttachment.create({
+              data: {
+                meetingId: effectiveMeetingId,
+                fileName: uploadedFileName || 'Berkas Luaran PIC',
+                fileUrl: uploadedFileUrl,
+                fileSize: uploadedFileSize || null,
+                fileType: uploadedFileType || null,
+                uploadedBy: currentUser.name || 'PIC',
+                category: 'MATERIAL',
+              },
+            });
+          }
+        } catch (fileAttachErr) {
+          console.warn('Could not create meeting attachment for file:', fileAttachErr);
+        }
       }
 
-      // If deliverable is completed and meeting was Belum Dimulai, mark meeting On Progres
-      if (existing.meeting.progressStatus === 'Belum Dimulai') {
-        updatePayload.progressStatus = 'Dalam Proses';
-      }
+      // 3. Update only valid columns on model Meeting (materialDocUrl, progressStatus)
+      try {
+        const meetingUpdatePayload: Record<string, any> = {};
 
-      await prisma.meeting.update({
-        where: { id: effectiveMeetingId },
-        data: updatePayload,
-      });
+        if (!existing.meeting.materialDocUrl) {
+          meetingUpdatePayload.materialDocUrl = linkUrl;
+          meetingUpdatePayload.materialDocName = linkTitle || (isDrive ? 'Google Drive Luaran PIC' : (existing.title || 'Tautan Luaran PIC'));
+        }
+
+        if (existing.meeting.progressStatus === 'Belum Dimulai' || existing.meeting.progressStatus === 'Start') {
+          meetingUpdatePayload.progressStatus = 'Dalam Proses';
+        }
+
+        if (Object.keys(meetingUpdatePayload).length > 0) {
+          await prisma.meeting.update({
+            where: { id: effectiveMeetingId },
+            data: meetingUpdatePayload,
+          });
+        }
+      } catch (meetErr) {
+        console.warn('Could not update meeting progress/material status:', meetErr);
+      }
     }
 
     // Create notification for pimpinan / creator
