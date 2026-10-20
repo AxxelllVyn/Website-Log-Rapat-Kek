@@ -12,7 +12,6 @@ import {
   Building2,
   FileText,
   PlusCircle,
-  BarChart3,
   CalendarDays,
   Settings,
   X,
@@ -147,17 +146,6 @@ export function CommandPalette({ isOpen, onClose, onCreateMeeting }: CommandPale
         action: () => {
           onClose();
           router.push('/tindak-lanjut');
-        },
-      },
-      {
-        id: 'act-reports',
-        title: 'Laporan & Statistik Eksekutif',
-        subtitle: 'Statistik produktivitas dan kepatuhan tindak lanjut',
-        category: 'action',
-        icon: <BarChart3 className="w-4 h-4 text-[#0284C7]" />,
-        action: () => {
-          onClose();
-          router.push('/laporan');
         },
       },
       {
