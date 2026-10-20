@@ -149,11 +149,11 @@ const DETAIL_BELUM_DIMULAI: ProgressStatusDetail = {
   tagline: 'Kegiatan baru diagendakan & persiapan risalah',
   description: 'Kegiatan telah dijadwalkan dan dokumen/agenda sedang dalam persiapan awal.',
   colorClass: {
-    bg: 'bg-sky-50',
-    border: 'border-sky-300',
-    text: 'text-sky-800',
-    dot: 'bg-sky-500',
-    badgeStyle: 'bg-sky-50 border-sky-300 text-sky-800 ring-1 ring-sky-400/20',
+    bg: 'bg-slate-50',
+    border: 'border-slate-300',
+    text: 'text-slate-700',
+    dot: 'bg-slate-400',
+    badgeStyle: 'bg-slate-50 border-slate-300 text-slate-700 ring-1 ring-slate-400/20',
   },
 };
 
@@ -166,11 +166,11 @@ const DETAIL_DALAM_PROSES: ProgressStatusDetail = {
   tagline: 'Kegiatan berlangsung & notula dalam telaah',
   description: 'Kegiatan sedang dilaksanakan atau draf notula sedang ditelaah & dibahas lintas tim.',
   colorClass: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-300',
-    text: 'text-amber-800',
-    dot: 'bg-amber-500',
-    badgeStyle: 'bg-amber-50 border-amber-300 text-amber-800 ring-1 ring-amber-400/20',
+    bg: 'bg-blue-50',
+    border: 'border-blue-300',
+    text: 'text-blue-800',
+    dot: 'bg-blue-600',
+    badgeStyle: 'bg-blue-50 border-blue-300 text-blue-800 ring-1 ring-blue-400/20',
   },
 };
 
@@ -186,7 +186,7 @@ const DETAIL_SELESAI: ProgressStatusDetail = {
     bg: 'bg-emerald-50',
     border: 'border-emerald-300',
     text: 'text-emerald-800',
-    dot: 'bg-emerald-500',
+    dot: 'bg-emerald-600',
     badgeStyle: 'bg-emerald-50 border-emerald-300 text-emerald-800 ring-1 ring-emerald-400/20',
   },
 };

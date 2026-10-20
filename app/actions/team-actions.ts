@@ -233,6 +233,78 @@ export async function toggleTeamStatusAction(teamId: string, isActive: boolean) 
 }
 
 /**
+ * Super Admin or Admin deletes a team permanently
+ */
+export async function deleteTeamAction(teamId: string) {
+  try {
+    await requireRole(['SUPER_ADMIN', 'ADMIN']);
+
+    if (!teamId) {
+      return { success: false, error: 'ID tim wajib disertakan.' };
+    }
+
+    const existing = await prisma.biroTeam.findUnique({
+      where: { id: teamId },
+      include: {
+        _count: {
+          select: {
+            primaryMeetings: true,
+            actionItems: true,
+            userTeams: true,
+            users: true,
+          },
+        },
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: 'Tim kerja tidak ditemukan.' };
+    }
+
+    // Safely unbind relationships before deletion to prevent orphan/broken data
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink meetings referencing this team
+      await tx.meeting.updateMany({
+        where: { primaryTeamId: teamId },
+        data: { primaryTeamId: null },
+      });
+
+      // 2. Unlink action items assigned to this team
+      await tx.actionItem.updateMany({
+        where: { picTeamId: teamId },
+        data: { picTeamId: null },
+      });
+
+      // 3. Unlink users whose primary team is this team
+      await tx.user.updateMany({
+        where: { teamId: teamId },
+        data: { teamId: null },
+      });
+
+      // 4. Remove all user-team memberships for this team
+      await tx.userTeam.deleteMany({
+        where: { teamId },
+      });
+
+      // 5. Delete the team itself
+      await tx.biroTeam.delete({
+        where: { id: teamId },
+      });
+    });
+
+    safeRevalidate(['/pengguna', '/buat-rapat', '/semua-rapat', '/pengaturan', '/']);
+
+    return {
+      success: true,
+      message: `Tim kerja "${existing.name}" (${existing.code}) berhasil dihapus secara permanen.`,
+    };
+  } catch (err: any) {
+    console.error('Error in deleteTeamAction:', err);
+    return { success: false, error: err?.message || 'Gagal menghapus tim kerja' };
+  }
+}
+
+/**
  * Super Admin or Admin assigns staff to multiple teams
  */
 export async function assignUserTeamsAction(input: { userId: string; teamIds: string[] }) {

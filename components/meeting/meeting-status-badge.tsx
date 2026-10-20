@@ -7,7 +7,7 @@ import {
   normalizeProgressStatus,
   mapStatusToProgress,
 } from '@/lib/meeting-status';
-import { FileEdit, Clock3, CheckCircle2, Award, Sparkles, PlayCircle, Hourglass, CheckCircle } from 'lucide-react';
+import { FileEdit, Clock3, CheckCircle2, Award, PlayCircle, Hourglass, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MeetingStatusBadgeProps {
@@ -94,16 +94,6 @@ export function MeetingStatusBadge({
           </span>
         )}
       </div>
-
-      {isNew && (
-        <span
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF0DC] border border-[#FEDEBE] text-[#C2410C] font-extrabold text-[10px] uppercase shadow-2xs"
-          title="Kegiatan baru ditambahkan"
-        >
-          <Sparkles className="w-2.5 h-2.5 text-[#F99D1C]" />
-          <span>Baru</span>
-        </span>
-      )}
     </div>
   );
 }
@@ -178,16 +168,6 @@ export function MeetingProgressBadge({
           </span>
         )}
       </span>
-
-      {isNew && (
-        <span
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF0DC] border border-[#FEDEBE] text-[#C2410C] font-extrabold text-[10px] uppercase shadow-2xs"
-          title="Kegiatan baru ditambahkan"
-        >
-          <Sparkles className="w-2.5 h-2.5 text-[#F99D1C]" />
-          <span>Baru</span>
-        </span>
-      )}
     </div>
   );
 }

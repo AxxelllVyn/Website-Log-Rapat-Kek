@@ -23,12 +23,14 @@ import {
   Mail,
   ExternalLink,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import { toast, confirmModal } from '@/components/providers/toast-provider';
 import {
   createTeamAction,
   updateTeamAction,
   toggleTeamStatusAction,
+  deleteTeamAction,
 } from '@/app/actions/team-actions';
 import { cn } from '@/lib/utils';
 
@@ -80,8 +82,9 @@ export function TeamManagementPanel({
   const [formDesc, setFormDesc] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUserRole === 'SUPER_ADMIN';
+  const isSuperAdmin = currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'ADMIN';
 
   // Filtered teams
   const filteredTeams = teams.filter((t) => {
@@ -222,6 +225,37 @@ export function TeamManagementPanel({
       toast.error(err?.message || 'Terjadi kesalahan sistem.');
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const handleDeleteTeam = async (team: TeamData) => {
+    const ok = await confirmModal({
+      title: `Hapus Tim Kerja "${team.name}"?`,
+      message: `Apakah Anda yakin ingin menghapus tim "${team.name}" (${team.code}) secara permanen? Seluruh penugasan personil ke tim ini akan dilepaskan secara aman. Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Ya, Hapus Tim',
+      cancelText: 'Batal',
+      variant: 'danger',
+    });
+
+    if (!ok) return;
+
+    setDeletingId(team.id);
+    try {
+      const res = await deleteTeamAction(team.id);
+      if (res.success) {
+        toast.success(res.message || `Tim "${team.name}" berhasil dihapus.`);
+        setTeams((prev) => prev.filter((t) => t.id !== team.id));
+        if (editingTeam?.id === team.id) {
+          handleCloseModal();
+        }
+        router.refresh();
+      } else {
+        toast.error(res.error || 'Gagal menghapus tim kerja.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan sistem saat menghapus tim.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -555,7 +589,7 @@ export function TeamManagementPanel({
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(team)}
-                        className="p-1.5 rounded-lg text-slate-600 hover:text-[#1E6B7B] hover:bg-slate-100 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-[#1E6B7B] hover:bg-slate-100 transition-colors cursor-pointer"
                         title="Edit nama atau rincian tim"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -568,7 +602,7 @@ export function TeamManagementPanel({
                         className={cn(
                           'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1',
                           team.isActive
-                            ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                            ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
                             : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
                         )}
                         title={team.isActive ? 'Nonaktifkan tim ini' : 'Aktifkan kembali tim ini'}
@@ -585,6 +619,20 @@ export function TeamManagementPanel({
                             <RotateCcw className="w-3 h-3" />
                             <span>Aktifkan</span>
                           </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={deletingId === team.id}
+                        onClick={() => handleDeleteTeam(team)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50 cursor-pointer"
+                        title={`Hapus tim ${team.name} secara permanen`}
+                      >
+                        {deletingId === team.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
                         )}
                       </button>
                     </div>
@@ -680,29 +728,47 @@ export function TeamManagementPanel({
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E6B7B] hover:bg-[#164E59] text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-60"
-                >
-                  {isSubmitting ? (
-                    <>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5">
+                {editingTeam ? (
+                  <button
+                    type="button"
+                    disabled={isSubmitting || deletingId === editingTeam.id}
+                    onClick={() => handleDeleteTeam(editingTeam)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer border border-rose-200"
+                  >
+                    {deletingId === editingTeam.id ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <span>{editingTeam ? 'Simpan Perubahan' : 'Tambahkan Tim Baru'}</span>
-                  )}
-                </button>
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>Hapus Tim</span>
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E6B7B] hover:bg-[#164E59] text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <span>{editingTeam ? 'Simpan Perubahan' : 'Tambahkan Tim Baru'}</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

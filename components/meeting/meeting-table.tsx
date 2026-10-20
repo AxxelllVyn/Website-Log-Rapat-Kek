@@ -26,7 +26,6 @@ import {
 import { Meeting, BiroCode, MeetingStatus, getMeetingCategoryInfo } from '@/lib/types';
 import { MOCK_MEETINGS } from '@/lib/mock-data';
 import { MeetingStatusBadge, MeetingProgressBadge } from './meeting-status-badge';
-import { ActionItemProgress } from '../action-items/action-item-progress';
 import { AgendaSeriesModal } from './agenda-series-modal';
 import { useSession } from 'next-auth/react';
 import { deleteMeetingAction, updateMeetingStatusAction, approveMeetingAction } from '@/app/actions/meeting-actions';
@@ -875,10 +874,9 @@ export function MeetingTable({
           <thead className="bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
             <tr>
               <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Nomor &amp; Tanggal</th>
-              <th className="py-3 px-3 sm:px-3.5">Nama Kegiatan &amp; Hasil</th>
+              <th className="py-3 px-3 sm:px-3.5">Nama Kegiatan</th>
               <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Tim Pelaksana</th>
               <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap" title="Status Pemantauan Pekerjaan: Belum Dimulai -> Dalam Proses -> Selesai">Status Pekerjaan</th>
-              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Catatan &amp; Output</th>
               <th className="py-3 px-3 sm:px-3.5 text-right sticky right-0 bg-[#F8FAFC] z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50 whitespace-nowrap">Aksi</th>
             </tr>
           </thead>
@@ -901,10 +899,6 @@ export function MeetingTable({
                   <td className="py-3.5 px-3 sm:px-3.5">
                     <div className="h-5 bg-slate-100 rounded-full w-20"></div>
                   </td>
-                  <td className="py-3.5 px-3 sm:px-3.5">
-                    <div className="h-3 bg-slate-100 rounded w-28 mb-1.5"></div>
-                    <div className="h-2 bg-slate-100 rounded-full w-32"></div>
-                  </td>
                   <td className="py-3.5 px-3 sm:px-3.5 text-right sticky right-0 bg-white z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50">
                     <div className="h-7 bg-slate-100 rounded-lg w-24 ml-auto"></div>
                   </td>
@@ -913,7 +907,7 @@ export function MeetingTable({
             ) : filteredMeetings.length === 0 ? (
               // Empty State
               <tr>
-                <td colSpan={6} className="py-12 px-4 text-center">
+                <td colSpan={5} className="py-12 px-4 text-center">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
                     <div className="w-12 h-12 rounded-full bg-[#F0F9FA] border border-[#BCE3EB] flex items-center justify-center text-[#31889C]">
                       <SearchX className="w-6 h-6" />
@@ -987,8 +981,8 @@ export function MeetingTable({
                       })()}
                     </td>
 
-                    {/* Nama Kegiatan & Hasil */}
-                    <td className="py-3 px-3 sm:px-3.5 align-top max-w-[240px] md:max-w-[300px] lg:max-w-[360px] xl:max-w-md">
+                    {/* Nama Kegiatan */}
+                    <td className="py-3 px-3 sm:px-3.5 align-top max-w-[320px] md:max-w-[420px] lg:max-w-[540px]">
                       {(() => {
                         const seriesInfo = meetingSeriesMap.get(meeting.id);
                         return (
@@ -1081,27 +1075,9 @@ export function MeetingTable({
                       <MeetingProgressBadge
                         progressStatus={meeting.progressStatus}
                         status={meeting.status}
-                        isNew={meeting.isNew}
                       />
                     </td>
 
-                    {/* Catatan & Output */}
-                    <td className="py-3 px-3 sm:px-3.5 align-top">
-                      <div className="flex flex-col gap-1.5 min-w-[140px] max-w-[220px]">
-                        {meeting.notes ? (
-                          <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11.5px] text-slate-700 line-clamp-3" title={meeting.notes}>
-                            <span className="font-bold text-[10px] text-slate-500 uppercase block mb-0.5">Catatan Hasil:</span>
-                            {meeting.notes}
-                          </div>
-                        ) : null}
-                        {meeting.actionItems && meeting.actionItems.total > 0 ? (
-                          <ActionItemProgress data={meeting.actionItems} />
-                        ) : null}
-                        {!meeting.notes && (!meeting.actionItems || meeting.actionItems.total === 0) ? (
-                          <span className="text-slate-400 italic text-[11px]">- Belum ada catatan -</span>
-                        ) : null}
-                      </div>
-                    </td>
 
                     {/* Aksi */}
                     <td className="py-3 px-3 sm:px-3.5 align-top text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-[#F0F9FA] z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/40 transition-colors">
