@@ -43,9 +43,9 @@ const FULL_MONTH_NAMES: Record<string, string> = {
 const METRIC_LINKS: Record<string, { href: string; actionLabel: string }> = {
   'total-rapat': { href: '/semua-rapat', actionLabel: 'Lihat Semua' },
   'rapat-bulan-ini': { href: '/semua-rapat', actionLabel: 'Buka Jadwal' },
-  'tindak-lanjut-aktif': { href: '/tindak-lanjut?status=IN_PROGRESS', actionLabel: 'Pantau Progres' },
-  'perlu-atensi': { href: '/tindak-lanjut?status=OVERDUE', actionLabel: 'Atasi Masalah' },
-  'tindak-lanjut-selesai': { href: '/tindak-lanjut?status=COMPLETED', actionLabel: 'Cek Arsip' },
+  'tindak-lanjut-aktif': { href: '/semua-rapat?status=Dalam+Proses', actionLabel: 'Pantau Progres' },
+  'perlu-atensi': { href: '/semua-rapat?status=Dalam+Proses', actionLabel: 'Atasi Masalah' },
+  'tindak-lanjut-selesai': { href: '/semua-rapat?status=Selesai', actionLabel: 'Cek Arsip' },
 };
 
 export function StatsOverview({

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Meeting } from '@/lib/types';
 import { FolderOpen, ChevronRight, RotateCcw } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
+import { cn } from '@/lib/utils';
 
 export interface CategoryWorkloadItem {
   key: string;
@@ -23,6 +24,7 @@ interface BureauDistributionProps {
   onTeamClick?: (team: any) => void;
   workload?: any[];
   teamWorkload?: any[];
+  className?: string;
 }
 
 const CATEGORY_DEFINITIONS: Array<{
@@ -73,6 +75,7 @@ export function BureauDistribution({
   meetings,
   onCategoryClick,
   onBiroClick,
+  className,
 }: BureauDistributionProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [fallbackStats, setFallbackStats] = useState<Record<string, number>>({});
@@ -175,7 +178,7 @@ export function BureauDistribution({
   };
 
   return (
-    <div className="lg:col-span-3 rounded-2xl bg-white p-6 shadow-xs border border-slate-200 flex flex-col justify-between transition-all duration-300 hover:shadow-md">
+    <div className={cn("rounded-2xl bg-white p-6 shadow-xs border border-slate-200 flex flex-col justify-between transition-all duration-300 hover:shadow-md", className || "lg:col-span-5")}>
       <div>
         {/* Card Header with Replay Action */}
         <div className="flex items-start justify-between">

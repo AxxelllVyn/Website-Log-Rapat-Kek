@@ -4,7 +4,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { WelcomeBanner } from '@/components/dashboard/welcome-banner';
 import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { ActivityTrendChart } from '@/components/dashboard/activity-trend-chart';
-import { FollowUpStatusChart } from '@/components/dashboard/follow-up-status-chart';
 import { BureauDistribution } from '@/components/dashboard/bureau-distribution';
 import { TeamWorkloadGrid } from '@/components/dashboard/team-workload-grid';
 import { TeamDetailModal } from '@/components/dashboard/team-detail-modal';
@@ -497,11 +496,6 @@ function computeDonutMetrics(
             setSelectedYear(newYear);
             setSelectedMonth(null);
           }}
-        />
-        <FollowUpStatusChart
-          followUpData={displayFollowUpMetrics}
-          totalResolutions={displayTotalResolutions}
-          onManageMatrixClick={() => router.push('/tindak-lanjut')}
         />
         <BureauDistribution
           meetings={selectedMonth ? monthMeetings : yearMeetings}

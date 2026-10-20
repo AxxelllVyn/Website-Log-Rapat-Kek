@@ -66,6 +66,7 @@ interface ActivityTrendChartProps {
   availableYears?: number[];
   onYearChange?: (year: number) => void;
   autoScrollToTop?: boolean;
+  className?: string;
 }
 
 export function ActivityTrendChart({
@@ -77,6 +78,7 @@ export function ActivityTrendChart({
   availableYears = [2026, 2027],
   onYearChange,
   autoScrollToTop = true,
+  className,
 }: ActivityTrendChartProps) {
   const chartData = data && data.length > 0 ? data : MOCK_MONTHLY_ACTIVITY;
 
@@ -146,7 +148,7 @@ export function ActivityTrendChart({
       : 'Jan - Sep';
 
   return (
-    <div className="lg:col-span-5 rounded-2xl bg-white p-6 shadow-sm border border-slate-200 flex flex-col justify-between transition-all">
+    <div className={cn("rounded-2xl bg-white p-6 shadow-sm border border-slate-200 flex flex-col justify-between transition-all", className || "lg:col-span-7")}>
       <div>
         {/* Header with Title, Year Selector & Interactive Replay Pill */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">

@@ -23,7 +23,6 @@ import { BiroCode, Meeting, DashboardMetric, FollowUpStatusMetric, MonthlyActivi
 import { BIRO_LIST } from '@/lib/mock-data';
 import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { ActivityTrendChart } from '@/components/dashboard/activity-trend-chart';
-import { FollowUpStatusChart } from '@/components/dashboard/follow-up-status-chart';
 import { BureauDistribution } from '@/components/dashboard/bureau-distribution';
 import { MeetingTable } from '@/components/meeting/meeting-table';
 
@@ -560,13 +559,6 @@ export function BiroDashboardClient({
             setSelectedMonth(null);
           }}
         />
-
-        <FollowUpStatusChart
-          followUpData={followUpData}
-          totalResolutions={actionItems.length}
-          onManageMatrixClick={() => router.push(`/tindak-lanjut?biro=${encodeURIComponent(biro.code)}`)}
-        />
-
         <BureauDistribution
           meetings={selectedMonth ? monthMeetings : yearMeetings}
           onCategoryClick={(categoryKey) => router.push(`/semua-rapat?kategori=${categoryKey}`)}
