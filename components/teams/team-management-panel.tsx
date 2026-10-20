@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils';
 export interface TeamMember {
   id: string;
   name: string;
+  username?: string | null;
   email: string;
   role: string;
   teamRole?: string;
@@ -498,9 +499,12 @@ export function TeamManagementPanel({
                                   <p className="font-bold text-slate-800 text-[11.5px] truncate leading-tight">
                                     {member.name}
                                   </p>
-                                  <p className="text-[10px] text-slate-400 truncate">
-                                    {member.email}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 truncate">
+                                    <span>{member.email}</span>
+                                    {member.username && (
+                                      <span className="font-mono text-[#1E6B7B]">(@{member.username})</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
@@ -771,6 +775,7 @@ export function TeamManagementPanel({
                     !q ||
                     m.name.toLowerCase().includes(q) ||
                     m.email.toLowerCase().includes(q) ||
+                    (m.username && m.username.toLowerCase().includes(q)) ||
                     (m.role && m.role.toLowerCase().includes(q))
                 );
 
@@ -811,9 +816,14 @@ export function TeamManagementPanel({
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {member.email}
-                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 truncate mt-0.5">
+                          <span>{member.email}</span>
+                          {member.username && (
+                            <span className="font-mono text-[10.5px] text-[#1E6B7B] bg-[#E8F5F7] px-1.5 py-0.2 rounded border border-[#BCE3EB]">
+                              @{member.username}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 

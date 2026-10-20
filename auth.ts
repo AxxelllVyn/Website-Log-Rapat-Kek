@@ -30,9 +30,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { email: identifier, password } = parsed.data;
         const normalizedIdentifier = identifier.toLowerCase().trim();
 
-        // 1. Coba cari dengan email eksak terlebih dahulu
-        let user = await prisma.user.findUnique({
-          where: { email: normalizedIdentifier },
+        // 1. Coba cari berdasarkan username khusus ATAU email
+        let user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { username: normalizedIdentifier },
+              { email: normalizedIdentifier },
+              { email: `${normalizedIdentifier}@kek.go.id` },
+            ],
+          },
           include: {
             biro: true,
             team: true,
@@ -43,28 +49,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           },
         });
-
-        // 2. Jika tidak ditemukan dan input tidak mengandung '@', cari berdasarkan awalan username
-        if (!user && !normalizedIdentifier.includes('@')) {
-          user = await prisma.user.findFirst({
-            where: {
-              OR: [
-                { email: `${normalizedIdentifier}@kek.go.id` },
-                { email: `${normalizedIdentifier}@simrapat.local` },
-                { email: { startsWith: `${normalizedIdentifier}@` } },
-              ],
-            },
-            include: {
-              biro: true,
-              team: true,
-              userTeams: {
-                include: {
-                  team: true,
-                },
-              },
-            },
-          });
-        }
 
         // Reject if user doesn't exist, has no password, or is deactivated
         if (!user || !user.password || !user.isActive) {
@@ -110,6 +94,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
+          username: user.username,
           role: user.role,
           biroId: user.biroId,
           biroCode: user.biro.code,
@@ -128,6 +113,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.name = user.name;
+        token.email = user.email;
+        token.username = (user as any).username;
         token.role = user.role;
         token.biroId = user.biroId;
         token.biroCode = user.biroCode;
@@ -221,6 +208,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.name = (token.name as string) || session.user.name;
+        session.user.username = (token.username as string) || null;
         session.user.role = token.role as UserRole;
         session.user.biroId = token.biroId as string;
         session.user.biroCode = token.biroCode as string;

@@ -23,6 +23,7 @@ interface PengaturanClientProps {
     id: string;
     name: string;
     email: string;
+    username?: string | null;
     role: string;
     biroId: string;
     biro?: {
@@ -48,6 +49,7 @@ export function PengaturanClient({
   const { update } = useSession();
 
   const [name, setName] = useState(initialUser?.name || '');
+  const [username, setUsername] = useState(initialUser?.username || '');
   const [email, setEmail] = useState(initialUser?.email || '');
   const [biroId, setBiroId] = useState(initialUser?.biroId || availableBiros[0]?.id || '');
   const role = initialUser?.role || 'STAFF';
@@ -95,6 +97,7 @@ export function PengaturanClient({
       setIsSaving(true);
       const res = await updateCurrentUserProfileAction({
         name: name.trim(),
+        username: username.trim() || undefined,
         email: email.trim(),
         biroId,
         ...(showPasswordSection && newPassword
@@ -178,20 +181,35 @@ export function PengaturanClient({
             </div>
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                Alamat Email Dinas / Username
+                Alamat Email Dinas
               </label>
               <input
-                type="text"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@kek.go.id atau username"
+                placeholder="nama@kek.go.id"
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C]"
                 required
               />
-              <p className="text-[11px] text-slate-500 mt-1">
-                Username login: <span className="font-bold text-[#1E6B7B]">{email ? email.split('@')[0] : '-'}</span>
-                <span className="text-slate-400 font-normal ml-1">(Bisa digunakan langsung saat login tanpa @kek.go.id)</span>
-              </p>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Email dinas resmi terdaftar
+              </span>
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Username Login</span>
+                <span className="text-[11px] font-normal text-[#1E6B7B]">Bisa dibuat / diubah sendiri</span>
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                placeholder="Contoh: rizki, maya123, staf.investasi"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C] font-mono text-[12.5px]"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Username unik buatan Anda untuk masuk ke sistem tanpa mengetik email panjang.
+              </span>
             </div>
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
@@ -207,7 +225,7 @@ export function PengaturanClient({
                 Hak akses diatur langsung oleh Super Administrator dewan
               </span>
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <label className="block font-semibold text-slate-700 mb-1">
                 Unit Kerja / Penugasan Biro
               </label>

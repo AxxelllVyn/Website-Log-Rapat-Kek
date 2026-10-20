@@ -25,6 +25,7 @@ export default async function PengaturanPage() {
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         biroId: true,
         biro: {
@@ -48,6 +49,7 @@ export default async function PengaturanPage() {
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         biroId: true,
         biro: {

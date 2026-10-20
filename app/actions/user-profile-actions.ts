@@ -8,6 +8,14 @@ import { z } from 'zod';
 
 const updateProfileSchema = z.object({
   name: z.string().trim().min(2, 'Nama lengkap minimal 2 karakter').max(150),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Username minimal 3 karakter')
+    .max(30, 'Username maksimal 30 karakter')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Username hanya boleh huruf, angka, titik, strip, dan underscore')
+    .optional()
+    .nullable(),
   email: z.string().trim().email('Format email dinas tidak valid'),
   biroId: z.string().min(1, 'Penugasan biro wajib dipilih'),
   currentPassword: z.string().optional(),
@@ -30,6 +38,7 @@ export async function getCurrentUserProfileAction() {
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         biroId: true,
         isActive: true,
@@ -75,7 +84,7 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
       return { success: false, error: errorMsg };
     }
 
-    const { name, email, biroId, currentPassword, newPassword, confirmPassword } = parsed.data;
+    const { name, username, email, biroId, currentPassword, newPassword, confirmPassword } = parsed.data;
 
     // Check existing user in DB
     const existingUser = await prisma.user.findUnique({
@@ -84,6 +93,17 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
 
     if (!existingUser) {
       return { success: false, error: 'Pengguna tidak ditemukan.' };
+    }
+
+    // Check username uniqueness if provided
+    const normalizedUsername = username ? username.trim().toLowerCase() : null;
+    if (normalizedUsername && normalizedUsername !== existingUser.username?.toLowerCase()) {
+      const usernameConflict = await prisma.user.findUnique({
+        where: { username: normalizedUsername },
+      });
+      if (usernameConflict && usernameConflict.id !== authUser.id) {
+        return { success: false, error: 'Username tersebut sudah digunakan oleh pengguna lain. Silakan pilih username yang lain.' };
+      }
     }
 
     // Check email uniqueness if email changed
@@ -136,6 +156,7 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
       where: { id: authUser.id },
       data: {
         name,
+        username: normalizedUsername,
         email: normalizedEmail,
         biroId,
         ...(updatedPasswordHash ? { password: updatedPasswordHash } : {}),
@@ -159,6 +180,7 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
+        username: updatedUser.username,
         role: updatedUser.role,
         biroId: updatedUser.biroId,
         biro: {

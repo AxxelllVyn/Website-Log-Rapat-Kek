@@ -63,6 +63,7 @@ export default async function PenggunaPage() {
           id: true,
           name: true,
           email: true,
+          username: true,
           role: true,
           biroId: true,
           teamId: true,
@@ -111,6 +112,7 @@ export default async function PenggunaPage() {
             select: {
               id: true,
               name: true,
+              username: true,
               email: true,
               role: true,
               isActive: true,
@@ -123,6 +125,7 @@ export default async function PenggunaPage() {
                 select: {
                   id: true,
                   name: true,
+                  username: true,
                   email: true,
                   role: true,
                   isActive: true,

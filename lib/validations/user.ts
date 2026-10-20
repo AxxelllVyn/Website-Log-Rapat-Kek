@@ -9,6 +9,14 @@ export const userRoleEnum = z.enum([
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(1, 'Nama lengkap wajib diisi'),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Username minimal 3 karakter')
+    .max(30, 'Username maksimal 30 karakter')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Username hanya boleh huruf, angka, titik, strip, dan underscore')
+    .optional()
+    .nullable(),
   email: z.string().trim().toLowerCase().email('Format email tidak valid'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
   role: userRoleEnum.default('STAFF'),
@@ -21,6 +29,14 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   id: z.string().min(1, 'ID pengguna wajib disertakan'),
   name: z.string().trim().min(1, 'Nama lengkap wajib diisi'),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Username minimal 3 karakter')
+    .max(30, 'Username maksimal 30 karakter')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Username hanya boleh huruf, angka, titik, strip, dan underscore')
+    .optional()
+    .nullable(),
   email: z.string().trim().toLowerCase().email('Format email tidak valid'),
   password: z
     .string()

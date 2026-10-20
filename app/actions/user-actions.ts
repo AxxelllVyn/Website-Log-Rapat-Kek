@@ -46,6 +46,7 @@ export async function getUsersAction() {
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         biroId: true,
         teamId: true,
@@ -105,7 +106,7 @@ export async function createUserAction(input: CreateUserInput) {
       return { success: false, error: `Validasi gagal: ${errorMsg}` };
     }
 
-    let { name, email, password, role, teamId, isActive } = parsed.data;
+    let { name, username, email, password, role, teamId, isActive } = parsed.data;
 
     // RBAC & Team Scoping restrictions for ADMIN
     if (!isGlobalAdmin) {
@@ -127,6 +128,22 @@ export async function createUserAction(input: CreateUserInput) {
     });
     if (existing) {
       return { success: false, error: 'Email tersebut sudah terdaftar di sistem.' };
+    }
+
+    // Resolve username
+    let finalUsername = username ? username.trim().toLowerCase() : email.split('@')[0].trim().toLowerCase();
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: finalUsername },
+    });
+    if (existingUsername) {
+      if (username) {
+        return { success: false, error: 'Username tersebut sudah terdaftar di sistem. Silakan pilih username lain.' };
+      }
+      let counter = 1;
+      while (await prisma.user.findUnique({ where: { username: `${finalUsername}${counter}` } })) {
+        counter++;
+      }
+      finalUsername = `${finalUsername}${counter}`;
     }
 
     // Resolve biroId: if ADMIN, force to currentUser.biroId
@@ -157,6 +174,7 @@ export async function createUserAction(input: CreateUserInput) {
       data: {
         id: nextUserId,
         name,
+        username: finalUsername,
         email,
         password: hashedPassword,
         role,
@@ -167,6 +185,7 @@ export async function createUserAction(input: CreateUserInput) {
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
         role: true,
         biroId: true,
@@ -195,6 +214,7 @@ export async function createUserAction(input: CreateUserInput) {
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
         role: true,
         biroId: true,
@@ -242,7 +262,7 @@ export async function updateUserAction(input: UpdateUserInput) {
       return { success: false, error: `Validasi gagal: ${errorMsg}` };
     }
 
-    let { id, name, email, password, role, teamId, isActive } = parsed.data;
+    let { id, name, username, email, password, role, teamId, isActive } = parsed.data;
 
     const existing = await prisma.user.findUnique({
       where: { id },
@@ -283,6 +303,19 @@ export async function updateUserAction(input: UpdateUserInput) {
       }
     }
 
+    // Check username uniqueness if username provided
+    if (username !== undefined) {
+      const normalizedUsername = username ? username.trim().toLowerCase() : null;
+      if (normalizedUsername && normalizedUsername !== existing.username?.toLowerCase()) {
+        const duplicateUsername = await prisma.user.findUnique({
+          where: { username: normalizedUsername },
+        });
+        if (duplicateUsername && duplicateUsername.id !== id) {
+          return { success: false, error: 'Username tersebut sudah digunakan oleh pengguna lain.' };
+        }
+      }
+    }
+
     let biroId = isGlobalAdmin
       ? (parsed.data.biroId || existing.biroId || 'BIRO-IKK')
       : currentUser.biroId;
@@ -311,6 +344,10 @@ export async function updateUserAction(input: UpdateUserInput) {
       teamId: teamId !== undefined ? teamId : existing.teamId,
       isActive,
     };
+
+    if (username !== undefined) {
+      updateData.username = username ? username.trim().toLowerCase() : null;
+    }
 
     if (password && password.length >= 6) {
       updateData.password = await bcrypt.hash(password, 10);
@@ -342,6 +379,7 @@ export async function updateUserAction(input: UpdateUserInput) {
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
         role: true,
         biroId: true,
