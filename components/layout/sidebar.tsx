@@ -376,8 +376,8 @@ export function Sidebar({
                 )}
               </Link>
 
-              {/* Manajemen Pengguna (SUPER_ADMIN ONLY) */}
-              {isSuperAdmin && (
+              {/* Manajemen Pengguna (SUPER_ADMIN & ADMIN) */}
+              {(isSuperAdmin || isAdmin) && (
                 <Link
                   href="/pengguna"
                   onClick={handleLinkClick}
@@ -387,13 +387,13 @@ export function Sidebar({
                       ? "bg-[#F0F9FA] text-[#31889C] font-bold border-l-4 border-[#31889C] shadow-xs"
                       : "text-slate-600 hover:bg-[#F0F9FA] hover:text-[#31889C]"
                   )}
-                  title="Manajemen Pengguna"
+                  title={isAdmin ? "Manajemen Anggota Tim" : "Manajemen Pengguna"}
                 >
                   <UserCog className={cn(
                     "w-5 h-5 shrink-0",
                     pathname.startsWith('/pengguna') ? "text-[#31889C]" : "text-slate-400"
                   )} />
-                  {!collapsed && <span>Pengguna</span>}
+                  {!collapsed && <span>{isAdmin ? "Anggota Tim" : "Pengguna"}</span>}
                 </Link>
               )}
 

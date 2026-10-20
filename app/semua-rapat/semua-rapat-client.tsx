@@ -103,6 +103,7 @@ export function SemuaRapatClient({
   // Filter params
   const statusParam = searchParams.get('status') as string | null;
   const kategoriParam = searchParams.get('kategori') as string | null;
+  const jenisParam = searchParams.get('jenis') as string | null;
   const rawTimParam = searchParams.get('tim') || searchParams.get('biro');
   const timParam = effectiveLockedTeamCode
     ? effectiveLockedTeamCode.toUpperCase()
@@ -181,6 +182,15 @@ export function SemuaRapatClient({
           if (cat !== 'SURAT_DITUNDA' && cat !== 'TUNDA_RAPAT') return false;
         }
       }
+      if (jenisParam && jenisParam !== 'ALL') {
+        const target = jenisParam.toLowerCase().trim();
+        const mKind = (m.meetingKind || '').toLowerCase().trim();
+        if (target === 'none' || target === 'tanpa jenis') {
+          if (mKind !== '') return false;
+        } else {
+          if (mKind !== target) return false;
+        }
+      }
       if (searchFilter.trim()) {
         const q = searchFilter.toLowerCase();
         const matches =
@@ -196,7 +206,7 @@ export function SemuaRapatClient({
       }
       return true;
     });
-  }, [teamFilteredMeetings, monthIdx, dayIdx, targetYear, targetDate, searchFilter, kategoriParam]);
+  }, [teamFilteredMeetings, monthIdx, dayIdx, targetYear, targetDate, searchFilter, kategoriParam, jenisParam]);
 
   const countAll = fullyFilteredMeetings.length;
   const countBelumDimulai = fullyFilteredMeetings.filter(
@@ -252,6 +262,71 @@ export function SemuaRapatClient({
       params.delete('kategori');
     } else {
       params.set('kategori', val);
+    }
+    router.push(params.toString() ? `/semua-rapat?${params.toString()}` : '/semua-rapat');
+  };
+
+  const STANDARD_JENIS_RAPAT = [
+    'Kunker',
+    'Rapat Kerja',
+    'Rapat/Audiensi',
+    'Seminar/Forum',
+    'Media Gathering',
+    'Penandatanganan Mou',
+    'Groundbreaking',
+    'Pelantikan',
+    'Seremoni',
+  ];
+
+  const availableJenisRapat = useMemo(() => {
+    const set = new Set<string>();
+    STANDARD_JENIS_RAPAT.forEach((j) => set.add(j));
+    meetingsList.forEach((m) => {
+      if (m.meetingKind && m.meetingKind.trim()) {
+        set.add(m.meetingKind.trim());
+      }
+    });
+    return Array.from(set);
+  }, [meetingsList]);
+
+  const countTanpaJenis = teamFilteredMeetings.filter((m) => !m.meetingKind || !m.meetingKind.trim()).length;
+
+  const jenisFilters = useMemo(() => {
+    const list = [
+      { label: 'Semua Jenis', value: 'ALL', count: teamFilteredMeetings.length, icon: '📂' },
+      ...availableJenisRapat
+        .map((jenis) => {
+          const count = teamFilteredMeetings.filter(
+            (m) => (m.meetingKind || '').toLowerCase().trim() === jenis.toLowerCase().trim()
+          ).length;
+          return {
+            label: jenis,
+            value: jenis,
+            count,
+            icon: '📌',
+          };
+        })
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+    ];
+
+    if (countTanpaJenis > 0) {
+      list.push({
+        label: 'Tanpa Jenis',
+        value: 'NONE',
+        count: countTanpaJenis,
+        icon: '⚪',
+      });
+    }
+
+    return list;
+  }, [availableJenisRapat, teamFilteredMeetings, countTanpaJenis]);
+
+  const handleSelectJenis = (val: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (val === 'ALL' || !val) {
+      params.delete('jenis');
+    } else {
+      params.set('jenis', val);
     }
     router.push(params.toString() ? `/semua-rapat?${params.toString()}` : '/semua-rapat');
   };
@@ -319,6 +394,7 @@ export function SemuaRapatClient({
     statusParam ||
     timParam ||
     (kategoriParam && kategoriParam !== 'ALL') ||
+    (jenisParam && jenisParam !== 'ALL') ||
     hasActiveTimeFilter ||
     searchFilter.trim()
   );
@@ -376,6 +452,7 @@ export function SemuaRapatClient({
     const params = new URLSearchParams(searchParams.toString());
     params.delete('status');
     params.delete('kategori');
+    params.delete('jenis');
     if (!effectiveLockedTeamCode) {
       params.delete('tim');
       params.delete('biro');
@@ -449,7 +526,7 @@ export function SemuaRapatClient({
     handleSelectTeam(val);
   };
 
-  const [openDropdown, setOpenDropdown] = useState<'TIM' | 'STATUS' | 'KATEGORI' | 'PERIODE' | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<'TIM' | 'STATUS' | 'KATEGORI' | 'JENIS' | 'PERIODE' | null>(null);
   const filterToolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -482,6 +559,14 @@ export function SemuaRapatClient({
     ? selectedCatObj.label
     : 'Semua Kategori';
   const selectedCatIcon = selectedCatObj?.icon || '🏷️';
+
+  const selectedJenisObj = jenisFilters.find(
+    (j) => j.value.toLowerCase() === (jenisParam || 'ALL').toLowerCase()
+  );
+  const selectedJenisLabel = selectedJenisObj && selectedJenisObj.value !== 'ALL'
+    ? selectedJenisObj.label
+    : 'Semua Jenis';
+  const selectedJenisIcon = selectedJenisObj?.icon || '📌';
 
   const selectedPeriodeLabel = activeTimeLabel || 'Semua Periode';
 
@@ -870,6 +955,78 @@ export function SemuaRapatClient({
               )}
             </div>
 
+            {/* Dropdown: Jenis Rapat */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'JENIS' ? null : 'JENIS')}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all cursor-pointer border select-none",
+                  jenisParam
+                    ? "bg-[#F0F9FA] border-[#31889C] text-[#164E59] shadow-2xs font-bold"
+                    : openDropdown === 'JENIS'
+                      ? "bg-slate-100 border-slate-300 text-slate-900"
+                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                )}
+                title="Filter berdasarkan Jenis Rapat"
+              >
+                <span>{selectedJenisIcon}</span>
+                <span className="truncate max-w-[130px]">{selectedJenisLabel}</span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-0.5",
+                    jenisParam ? "bg-[#31889C] text-white" : "bg-slate-100 text-slate-600"
+                  )}
+                >
+                  {selectedJenisObj?.count ?? teamFilteredMeetings.length}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-3 h-3 transition-transform text-slate-400",
+                    openDropdown === 'JENIS' && "rotate-180 text-[#31889C]"
+                  )}
+                />
+              </button>
+
+              {openDropdown === 'JENIS' && (
+                <div className="absolute right-0 sm:left-0 sm:right-auto mt-1.5 w-64 max-h-72 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase sticky top-0 bg-white border-b border-slate-100 mb-1">
+                    Jenis Rapat
+                  </div>
+                  {jenisFilters.map((jf) => {
+                    const isActive = jf.value === 'ALL'
+                      ? !jenisParam
+                      : (jenisParam || '').toLowerCase() === jf.value.toLowerCase();
+                    return (
+                      <button
+                        key={jf.value}
+                        type="button"
+                        onClick={() => {
+                          handleSelectJenis(jf.value);
+                          setOpenDropdown(null);
+                        }}
+                        className={cn(
+                          "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
+                          isActive ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                        )}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <span>{jf.icon}</span>
+                          <span className="truncate">{jf.label}</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          <span className="text-[10.5px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                            {jf.count}
+                          </span>
+                          {isActive && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Dropdown: Periode Waktu */}
             <div className="relative">
               <button
@@ -1133,6 +1290,7 @@ export function SemuaRapatClient({
         filterDayOfWeek={dayParam}
         filterDate={dateParam}
         filterCategory={kategoriParam}
+        filterJenis={jenisParam}
         searchQuery={searchFilter}
         onSearchChange={setSearchFilter}
         hideHeader={true}

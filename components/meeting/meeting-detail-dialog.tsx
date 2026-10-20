@@ -54,13 +54,14 @@ export function MeetingDetailDialog({
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
   const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN' || userRole === 'STAFF';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroCode &&
       meeting?.biroCode &&
       session.user.biroCode.toUpperCase() === meeting.biroCode.toUpperCase());
   const canChangeStatus = isPrivileged;
+  const canApprove = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
 
   const [activeTab, setActiveTab] = useState<'info' | 'participants' | 'minutes' | 'actionItems'>('info');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -228,7 +229,55 @@ export function MeetingDetailDialog({
       variant: 'primary',
     });
     if (!confirmed) return;
-    await handleStatusChange('Dalam Proses');
+
+    try {
+      setIsUpdatingStatus(true);
+      const { updateMeetingStatusAction } = await import('@/app/actions/meeting-actions');
+      const res = await updateMeetingStatusAction(meeting.id, 'Dalam Proses');
+      if (res.success) {
+        toast.success(`Rapat ${meeting.code} resmi dimulai (Status: Dalam Proses).`);
+        onClose();
+        router.push(`/semua-rapat/${meeting.id}?tab=minutes`);
+      } else {
+        toast.error(res.error || 'Gagal memulai rapat');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memulai rapat');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleApproveMeeting = async () => {
+    if (!meeting) return;
+    const confirmed = await confirmModal({
+      title: 'Setujui & Selesaikan Rapat?',
+      message: `Apakah Anda ingin menyetujui hasil risalah rapat "${meeting.title}"? Status rapat akan otomatis diubah menjadi SELESAI.`,
+      confirmText: 'Ya, Setujui & Selesaikan',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+
+    try {
+      setIsUpdatingStatus(true);
+      const { approveMeetingAction } = await import('@/app/actions/meeting-actions');
+      const res = await approveMeetingAction(meeting.id);
+      if (res.success) {
+        toast.success(`Hasil rapat ${meeting.code} resmi disetujui (Status: Selesai).`);
+        onClose();
+        if (onMeetingUpdated) {
+          onMeetingUpdated();
+        } else {
+          router.refresh();
+        }
+      } else {
+        toast.error(res.error || 'Gagal menyetujui hasil rapat');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menyetujui hasil rapat');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -291,6 +340,48 @@ export function MeetingDetailDialog({
                 <Layers className="w-3.5 h-3.5 text-[#31889C]" />
                 <span>Rangkaian Agenda</span>
               </button>
+            )}
+
+            {/* Quick Action Button: Mulai Rapat / Setujui Hasil Rapat */}
+            {isBelumDimulai && canChangeStatus && (
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={handleStartMeeting}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-bold text-white bg-[#31889C] hover:bg-[#266F80] transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                title="Mulai Rapat (Otomatis ubah status ke Dalam Proses)"
+              >
+                {isUpdatingStatus ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                )}
+                <span>Mulai Rapat</span>
+              </button>
+            )}
+
+            {currentProg === 'Dalam Proses' && canApprove && (
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={handleApproveMeeting}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                title="Admin Tim & Pimpinan: Setujui hasil rapat (Otomatis ubah status ke Selesai)"
+              >
+                {isUpdatingStatus ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                )}
+                <span>Setujui Hasil Rapat</span>
+              </button>
+            )}
+
+            {currentProg === 'Selesai' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>Selesai</span>
+              </span>
             )}
 
             <button
