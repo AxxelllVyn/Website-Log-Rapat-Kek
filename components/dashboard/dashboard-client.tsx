@@ -53,8 +53,10 @@ function isMatchTeam(m: Meeting, code: string): boolean {
   if (m.primaryTeamCode?.toUpperCase() === c) return true;
   if (m.primaryTeamId?.toUpperCase().includes(c)) return true;
   if (c === 'INV' && (m.primaryTeamName?.toLowerCase().includes('investasi') || m.primaryTeamCode === 'TIM-001' || m.primaryTeamId === 'TIM-001')) return true;
-  if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
+  if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamName?.toLowerCase().includes('kerjasama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
   if (c === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002')) return true;
+  if (c === 'SI' && (m.primaryTeamName?.toLowerCase().includes('sistem informasi') || m.primaryTeamCode === 'TIM-004' || m.primaryTeamId === 'TIM-004')) return true;
+  if (c === 'POKJA' && (m.primaryTeamName?.toLowerCase().includes('pokja') || m.primaryTeamCode === 'TIM-005' || m.primaryTeamId === 'TIM-005')) return true;
   return false;
 }
 
@@ -112,7 +114,7 @@ export function DashboardClient({
     };
   }, [initialTeamWorkload]);
 
-  const CANONICAL_CODES = ['INV', 'KS', 'KOM'];
+  const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA'];
   const sanitizedTeamWorkload = useMemo(() => {
     return (teamWorkload || [])
       .filter((t) => CANONICAL_CODES.includes(t.code.toUpperCase()))
@@ -265,9 +267,9 @@ export function DashboardClient({
       return [
         {
           id: 'total-rapat',
-          label: `TOTAL RAPAT (YTD ${selectedYear})`,
+          label: `TOTAL KEGIATAN (YTD ${selectedYear})`,
           value: totalYearMeetings,
-          unit: 'Rapat',
+          unit: 'Kegiatan',
           changeValue: totalYearMeetings > 0 ? '+100%' : '0%',
           changeLabel: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `Tahun ${selectedYear}`,
           variant: 'default',
@@ -295,9 +297,9 @@ export function DashboardClient({
         },
         {
           id: 'perlu-atensi',
-          label: 'MONITORING PROSES RAPAT',
+          label: 'MONITORING PROSES KEGIATAN',
           value: yearOnProgress + yearStart,
-          unit: 'Rapat',
+          unit: 'Kegiatan',
           badgeText: `${yearOnProgress} Dalam Proses • ${yearStart} Belum Dimulai`,
           badgeSubtext: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `Tahun ${selectedYear}`,
           variant: yearOnProgress > 0 ? 'default' : 'default',
@@ -319,9 +321,9 @@ export function DashboardClient({
     return [
       {
         id: 'total-rapat',
-        label: `TOTAL RAPAT (YTD s/d ${selectedMonth})`,
+        label: `TOTAL KEGIATAN (YTD s/d ${selectedMonth})`,
         value: ytdMeetings.length,
-        unit: 'Rapat',
+        unit: 'Kegiatan',
         changeValue: `${ytdMeetings.length}/${yearMeetings.length || 1}`,
         changeLabel: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `s/d ${selectedMonth} ${selectedYear}`,
         variant: 'default',
@@ -329,7 +331,7 @@ export function DashboardClient({
       },
       {
         id: 'rapat-bulan-ini',
-        label: `RAPAT BULAN ${fullMonthName.toUpperCase()}`,
+        label: `KEGIATAN BULAN ${fullMonthName.toUpperCase()}`,
         value: totalMonth,
         unit: 'Agenda',
         badgeText: totalMonth > 0 ? `${finishMonth} Selesai • ${onProgressMonth} Dalam Proses` : '0 Agenda',
@@ -349,9 +351,9 @@ export function DashboardClient({
       },
       {
         id: 'perlu-atensi',
-        label: 'MONITORING PROSES RAPAT',
+        label: 'MONITORING PROSES KEGIATAN',
         value: onProgressMonth + startMonth,
-        unit: 'Rapat',
+        unit: 'Kegiatan',
         badgeText: `${onProgressMonth} Dalam Proses • ${startMonth} Belum Dimulai`,
         badgeSubtext: `${fullMonthName} ${selectedYear}`,
         variant: onProgressMonth > 0 ? 'default' : 'default',

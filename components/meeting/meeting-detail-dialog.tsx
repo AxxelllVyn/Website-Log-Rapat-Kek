@@ -63,7 +63,7 @@ export function MeetingDetailDialog({
   const canChangeStatus = isPrivileged;
   const canApprove = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
 
-  const [activeTab, setActiveTab] = useState<'info' | 'participants' | 'minutes' | 'actionItems'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'minutes' | 'actionItems'>('info');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -89,14 +89,14 @@ export function MeetingDetailDialog({
       link.href = url;
       link.download = type === 'nota-dinas'
         ? `Nota-Dinas-${meeting.code || 'KEK'}.pdf`
-        : `Risalah-Rapat-${meeting.code || 'KEK'}.pdf`;
+        : `Catatan-Kegiatan-${meeting.code || 'KEK'}.pdf`;
       document.body.appendChild(link);
       link.click();
       window.URL.revokeObjectURL(url);
       toast.success(
         type === 'nota-dinas'
-          ? `Nota Dinas rapat ${meeting.code || 'KEK'} berhasil diunduh (PDF).`
-          : `Risalah rapat ${meeting.code || 'KEK'} berhasil diunduh (PDF).`
+          ? `Nota Dinas kegiatan ${meeting.code || 'KEK'} berhasil diunduh (PDF).`
+          : `Catatan kegiatan ${meeting.code || 'KEK'} berhasil diunduh (PDF).`
       );
     } catch (err: any) {
       toast.error(err?.message || 'Terjadi kesalahan saat mengunduh PDF.');
@@ -121,14 +121,14 @@ export function MeetingDetailDialog({
       const cleanCode = (meeting.code || 'KEK').replace(/[^a-zA-Z0-9_-]/g, '_');
       link.download = type === 'nota-dinas'
         ? `Nota-Dinas-${cleanCode}.docx`
-        : `Risalah-Rapat-${cleanCode}.docx`;
+        : `Catatan-Kegiatan-${cleanCode}.docx`;
       document.body.appendChild(link);
       link.click();
       window.URL.revokeObjectURL(url);
       toast.success(
         type === 'nota-dinas'
-          ? `Nota Dinas rapat ${meeting.code || 'KEK'} berhasil diunduh (Word .docx).`
-          : `Risalah rapat ${meeting.code || 'KEK'} berhasil diunduh (Word .docx).`
+          ? `Nota Dinas kegiatan ${meeting.code || 'KEK'} berhasil diunduh (Word .docx).`
+          : `Catatan kegiatan ${meeting.code || 'KEK'} berhasil diunduh (Word .docx).`
       );
     } catch (err: any) {
       toast.error(err?.message || 'Terjadi kesalahan saat mengunduh Word.');
@@ -183,9 +183,9 @@ export function MeetingDetailDialog({
 
   const handleDelete = async () => {
     const confirmed = await confirmModal({
-      title: `Hapus Rapat ${meeting.code}?`,
-      message: `Apakah Anda yakin ingin menghapus rapat "${meeting.title}" dari database?`,
-      confirmText: 'Ya, Hapus Rapat',
+      title: `Hapus Kegiatan ${meeting.code}?`,
+      message: `Apakah Anda yakin ingin menghapus kegiatan "${meeting.title}" dari database?`,
+      confirmText: 'Ya, Hapus Kegiatan',
       variant: 'danger',
     });
 
@@ -198,7 +198,7 @@ export function MeetingDetailDialog({
       const { deleteMeetingAction } = await import('@/app/actions/meeting-actions');
       const res = await deleteMeetingAction(meeting.id);
       if (res.success) {
-        toast.success(`Rapat ${meeting.code} berhasil dihapus dari database.`);
+        toast.success(`Kegiatan ${meeting.code} berhasil dihapus dari database.`);
         onClose();
         if (onMeetingUpdated) {
           onMeetingUpdated();
@@ -206,10 +206,10 @@ export function MeetingDetailDialog({
           router.refresh();
         }
       } else {
-        toast.error(res.error || 'Gagal menghapus rapat');
+        toast.error(res.error || 'Gagal menghapus kegiatan');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menghapus rapat');
+      toast.error(err?.message || 'Gagal menghapus kegiatan');
     } finally {
       setIsDeleting(false);
     }
@@ -223,9 +223,9 @@ export function MeetingDetailDialog({
   const handleStartMeeting = async () => {
     if (!meeting) return;
     const confirmed = await confirmModal({
-      title: 'Mulai Pelaksanaan Rapat?',
-      message: `Apakah Anda ingin memulai pelaksanaan rapat "${meeting.title}" sekarang? Status rapat akan langsung diubah menjadi "Dalam Proses".`,
-      confirmText: 'Ya, Mulai Rapat',
+      title: 'Mulai Pelaksanaan Kegiatan?',
+      message: `Apakah Anda ingin memulai pelaksanaan kegiatan "${meeting.title}" sekarang? Status kegiatan akan langsung diubah menjadi "Dalam Proses".`,
+      confirmText: 'Ya, Mulai Kegiatan',
       variant: 'primary',
     });
     if (!confirmed) return;
@@ -235,14 +235,14 @@ export function MeetingDetailDialog({
       const { updateMeetingStatusAction } = await import('@/app/actions/meeting-actions');
       const res = await updateMeetingStatusAction(meeting.id, 'Dalam Proses');
       if (res.success) {
-        toast.success(`Rapat ${meeting.code} resmi dimulai (Status: Dalam Proses).`);
+        toast.success(`Kegiatan ${meeting.code} resmi dimulai (Status: Dalam Proses).`);
         onClose();
         router.push(`/semua-rapat/${meeting.id}?tab=minutes`);
       } else {
-        toast.error(res.error || 'Gagal memulai rapat');
+        toast.error(res.error || 'Gagal memulai kegiatan');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal memulai rapat');
+      toast.error(err?.message || 'Gagal memulai kegiatan');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -251,8 +251,8 @@ export function MeetingDetailDialog({
   const handleApproveMeeting = async () => {
     if (!meeting) return;
     const confirmed = await confirmModal({
-      title: 'Setujui & Selesaikan Rapat?',
-      message: `Apakah Anda ingin menyetujui hasil risalah rapat "${meeting.title}"? Status rapat akan otomatis diubah menjadi SELESAI.`,
+      title: 'Setujui & Selesaikan Kegiatan?',
+      message: `Apakah Anda ingin menyetujui hasil risalah kegiatan "${meeting.title}"? Status kegiatan akan otomatis diubah menjadi SELESAI.`,
       confirmText: 'Ya, Setujui & Selesaikan',
       variant: 'primary',
     });
@@ -263,7 +263,7 @@ export function MeetingDetailDialog({
       const { approveMeetingAction } = await import('@/app/actions/meeting-actions');
       const res = await approveMeetingAction(meeting.id);
       if (res.success) {
-        toast.success(`Hasil rapat ${meeting.code} resmi disetujui (Status: Selesai).`);
+        toast.success(`Hasil kegiatan ${meeting.code} resmi disetujui (Status: Selesai).`);
         onClose();
         if (onMeetingUpdated) {
           onMeetingUpdated();
@@ -271,10 +271,10 @@ export function MeetingDetailDialog({
           router.refresh();
         }
       } else {
-        toast.error(res.error || 'Gagal menyetujui hasil rapat');
+        toast.error(res.error || 'Gagal menyetujui hasil kegiatan');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menyetujui hasil rapat');
+      toast.error(err?.message || 'Gagal menyetujui hasil kegiatan');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -286,7 +286,7 @@ export function MeetingDetailDialog({
       const { updateMeetingStatusAction } = await import('@/app/actions/meeting-actions');
       const res = await updateMeetingStatusAction(meeting.id, newStatus);
       if (res.success) {
-        toast.success(`Status rapat ${meeting.code} berhasil diubah ke "${newStatus}".`);
+        toast.success(`Status kegiatan ${meeting.code} berhasil diubah ke "${newStatus}".`);
         onClose();
         if (onMeetingUpdated) {
           onMeetingUpdated();
@@ -335,28 +335,28 @@ export function MeetingDetailDialog({
                   onOpenSeriesModal(meeting.id);
                 }}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold text-[#215865] bg-[#E8F5F7] hover:bg-[#BCE3EB] transition-colors cursor-pointer"
-                title="Lihat Linimasa Semua Rapat Terkait Agenda Ini"
+                title="Lihat Linimasa Semua Kegiatan Terkait Agenda Ini"
               >
                 <Layers className="w-3.5 h-3.5 text-[#31889C]" />
                 <span>Rangkaian Agenda</span>
               </button>
             )}
 
-            {/* Quick Action Button: Mulai Rapat / Setujui Hasil Rapat */}
+            {/* Quick Action Button: Mulai Kegiatan / Setujui Hasil Kegiatan */}
             {isBelumDimulai && canChangeStatus && (
               <button
                 type="button"
                 disabled={isUpdatingStatus}
                 onClick={handleStartMeeting}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-bold text-white bg-[#31889C] hover:bg-[#266F80] transition-colors cursor-pointer shadow-xs disabled:opacity-50"
-                title="Mulai Rapat (Otomatis ubah status ke Dalam Proses)"
+                title="Mulai Kegiatan (Otomatis ubah status ke Dalam Proses)"
               >
                 {isUpdatingStatus ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <Play className="w-3.5 h-3.5 fill-current" />
                 )}
-                <span>Mulai Rapat</span>
+                <span>Mulai Kegiatan</span>
               </button>
             )}
 
@@ -366,14 +366,14 @@ export function MeetingDetailDialog({
                 disabled={isUpdatingStatus}
                 onClick={handleApproveMeeting}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
-                title="Admin Tim & Pimpinan: Setujui hasil rapat (Otomatis ubah status ke Selesai)"
+                title="Admin Tim & Pimpinan: Setujui hasil kegiatan (Otomatis ubah status ke Selesai)"
               >
                 {isUpdatingStatus ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <CheckCircle2 className="w-3.5 h-3.5" />
                 )}
-                <span>Setujui Hasil Rapat</span>
+                <span>Setujui Hasil Kegiatan</span>
               </button>
             )}
 
@@ -384,21 +384,11 @@ export function MeetingDetailDialog({
               </span>
             )}
 
-            <button
-              type="button"
-              onClick={() => setShowCalendarModal(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer shadow-2xs"
-              title="Tambah ke Google Calendar & Bagikan ke Peserta"
-            >
-              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Google Kalender</span>
-            </button>
-
             <Link
               href={`/semua-rapat/${meeting.id}`}
               onClick={onClose}
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-semibold text-[#215865] bg-[#E8F5F7] hover:bg-[#BCE3EB] transition-colors"
-              title="Buka Halaman Rapat Penuh"
+              title="Buka Halaman Kegiatan Penuh"
             >
               <span>Halaman Penuh</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -427,20 +417,7 @@ export function MeetingDetailDialog({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Informasi Rapat</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('participants')}
-            className={`flex items-center gap-1.5 py-2.5 px-3 font-bold text-[12px] border-b-2 transition-all cursor-pointer ${
-              activeTab === 'participants'
-                ? 'border-[#31889C] text-[#31889C] bg-white rounded-t-md'
-                : 'border-transparent text-slate-600 hover:text-[#31889C]'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Peserta ({meeting.attendees?.length || 0})</span>
+            <span>Informasi Kegiatan</span>
           </button>
 
           <button
@@ -472,7 +449,7 @@ export function MeetingDetailDialog({
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-[13px]">
-          {/* TAB 1: INFORMASI RAPAT */}
+          {/* TAB 1: INFORMASI KEGIATAN */}
           {activeTab === 'info' && (
             <>
               {/* Title */}
@@ -530,7 +507,7 @@ export function MeetingDetailDialog({
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-[#0B5CFF] hover:bg-blue-100 text-[10.5px] font-bold border border-blue-200 transition-colors"
-                              title="Buka Ruang Rapat Zoom"
+                              title="Buka Ruang Virtual Zoom"
                             >
                               <Video className="w-3 h-3 text-[#0B5CFF]" />
                               <span>Buka Zoom</span>
@@ -549,6 +526,16 @@ export function MeetingDetailDialog({
                     <div>
                       <p className="text-[11px] text-amber-800 font-semibold uppercase">Tim Kerja Pelaksana</p>
                       <p className="font-bold text-amber-950">Tim {meeting.primaryTeamName}</p>
+                    </div>
+                  </div>
+                )}
+
+                {meeting.picName && (
+                  <div className="flex items-center gap-3 col-span-1 md:col-span-2 p-2.5 rounded-lg bg-teal-50/80 border border-teal-200">
+                    <Users className="w-5 h-5 text-[#1E6B7B] shrink-0" />
+                    <div>
+                      <p className="text-[11px] text-teal-800 font-semibold uppercase">PIC Terlibat</p>
+                      <p className="font-bold text-teal-950">{meeting.picName}</p>
                     </div>
                   </div>
                 )}
@@ -580,13 +567,60 @@ export function MeetingDetailDialog({
                     </a>
                   </div>
                 )}
+
+                {/* Output & Hasil Kegiatan Biro 3 */}
+                <div className="col-span-1 md:col-span-2 p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="font-bold text-[12px] text-slate-800">Hasil &amp; Output Kegiatan</span>
+                    {meeting.actionPlan && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                        Rencana Aksi: {meeting.actionPlan}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {meeting.driveLink && (
+                      <a
+                        href={meeting.driveLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Google Drive</span>
+                      </a>
+                    )}
+                    {meeting.releaseUrl && (
+                      <a
+                        href={meeting.releaseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Rilis Berita</span>
+                      </a>
+                    )}
+                    {meeting.ndConsumptionNumber && (
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                        Nd Konsum: <strong>{meeting.ndConsumptionNumber}</strong> ({meeting.ndConsumptionStatus || 'Diproses'})
+                      </span>
+                    )}
+                  </div>
+                  {meeting.notes && (
+                    <div className="p-3 rounded-lg bg-amber-50/60 border border-amber-200 text-amber-950 text-xs leading-relaxed">
+                      <span className="font-bold text-[10.5px] text-amber-800 uppercase block mb-1">Catatan Hasil:</span>
+                      {meeting.notes}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Status Change (CRUD Update) */}
               <div className="p-3.5 bg-[#F0F9FA] rounded-xl border border-[#BCE3EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-[12px] font-bold text-slate-900 block">
-                    {canChangeStatus ? 'Ubah Status Pemantauan Rapat' : 'Status Pemantauan Rapat'}
+                    {canChangeStatus ? 'Ubah Status Pemantauan Kegiatan' : 'Status Pemantauan Kegiatan'}
                   </span>
                   <span className="text-[11px] text-slate-500">
                     Status saat ini: <strong className="text-slate-800">{normalizeProgressStatus(meeting.progressStatus || mapStatusToProgress(meeting.status))}</strong>
@@ -649,35 +683,7 @@ export function MeetingDetailDialog({
             </>
           )}
 
-          {/* TAB 2: PESERTA */}
-          {activeTab === 'participants' && (
-            <div className="space-y-4">
-              <h4 className="text-[14px] font-bold text-slate-900 flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#31889C]" />
-                Daftar Peserta Rapat
-              </h4>
-
-              {meeting.attendees && meeting.attendees.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {meeting.attendees.map((attendee, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 text-[12px] font-medium flex items-center gap-2"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-[#E8F5F7] text-[#215865] text-[10px] font-bold flex items-center justify-center shrink-0">
-                        {idx + 1}
-                      </div>
-                      <span className="truncate">{attendee}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[13px] text-slate-400 italic">Belum ada daftar peserta yang tercatat.</p>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: NOTULEN & HASIL RAPAT */}
+          {/* TAB 2: NOTULEN & HASIL KEGIATAN */}
           {activeTab === 'minutes' && (
             <div className="pt-1">
               <MeetingMinutesSection meetingId={meeting.id} meeting={meeting} />
@@ -688,7 +694,7 @@ export function MeetingDetailDialog({
           {activeTab === 'actionItems' && (
             <div className="pt-1">
               {isLoadingItems ? (
-                <div className="p-8 text-center text-slate-500">Memuat tindak lanjut rapat...</div>
+                <div className="p-8 text-center text-slate-500">Memuat tindak lanjut kegiatan...</div>
               ) : (
                 <ActionItemList
                   meetingId={meeting.id}
@@ -710,10 +716,10 @@ export function MeetingDetailDialog({
               disabled={isDeleting}
               onClick={handleDelete}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 text-[12px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
-              title="Hapus rapat dari database"
+              title="Hapus kegiatan dari database"
             >
               <Trash2 className="w-4 h-4" />
-              <span>{isDeleting ? 'Menghapus...' : 'Hapus Rapat'}</span>
+              <span>{isDeleting ? 'Menghapus...' : 'Hapus Kegiatan'}</span>
             </button>
           ) : (
             <div />
@@ -782,17 +788,17 @@ export function MeetingDetailDialog({
                   disabled={isExporting}
                   onClick={() => onDownloadPdf ? onDownloadPdf(meeting) : handleExportPdf('notula')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#31889C] text-white font-semibold text-[12px] hover:bg-[#266F80] shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                  title="Unduh Risalah Rapat Resmi Format PDF"
+                  title="Unduh Risalah Catatan Kegiatan Resmi Format PDF"
                 >
                   <FileDown className="w-3.5 h-3.5" />
-                  <span>{isExporting ? 'Membuat PDF...' : 'Notulen PDF'}</span>
+                  <span>{isExporting ? 'Membuat PDF...' : 'Catatan PDF'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={isExportingDocx}
                   onClick={() => handleExportDocx('notula')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B579A] text-white font-semibold text-[12px] hover:bg-[#1E3E6D] shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                  title="Unduh Risalah Rapat Resmi Format Word (.docx)"
+                  title="Unduh Risalah Catatan Kegiatan Resmi Format Word (.docx)"
                 >
                   {isExportingDocx ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

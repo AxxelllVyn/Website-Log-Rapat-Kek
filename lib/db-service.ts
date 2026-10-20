@@ -163,6 +163,19 @@ export async function getMeetingByIdFromDb(idOrNumber: string) {
               picBiro: true,
               picTeam: true,
               picUser: true,
+              logs: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      role: true,
+                    },
+                  },
+                },
+                orderBy: { createdAt: 'desc' },
+              },
             },
             orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
           },
@@ -455,6 +468,13 @@ export async function getMeetingsFromDb(filters?: {
           materialDocUrl: (m as any).materialDocUrl || null,
           materialDocName: (m as any).materialDocName || null,
           materialDocSize: (m as any).materialDocSize || null,
+          driveLink: (m as any).driveLink || null,
+          notes: (m as any).notes || null,
+          actionPlan: (m as any).actionPlan || 'Rutin',
+          ndConsumptionNumber: (m as any).ndConsumptionNumber || null,
+          ndConsumptionStatus: (m as any).ndConsumptionStatus || null,
+          releaseUrl: (m as any).releaseUrl || null,
+          releaseTitle: (m as any).releaseTitle || null,
         };
       });
     });
@@ -627,9 +647,9 @@ export async function getDashboardStats() {
       const metrics: DashboardMetric[] = [
         {
           id: 'total-rapat',
-          label: 'Total Rapat (YTD)',
+          label: 'Total Kegiatan (YTD)',
           value: totalMeetings,
-          unit: 'Rapat',
+          unit: 'Kegiatan',
           changeValue: '+100%',
           changeLabel: 'Tersinkronisasi Neon DB',
           variant: 'default',
@@ -637,7 +657,7 @@ export async function getDashboardStats() {
         },
         {
           id: 'rapat-bulan-ini',
-          label: 'Rapat Bulan Ini',
+          label: 'Kegiatan Bulan Ini',
           value: thisMonthMeetings,
           unit: 'Agenda',
           badgeText: `${approvedMeetings} Disetujui`,
@@ -727,17 +747,25 @@ export async function getDashboardStats() {
         });
       }
 
-      // 3 Tim Kerja KEK (Investasi, Kerja Sama, Komunikasi)
+      // 5 Tim Kerja Biro 3 (Investasi, Kerja Sama, Komunikasi, Sistem Informasi, Pokja) & Dynamic Teams
       const rawTeamUsers = await prisma.$queryRaw<
         Array<{ id: string; nama: string; email: string; peran: string; id_tim: string | null }>
       >`SELECT id_pengguna as id, nama_lengkap as nama, email, peran, id_tim FROM pengguna WHERE status_aktif = true`;
 
-      const CANONICAL_TEAM_CODES = ['INV', 'KS', 'KOM'];
+      let rawUserTeams: Array<{ id_pengguna: string; id_tim: string }> = [];
+      try {
+        rawUserTeams = await prisma.$queryRaw<
+          Array<{ id_pengguna: string; id_tim: string }>
+        >`SELECT id_pengguna, id_tim FROM pengguna_tim`;
+      } catch (e) {
+        // Fallback if table not queried
+      }
+
+      const CANONICAL_TEAM_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA'];
 
       const fetchedTeams = await prisma.biroTeam.findMany({
         where: {
           isActive: true,
-          code: { in: CANONICAL_TEAM_CODES },
         },
         include: {
           primaryMeetings: {
@@ -766,12 +794,15 @@ export async function getDashboardStats() {
         },
       });
 
-      // Sort strictly in canonical order: Tim Investasi (INV), Tim Kerja Sama (KS), Tim Komunikasi (KOM)
-      const rawTeams = fetchedTeams.sort(
-        (a, b) =>
-          CANONICAL_TEAM_CODES.indexOf(a.code.toUpperCase()) -
-          CANONICAL_TEAM_CODES.indexOf(b.code.toUpperCase())
-      );
+      // Sort with canonical order first, then any additional dynamic teams
+      const rawTeams = fetchedTeams.sort((a, b) => {
+        const idxA = CANONICAL_TEAM_CODES.indexOf(a.code.toUpperCase());
+        const idxB = CANONICAL_TEAM_CODES.indexOf(b.code.toUpperCase());
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.name.localeCompare(b.name);
+      });
 
       const teamWorkload: TeamWorkloadMetric[] = rawTeams.map((t) => {
         const meetingCount = t.primaryMeetings.length;
@@ -785,8 +816,12 @@ export async function getDashboardStats() {
         ).length;
         const completionRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
+        const memberIdsForThisTeam = new Set<string>();
+        rawTeamUsers.filter((u) => u.id_tim === t.id).forEach((u) => memberIdsForThisTeam.add(u.id));
+        rawUserTeams.filter((ut) => ut.id_tim === t.id).forEach((ut) => memberIdsForThisTeam.add(ut.id_pengguna));
+
         const teamMembers = rawTeamUsers
-          .filter((u) => u.id_tim === t.id)
+          .filter((u) => memberIdsForThisTeam.has(u.id))
           .map((u) => ({
             id: u.id,
             name: u.nama,
@@ -892,7 +927,7 @@ export async function getDashboardStats() {
         },
         {
           key: 'SURAT_DITUNDA',
-          label: 'Tunda Rapat',
+          label: 'Tunda Kegiatan',
           count: countTundaRapat,
           percentage: totalMeetings > 0 ? Math.round((countTundaRapat / totalMeetings) * 100) : 0,
         },

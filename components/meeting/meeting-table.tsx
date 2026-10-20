@@ -156,13 +156,13 @@ export function MeetingTable({
               : item
           )
         );
-        toast.success(`Rapat ${meeting.code || meeting.meetingNumber || ''} resmi dimulai (Dalam Proses).`);
+        toast.success(`Kegiatan ${meeting.code || meeting.meetingNumber || ''} resmi dimulai (Dalam Proses).`);
         router.push(`/semua-rapat/${meeting.id}?tab=minutes`);
       } else {
-        toast.error(res.error || 'Gagal memulai rapat.');
+        toast.error(res.error || 'Gagal memulai kegiatan.');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal memulai rapat.');
+      toast.error(err?.message || 'Gagal memulai kegiatan.');
     } finally {
       setUpdatingStatusId(null);
     }
@@ -170,8 +170,8 @@ export function MeetingTable({
 
   const handleApproveMeeting = async (meeting: any) => {
     const confirmed = await confirmModal({
-      title: `Setujui & Selesaikan Rapat?`,
-      message: `Apakah Anda ingin menyetujui hasil risalah rapat "${meeting.title}"? Status rapat akan otomatis diubah menjadi SELESAI.`,
+      title: `Setujui & Selesaikan Kegiatan?`,
+      message: `Apakah Anda ingin menyetujui hasil risalah kegiatan "${meeting.title}"? Status kegiatan akan otomatis diubah menjadi SELESAI.`,
       confirmText: 'Ya, Setujui & Selesaikan',
       variant: 'primary',
     });
@@ -192,13 +192,13 @@ export function MeetingTable({
               : item
           )
         );
-        toast.success(`Hasil rapat berhasil disetujui. Status rapat kini SELESAI.`);
+        toast.success(`Hasil kegiatan berhasil disetujui. Status kegiatan kini SELESAI.`);
         router.refresh();
       } else {
-        toast.error(res.error || 'Gagal menyetujui hasil rapat.');
+        toast.error(res.error || 'Gagal menyetujui hasil kegiatan.');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menyetujui hasil rapat.');
+      toast.error(err?.message || 'Gagal menyetujui hasil kegiatan.');
     } finally {
       setUpdatingStatusId(null);
     }
@@ -213,9 +213,9 @@ export function MeetingTable({
     const norm = (str: string) =>
       (str || '')
         .toLowerCase()
-        .replace(/\s*[\(\[\-–—]\s*(sesi|rapat|pertemuan|lanjutan|part|bagian)\s*\w*[\)\]]?/gi, '')
+        .replace(/\s*[\(\[\-–—]\s*(sesi|rapat|kegiatan|pertemuan|lanjutan|part|bagian)\s*\w*[\)\]]?/gi, '')
         .replace(/\s*-\s*lanjutan\b/gi, '')
-        .replace(/\s*rapat\s*ke\s*\d+\b/gi, '')
+        .replace(/\s*(rapat|kegiatan)\s*ke\s*\d+\b/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
 
@@ -291,9 +291,9 @@ export function MeetingTable({
 
   const handleDeleteSingleMeeting = async (m: Meeting) => {
     const confirmed = await confirmModal({
-      title: `Hapus Rapat ${m.code}?`,
-      message: `Apakah Anda yakin ingin menghapus permanen rapat "${m.title}" beserta seluruh notulen dan butir tindak lanjutnya dari database?`,
-      confirmText: 'Ya, Hapus Rapat',
+      title: `Hapus Kegiatan ${m.code}?`,
+      message: `Apakah Anda yakin ingin menghapus permanen kegiatan "${m.title}" beserta seluruh notulen dan butir tindak lanjutnya dari database?`,
+      confirmText: 'Ya, Hapus Kegiatan',
       variant: 'danger',
     });
 
@@ -307,16 +307,16 @@ export function MeetingTable({
       if (res.success) {
         setDeletedMeetingIds((prev) => new Set(prev).add(m.id));
         setMeetings((prev) => prev.filter((item) => item.id !== m.id));
-        toast.success(`Rapat ${m.code} berhasil dihapus dari database.`);
+        toast.success(`Kegiatan ${m.code} berhasil dihapus dari database.`);
         if (onMeetingDeleted) {
           onMeetingDeleted(m.id);
         }
         router.refresh();
       } else {
-        toast.error(res.error || 'Gagal menghapus rapat.');
+        toast.error(res.error || 'Gagal menghapus kegiatan.');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menghapus rapat.');
+      toast.error(err?.message || 'Gagal menghapus kegiatan.');
     } finally {
       setDeletingRowId(null);
     }
@@ -334,12 +334,12 @@ export function MeetingTable({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Risalah-Rapat-${mCode}.pdf`;
+      a.download = `Risalah-Kegiatan-${mCode}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success(`Risalah rapat ${mCode} berhasil diunduh (PDF).`);
+      toast.success(`Risalah kegiatan ${mCode} berhasil diunduh (PDF).`);
     } catch (e: any) {
       toast.error(e?.message || 'Gagal mengunduh dokumen PDF.');
     } finally {
@@ -408,6 +408,24 @@ export function MeetingTable({
         tagClass: 'bg-amber-600 text-white',
       };
     }
+    if (upperCode.startsWith('SI-') || upperTeam === 'SI' || nameLower.includes('sistem informasi')) {
+      return {
+        teamName: 'Tim Sistem Informasi',
+        code: 'SI',
+        badgeClass: 'bg-purple-50 text-purple-800 border-purple-200/90',
+        pillClass: 'bg-purple-50 text-purple-800 border-purple-200 group-hover/link:border-purple-400 group-hover/link:bg-purple-100/60',
+        tagClass: 'bg-purple-600 text-white',
+      };
+    }
+    if (upperCode.startsWith('POKJA-') || upperTeam === 'POKJA' || nameLower.includes('pokja')) {
+      return {
+        teamName: 'Pokja',
+        code: 'POKJA',
+        badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-200/90',
+        pillClass: 'bg-indigo-50 text-indigo-800 border-indigo-200 group-hover/link:border-indigo-400 group-hover/link:bg-indigo-100/60',
+        tagClass: 'bg-indigo-600 text-white',
+      };
+    }
     return {
       teamName: primaryTeamName || 'Tim Investasi',
       code: primaryTeamCode || 'INV',
@@ -457,14 +475,16 @@ export function MeetingTable({
     return list.filter((m) => {
       if (filterBiro) {
         const target = String(filterBiro).toUpperCase();
-        if (target === 'INV' || target === 'KS' || target === 'KOM') {
+        if (target === 'INV' || target === 'KS' || target === 'KOM' || target === 'SI' || target === 'POKJA') {
           const matchTeam =
             m.code.toUpperCase().startsWith(`${target}-`) ||
             m.primaryTeamCode?.toUpperCase() === target ||
             m.primaryTeamId?.toUpperCase().includes(target) ||
             (target === 'INV' && (m.primaryTeamName?.toLowerCase().includes('investasi') || m.primaryTeamCode === 'TIM-001' || m.primaryTeamId === 'TIM-001')) ||
-            (target === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) ||
-            (target === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002'));
+            (target === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamName?.toLowerCase().includes('kerjasama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) ||
+            (target === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002')) ||
+            (target === 'SI' && (m.primaryTeamName?.toLowerCase().includes('sistem informasi') || m.primaryTeamCode === 'TIM-004' || m.primaryTeamId === 'TIM-004')) ||
+            (target === 'POKJA' && (m.primaryTeamName?.toLowerCase().includes('pokja') || m.primaryTeamCode === 'TIM-005' || m.primaryTeamId === 'TIM-005'));
           if (!matchTeam) {
             return false;
           }
@@ -528,7 +548,7 @@ export function MeetingTable({
         }
       }
 
-      // Check jenis rapat filter
+      // Check jenis kegiatan filter
       if (filterJenis && filterJenis !== 'ALL') {
         const target = String(filterJenis).toLowerCase().trim();
         const mKind = (m.meetingKind || '').toLowerCase().trim();
@@ -612,13 +632,13 @@ export function MeetingTable({
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#31889C]"></span>
               <h2 className="font-bold text-[18px] text-slate-900">
-                {onViewAllMeetings ? 'Agenda & Risalah Rapat Terkini' : 'Semua Risalah Rapat KEK'}
+                {onViewAllMeetings ? 'Kegiatan & Aktivitas Biro 3 Terkini' : 'Semua Kegiatan & Aktivitas Biro 3'}
               </h2>
             </div>
             <p className="text-[12.5px] text-slate-500 mt-0.5">
               {onViewAllMeetings
-                ? 'Ringkasan rapat koordinasi terbaru. Untuk mencari data lama atau arsip penuh, klik Buka Semua Arsip.'
-                : 'Daftar lengkap agenda dan risalah pertemuan, diurutkan dari yang paling baru.'}
+                ? 'Ringkasan aktivitas dan kegiatan terbaru 5 tim kerja Biro 3. Untuk mencari data lama atau arsip penuh, klik Buka Semua Arsip Kegiatan.'
+                : 'Daftar lengkap kegiatan, hasil kerja, dan status pekerjaan 5 tim kerja Biro 3.'}
             </p>
           </div>
 
@@ -638,7 +658,7 @@ export function MeetingTable({
                     ? "bg-amber-50 text-amber-900 border-amber-300 ring-2 ring-amber-300/40 hover:bg-amber-100"
                     : "bg-emerald-50 text-emerald-900 border-emerald-300 ring-2 ring-emerald-300/40 hover:bg-emerald-100"
                 )}
-                title="Pilih filter status rapat"
+                title="Pilih filter status kegiatan"
               >
                 <div className="flex items-center gap-1.5">
                   <span
@@ -692,7 +712,7 @@ export function MeetingTable({
               {isStatusDropdownOpen && (
                 <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 z-40 w-56 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 space-y-1 animate-in fade-in zoom-in-95">
                   <div className="px-2 py-1 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Filter Status Rapat
+                    Filter Status Kegiatan
                   </div>
 
                   {/* Semua Status */}
@@ -841,7 +861,7 @@ export function MeetingTable({
                 onClick={onViewAllMeetings}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#31889C] text-white hover:bg-[#266F80] transition-all text-[12.5px] font-semibold shadow-xs cursor-pointer shrink-0"
               >
-                <span>Buka Semua Arsip Rapat</span>
+                <span>Buka Semua Arsip Kegiatan</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}
@@ -855,10 +875,10 @@ export function MeetingTable({
           <thead className="bg-[#F8FAFC] border-b border-slate-200 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
             <tr>
               <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Nomor &amp; Tanggal</th>
-              <th className="py-3 px-3 sm:px-3.5">Agenda Rapat</th>
-              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Tim Kerja Pelaksana</th>
-              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap" title="Status Pemantauan Rapat: Belum Dimulai -> Dalam Proses -> Selesai">Status Rapat</th>
-              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Tindak Lanjut</th>
+              <th className="py-3 px-3 sm:px-3.5">Nama Kegiatan &amp; Hasil</th>
+              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Tim Pelaksana</th>
+              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap" title="Status Pemantauan Pekerjaan: Belum Dimulai -> Dalam Proses -> Selesai">Status Pekerjaan</th>
+              <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Catatan &amp; Output</th>
               <th className="py-3 px-3 sm:px-3.5 text-right sticky right-0 bg-[#F8FAFC] z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50 whitespace-nowrap">Aksi</th>
             </tr>
           </thead>
@@ -900,10 +920,10 @@ export function MeetingTable({
                     </div>
                     <div>
                       <h4 className="font-bold text-[15px] text-slate-800">
-                        Tidak Ada Risalah Rapat Ditemukan
+                        Tidak Ada Catatan Kegiatan Ditemukan
                       </h4>
                       <p className="text-[13px] text-slate-500 mt-1">
-                        Tidak ada agenda rapat yang cocok dengan kata kunci atau filter yang Anda terapkan.
+                        Tidak ada agenda kegiatan yang cocok dengan kata kunci atau filter yang Anda terapkan.
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -947,7 +967,7 @@ export function MeetingTable({
                           <Link
                             href={`/semua-rapat/${meeting.id}`}
                             className="group/link inline-flex flex-col cursor-pointer"
-                            title={`Buka Risalah Rapat ${meeting.code}`}
+                            title={`Buka Catatan Kegiatan ${meeting.code}`}
                           >
                             <span className={cn(
                               "font-bold text-[12px] font-mono tracking-tight px-2 py-0.5 rounded border inline-flex items-center gap-1.5 transition-all shadow-2xs w-fit",
@@ -967,8 +987,8 @@ export function MeetingTable({
                       })()}
                     </td>
 
-                    {/* Agenda Rapat & Lokasi */}
-                    <td className="py-3 px-3 sm:px-3.5 align-top max-w-[220px] md:max-w-[280px] lg:max-w-[340px] xl:max-w-md">
+                    {/* Nama Kegiatan & Hasil */}
+                    <td className="py-3 px-3 sm:px-3.5 align-top max-w-[240px] md:max-w-[300px] lg:max-w-[360px] xl:max-w-md">
                       {(() => {
                         const seriesInfo = meetingSeriesMap.get(meeting.id);
                         return (
@@ -976,12 +996,12 @@ export function MeetingTable({
                             <Link
                               href={`/semua-rapat/${meeting.id}`}
                               className="text-left font-bold text-[14px] text-slate-900 hover:text-[#31889C] hover:underline transition-colors line-clamp-2 cursor-pointer group-hover:text-[#31889C]"
-                              title="Buka rincian lengkap rapat ini"
+                              title="Buka rincian lengkap kegiatan ini"
                             >
                               {meeting.title}
                             </Link>
 
-                            {/* Kategori Rapat */}
+                            {/* Kategori, Jenis, & Rencana Aksi */}
                             {(() => {
                               const catInfo = getMeetingCategoryInfo(meeting.documentCategory, meeting.documentSubCategory);
                               const isPostponed = meeting.documentCategory === 'SURAT_DITUNDA' || meeting.documentCategory === 'TUNDA_RAPAT';
@@ -994,6 +1014,16 @@ export function MeetingTable({
                                   {meeting.meetingKind && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                       {meeting.meetingKind}
+                                    </span>
+                                  )}
+                                  {meeting.actionPlan && (
+                                    <span className={cn(
+                                      "inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold border",
+                                      meeting.actionPlan.toLowerCase().includes('non')
+                                        ? "bg-purple-50 text-purple-700 border-purple-200"
+                                        : "bg-teal-50 text-teal-800 border-teal-200"
+                                    )}>
+                                      Rencana Aksi: {meeting.actionPlan}
                                     </span>
                                   )}
                                   {isPostponed && meeting.postponeReason && (
@@ -1010,6 +1040,41 @@ export function MeetingTable({
                               );
                             })()}
 
+                            {/* Link Hasil & Tautan Pendukung (Google Drive, Nd Konsum, Rilis Berita) */}
+                            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                              {meeting.driveLink && (
+                                <a
+                                  href={meeting.driveLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors shadow-2xs"
+                                  title="Buka Dokumen/Folder Hasil di Google Drive"
+                                >
+                                  <ExternalLink className="w-3 h-3 text-blue-600" />
+                                  <span>Google Drive</span>
+                                </a>
+                              )}
+                              {meeting.releaseUrl && (
+                                <a
+                                  href={meeting.releaseUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
+                                  title={meeting.releaseTitle || "Buka Tautan Rilis Berita"}
+                                >
+                                  <ExternalLink className="w-3 h-3 text-emerald-600" />
+                                  <span>Rilis Berita</span>
+                                </a>
+                              )}
+                              {meeting.ndConsumptionNumber && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-medium bg-amber-50 text-amber-800 border border-amber-200" title={`Status Nd Konsum: ${meeting.ndConsumptionStatus || 'Diproses'}`}>
+                                  <span>Nd Konsum: <strong>{meeting.ndConsumptionNumber}</strong></span>
+                                </span>
+                              )}
+                            </div>
+
                             <div className="flex items-center gap-2 flex-wrap text-slate-500">
                               <div className="flex items-center gap-1 text-[12px]">
                                 <MapPin className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
@@ -1024,26 +1089,12 @@ export function MeetingTable({
                                     setIsSeriesModalOpen(true);
                                   }}
                                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-[#E8F5F7] text-[#215865] border border-[#BCE3EB] hover:bg-[#BCE3EB] transition-colors cursor-pointer"
-                                  title="Klik untuk membuka linimasa rangkaian rapat agenda ini"
+                                  title="Klik untuk membuka linimasa rangkaian sesi agenda ini"
                                 >
                                   <Layers className="w-3 h-3 text-[#31889C]" />
-                                  <span>Rapat Ke-{seriesInfo.index} dari {seriesInfo.total} Sesi</span>
+                                  <span>Kegiatan Ke-{seriesInfo.index} dari {seriesInfo.total} Sesi</span>
                                 </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSeriesModalMeetingId(meeting.id);
-                                    setIsSeriesModalOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-[#31889C] transition-colors cursor-pointer opacity-70 hover:opacity-100"
-                                  title="Periksa rangkaian atau hubungan agenda rapat ini"
-                                >
-                                  <Layers className="w-3 h-3 text-[#31889C]" />
-                                  <span>Rangkaian Rapat</span>
-                                </button>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         );
@@ -1070,7 +1121,7 @@ export function MeetingTable({
                       })()}
                     </td>
 
-                    {/* Status Rapat (Belum Dimulai, Dalam Proses, Selesai) */}
+                    {/* Status Pekerjaan (Belum Dimulai, Dalam Proses, Selesai) */}
                     <td className="py-3 px-3 sm:px-3.5 align-top whitespace-nowrap">
                       <MeetingProgressBadge
                         progressStatus={meeting.progressStatus}
@@ -1079,15 +1130,28 @@ export function MeetingTable({
                       />
                     </td>
 
-                    {/* Tindak Lanjut Progress */}
-                    <td className="py-3 px-3 sm:px-3.5 align-top whitespace-nowrap">
-                      <ActionItemProgress data={meeting.actionItems} />
+                    {/* Catatan & Output */}
+                    <td className="py-3 px-3 sm:px-3.5 align-top">
+                      <div className="flex flex-col gap-1.5 min-w-[140px] max-w-[220px]">
+                        {meeting.notes ? (
+                          <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11.5px] text-slate-700 line-clamp-3" title={meeting.notes}>
+                            <span className="font-bold text-[10px] text-slate-500 uppercase block mb-0.5">Catatan Hasil:</span>
+                            {meeting.notes}
+                          </div>
+                        ) : null}
+                        {meeting.actionItems && meeting.actionItems.total > 0 ? (
+                          <ActionItemProgress data={meeting.actionItems} />
+                        ) : null}
+                        {!meeting.notes && (!meeting.actionItems || meeting.actionItems.total === 0) ? (
+                          <span className="text-slate-400 italic text-[11px]">- Belum ada catatan -</span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Aksi */}
                     <td className="py-3 px-3 sm:px-3.5 align-top text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-[#F0F9FA] z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/40 transition-colors">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Dynamic Quick Action: Mulai Rapat / Setujui Hasil Rapat */}
+                        {/* Dynamic Quick Action: Mulai Kegiatan / Setujui Hasil Kegiatan */}
                         {(() => {
                           const curProg = normalizeProgressStatus(
                             meeting.progressStatus || mapStatusToProgress(meeting.status)
@@ -1104,14 +1168,14 @@ export function MeetingTable({
                                 disabled={isUpdatingThis}
                                 onClick={() => handleStartMeeting(meeting)}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#31889C] hover:bg-[#266F80] text-white text-[11px] font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
-                                title="Klik untuk Mulai Rapat (Otomatis ubah status ke Dalam Proses)"
+                                title="Klik untuk Mulai Kegiatan (Otomatis ubah status ke Dalam Proses)"
                               >
                                 {isUpdatingThis ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
                                   <Play className="w-3 h-3 fill-current" />
                                 )}
-                                <span>Mulai Rapat</span>
+                                <span>Mulai Kegiatan</span>
                               </button>
                             );
                           }
@@ -1123,14 +1187,14 @@ export function MeetingTable({
                                 disabled={isUpdatingThis}
                                 onClick={() => handleApproveMeeting(meeting)}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
-                                title="Admin & Pimpinan: Setujui hasil rapat (Otomatis ubah status ke Selesai)"
+                                title="Admin & Pimpinan: Setujui hasil kegiatan (Otomatis ubah status ke Selesai)"
                               >
                                 {isUpdatingThis ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
                                   <CheckCircle2 className="w-3 h-3" />
                                 )}
-                                <span>Setujui Hasil Rapat</span>
+                                <span>Setujui Hasil</span>
                               </button>
                             );
                           }
@@ -1139,7 +1203,7 @@ export function MeetingTable({
                             return (
                               <span
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10.5px] font-bold whitespace-nowrap shrink-0"
-                                title="Rapat telah disahkan dan berstatus Selesai"
+                                title="Kegiatan telah disahkan dan berstatus Selesai"
                               >
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                 <span>Selesai</span>
@@ -1157,7 +1221,7 @@ export function MeetingTable({
                             disabled={deletingRowId === meeting.id}
                             onClick={() => handleDeleteSingleMeeting(meeting)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
-                            title={`Hapus Rapat ${meeting.code}`}
+                            title={`Hapus Kegiatan ${meeting.code}`}
                           >
                             {deletingRowId === meeting.id ? (
                               <Loader2 className="w-4 h-4 animate-spin text-red-600" />
@@ -1184,7 +1248,7 @@ export function MeetingTable({
             <strong className="text-slate-800">
               {filteredMeetings.length === 0 ? 0 : startIndex + 1}–{endIndex}
             </strong>{' '}
-            dari total <strong className="text-slate-800">{filteredMeetings.length}</strong> risalah rapat terdaftar
+            dari total <strong className="text-slate-800">{filteredMeetings.length}</strong> kegiatan terdaftar
           </span>
 
           <div className="flex items-center gap-1.5">
@@ -1243,7 +1307,7 @@ export function MeetingTable({
         </div>
       )}
 
-      {/* Agenda Series Modal (Linimasa Rapat Terkait) */}
+      {/* Agenda Series Modal (Linimasa Kegiatan Terkait) */}
       <AgendaSeriesModal
         isOpen={isSeriesModalOpen}
         onClose={() => {

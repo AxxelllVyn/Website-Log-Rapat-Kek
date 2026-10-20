@@ -114,11 +114,26 @@ export function SemuaRapatClient({
   const yearParam = searchParams.get('tahun') || searchParams.get('year');
   const dayParam = searchParams.get('hari') || searchParams.get('day');
   const dateParam = searchParams.get('tanggal') || searchParams.get('date');
+  const periodeParam = searchParams.get('periode');
 
   const monthIdx = parseMonthFilterIndex(monthParam);
   const dayIdx = parseDayFilterIndex(dayParam);
   const targetYear = yearParam ? parseInt(yearParam, 10) : null;
   const targetDate = dateParam ? dateParam.trim() : null;
+
+  const currentWeekRange = useMemo(() => {
+    const current = new Date();
+    const day = current.getDay(); // 0 is Sun, 1 is Mon...
+    const diffToMonday = current.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(current.getFullYear(), current.getMonth(), diffToMonday);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    return {
+      startIso: monday.toLocaleDateString('en-CA'),
+      endIso: sunday.toLocaleDateString('en-CA'),
+    };
+  }, []);
+
+  const isThisWeekPresetActive = periodeParam === 'mingguan' || periodeParam === 'minggu_ini';
 
   // Available unique years in dataset
   const availableYears = useMemo(() => {
@@ -139,8 +154,10 @@ export function SemuaRapatClient({
     if (m.primaryTeamCode?.toUpperCase() === c) return true;
     if (m.primaryTeamId?.toUpperCase().includes(c)) return true;
     if (c === 'INV' && (m.primaryTeamName?.toLowerCase().includes('investasi') || m.primaryTeamCode === 'TIM-001' || m.primaryTeamId === 'TIM-001')) return true;
-    if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
+    if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamName?.toLowerCase().includes('kerjasama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
     if (c === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002')) return true;
+    if (c === 'SI' && (m.primaryTeamName?.toLowerCase().includes('sistem informasi') || m.primaryTeamCode === 'TIM-004' || m.primaryTeamId === 'TIM-004')) return true;
+    if (c === 'POKJA' && (m.primaryTeamName?.toLowerCase().includes('pokja') || m.primaryTeamCode === 'TIM-005' || m.primaryTeamId === 'TIM-005')) return true;
     return false;
   };
 
@@ -158,6 +175,13 @@ export function SemuaRapatClient({
   // Meetings filtered by Tim AND Date/Month/Day/Year AND Search Filter AND Category
   const fullyFilteredMeetings = useMemo(() => {
     return teamFilteredMeetings.filter((m) => {
+      if (isThisWeekPresetActive) {
+        const parsed = parseMeetingDate(m.date);
+        if (!parsed) return false;
+        if (parsed.isoDate < currentWeekRange.startIso || parsed.isoDate > currentWeekRange.endIso) {
+          return false;
+        }
+      }
       if (monthIdx !== null || dayIdx !== null || targetYear !== null || targetDate !== null) {
         const parsed = parseMeetingDate(m.date);
         if (!parsed) return false;
@@ -206,7 +230,7 @@ export function SemuaRapatClient({
       }
       return true;
     });
-  }, [teamFilteredMeetings, monthIdx, dayIdx, targetYear, targetDate, searchFilter, kategoriParam, jenisParam]);
+  }, [teamFilteredMeetings, isThisWeekPresetActive, currentWeekRange, monthIdx, dayIdx, targetYear, targetDate, searchFilter, kategoriParam, jenisParam]);
 
   const countAll = fullyFilteredMeetings.length;
   const countBelumDimulai = fullyFilteredMeetings.filter(
@@ -253,7 +277,7 @@ export function SemuaRapatClient({
     { label: 'Daftar Naskah Masuk', value: 'NASKAH_MASUK', count: countNaskahMasuk, icon: '📥' },
     { label: 'Disposisi Sekjen', value: 'DISPOSISI_SEKJEN', count: countDisposisiSekjen, icon: '🏛️' },
     { label: 'Disposisi Biro', value: 'DISPOSISI_BIRO', count: countDisposisiBiro, icon: '📑' },
-    { label: 'Tunda Rapat', value: 'SURAT_DITUNDA', count: countTundaRapat, icon: '⏳' },
+    { label: 'Tunda Kegiatan', value: 'SURAT_DITUNDA', count: countTundaRapat, icon: '⏳' },
   ];
 
   const handleSelectCategory = (val: string) => {
@@ -349,20 +373,23 @@ export function SemuaRapatClient({
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1-12
 
-  const hasActiveTimeFilter = Boolean(monthParam || yearParam || dayParam || dateParam);
   const isTodayPresetActive = dateParam === todayIso;
   const isThisMonthPresetActive =
     !dateParam &&
+    !isThisWeekPresetActive &&
     yearParam === currentYear.toString() &&
     monthIdx === new Date().getMonth();
   const isThisYearPresetActive =
     !dateParam &&
+    !isThisWeekPresetActive &&
     monthIdx === null &&
     dayIdx === null &&
     yearParam === currentYear.toString();
 
+  const hasActiveTimeFilter = Boolean(monthParam || yearParam || dayParam || dateParam || isThisWeekPresetActive);
+
   const isCustomTimeActive = Boolean(
-    dateParam ||
+    (dateParam && !isTodayPresetActive) ||
     dayParam ||
     (yearParam && !isThisYearPresetActive && !isThisMonthPresetActive) ||
     (monthParam && !isThisMonthPresetActive)
@@ -378,9 +405,10 @@ export function SemuaRapatClient({
   }, [isCustomTimeActive]);
 
   const activeTimeLabel = useMemo(() => {
-    if (isTodayPresetActive) return 'Hari Ini';
-    if (isThisMonthPresetActive) return 'Bulan Ini';
-    if (isThisYearPresetActive) return 'Tahun Ini';
+    if (isTodayPresetActive) return 'Harian (Hari Ini)';
+    if (isThisWeekPresetActive) return 'Mingguan (Minggu Ini)';
+    if (isThisMonthPresetActive) return 'Bulanan (Bulan Ini)';
+    if (isThisYearPresetActive) return 'Tahunan (Tahun Ini)';
     const parts = [
       targetYear ? `Tahun ${targetYear}` : null,
       monthIdx !== null ? MONTH_NAMES_INDONESIA[monthIdx] : null,
@@ -388,7 +416,7 @@ export function SemuaRapatClient({
       dateParam ? `Tgl ${dateParam}` : null,
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(' • ') : null;
-  }, [isTodayPresetActive, isThisMonthPresetActive, isThisYearPresetActive, targetYear, monthIdx, dayIdx, dateParam]);
+  }, [isTodayPresetActive, isThisWeekPresetActive, isThisMonthPresetActive, isThisYearPresetActive, targetYear, monthIdx, dayIdx, dateParam]);
 
   const hasAnyActiveFilter = Boolean(
     statusParam ||
@@ -399,7 +427,7 @@ export function SemuaRapatClient({
     searchFilter.trim()
   );
 
-  const handlePreset = (preset: 'ALL' | 'TODAY' | 'THIS_MONTH' | 'THIS_YEAR') => {
+  const handlePreset = (preset: 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'THIS_YEAR') => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('tanggal');
     params.delete('date');
@@ -409,9 +437,12 @@ export function SemuaRapatClient({
     params.delete('month');
     params.delete('tahun');
     params.delete('year');
+    params.delete('periode');
 
     if (preset === 'TODAY') {
       params.set('tanggal', todayIso);
+    } else if (preset === 'THIS_WEEK') {
+      params.set('periode', 'mingguan');
     } else if (preset === 'THIS_MONTH') {
       params.set('tahun', currentYear.toString());
       params.set('bulan', currentMonth.toString());
@@ -444,6 +475,7 @@ export function SemuaRapatClient({
     params.delete('day');
     params.delete('tanggal');
     params.delete('date');
+    params.delete('periode');
     router.push(params.toString() ? `/semua-rapat?${params.toString()}` : '/semua-rapat');
   };
 
@@ -465,6 +497,7 @@ export function SemuaRapatClient({
     params.delete('day');
     params.delete('tanggal');
     params.delete('date');
+    params.delete('periode');
     router.push(params.toString() ? `/semua-rapat?${params.toString()}` : '/semua-rapat');
   };
 
@@ -508,6 +541,8 @@ export function SemuaRapatClient({
     { code: 'INV', name: 'Tim Investasi', shortName: 'Investasi' },
     { code: 'KS', name: 'Tim Kerja Sama', shortName: 'Kerja Sama' },
     { code: 'KOM', name: 'Tim Komunikasi', shortName: 'Komunikasi' },
+    { code: 'SI', name: 'Tim Sistem Informasi', shortName: 'Sistem Informasi' },
+    { code: 'POKJA', name: 'Pokja', shortName: 'Pokja' },
   ];
 
   const handleSelectTeam = (val: string) => {
@@ -584,14 +619,14 @@ export function SemuaRapatClient({
         setConfirmInput('');
         setMeetingsList([]);
         toast.success(
-          `Berhasil menghapus seluruh data rapat (${res.count ?? initialMeetings.length} rapat telah dibersihkan).`
+          `Berhasil menghapus seluruh data kegiatan (${res.count ?? initialMeetings.length} kegiatan telah dibersihkan).`
         );
         router.refresh();
       } else {
-        toast.error(res.error || 'Gagal menghapus seluruh data rapat');
+        toast.error(res.error || 'Gagal menghapus seluruh data kegiatan');
       }
     } catch (err: any) {
-      toast.error(`Terjadi kesalahan: ${err?.message || 'Gagal menghapus rapat'}`);
+      toast.error(`Terjadi kesalahan: ${err?.message || 'Gagal menghapus kegiatan'}`);
     } finally {
       setIsDeletingAll(false);
     }
@@ -606,7 +641,7 @@ export function SemuaRapatClient({
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
           <div>
             <span className="font-bold">Akses Dibatasi: </span>
-            Anda tidak memiliki hak akses untuk membuka rapat dari biro lain. Anda telah diarahkan kembali ke daftar rapat biro Anda ({lockedBiroCode}).
+            Anda tidak memiliki hak akses untuk membuka kegiatan dari biro lain. Anda telah diarahkan kembali ke daftar kegiatan biro Anda ({lockedBiroCode}).
           </div>
         </div>
       )}
@@ -635,34 +670,34 @@ export function SemuaRapatClient({
             </span>
             <span className="text-[12px] text-slate-300 hidden sm:inline">•</span>
             <span className="text-[12px] font-medium text-slate-500">
-              Total <strong>{teamFilteredMeetings.length}</strong> Risalah Terdaftar
+              Total <strong>{teamFilteredMeetings.length}</strong> Kegiatan Terdaftar
             </span>
           </div>
 
           <h1 className="text-[22px] sm:text-[24px] font-extrabold text-slate-900 mt-1.5 tracking-tight">
             {effectiveLockedTeamCode
-              ? `Risalah Rapat — Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}`
+              ? `Arsip Kegiatan — Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}`
               : lockedBiroCode
-                ? `Risalah Rapat — ${currentUserBiroName || `Biro ${lockedBiroCode}`}`
-                : 'Daftar Risalah Rapat KEK RI'}
+                ? `Arsip Kegiatan — ${currentUserBiroName || `Biro ${lockedBiroCode}`}`
+                : 'Arsip Kegiatan & Aktivitas — Biro 3 (IKK)'}
           </h1>
           <p className="text-[13px] text-slate-500 mt-1 max-w-2xl leading-relaxed">
             {effectiveLockedTeamCode
-              ? `Arsip lengkap agenda, risalah keputusan, dan status tindak lanjut khusus penugasan Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}.`
+              ? `Arsip lengkap kegiatan, agenda, hasil kerja, dan status pekerjaan khusus Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}.`
               : lockedBiroCode
-                ? `Arsip lengkap agenda, risalah keputusan, dan status tindak lanjut khusus penugasan ${currentUserBiroName || `Biro ${lockedBiroCode}`}.`
-                : 'Pusat kendali agenda sidang, perumusan notula keputusan, dan pemantauan tindak lanjut seluruh Biro KEK.'}
+                ? `Arsip lengkap kegiatan, agenda, hasil kerja, dan status pekerjaan ${currentUserBiroName || `Biro ${lockedBiroCode}`}.`
+                : 'Sistem monitoring terpadu seluruh kegiatan, hasil kerja, dan status pekerjaan 5 tim kerja Biro 3 (Investasi, Kerja Sama, Komunikasi, Sistem Informasi, Pokja).'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-center">
-          {/* Hapus Semua Rapat Button (SUPER_ADMIN / ADMIN only) */}
+          {/* Hapus Semua Kegiatan Button (SUPER_ADMIN / ADMIN only) */}
           {canDeleteAll && meetingsList.length > 0 && (
             <button
               type="button"
               onClick={() => setIsDeleteModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 font-semibold text-[12px] transition-all cursor-pointer shadow-2xs"
-              title="Hapus seluruh data rapat dari database (Hanya Administrator)"
+              title="Hapus seluruh data kegiatan dari database (Hanya Administrator)"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-600" />
               <span>Hapus Semua</span>
@@ -676,7 +711,7 @@ export function SemuaRapatClient({
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#31889C] text-white font-semibold text-[12.5px] hover:bg-[#266F80] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ Jadwalkan Rapat</span>
+                <span>+ Catat Kegiatan Baru</span>
               </Link>
             </div>
           )}
@@ -820,7 +855,7 @@ export function SemuaRapatClient({
                       ? "bg-slate-100 border-slate-300 text-slate-900"
                       : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                 )}
-                title="Filter berdasarkan Status Rapat"
+                title="Filter berdasarkan Status Kegiatan"
               >
                 <span className={cn("w-2 h-2 rounded-full shrink-0", selectedStatusDot)} />
                 <span className="truncate max-w-[120px]">{selectedStatusLabel}</span>
@@ -843,7 +878,7 @@ export function SemuaRapatClient({
               {openDropdown === 'STATUS' && (
                 <div className="absolute left-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                    Status Rapat
+                    Status Kegiatan
                   </div>
                   {statusFilters.map((tab) => {
                     const isActive =
@@ -968,7 +1003,7 @@ export function SemuaRapatClient({
                       ? "bg-slate-100 border-slate-300 text-slate-900"
                       : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                 )}
-                title="Filter berdasarkan Jenis Rapat"
+                title="Filter berdasarkan Jenis Kegiatan"
               >
                 <span>{selectedJenisIcon}</span>
                 <span className="truncate max-w-[130px]">{selectedJenisLabel}</span>
@@ -991,7 +1026,7 @@ export function SemuaRapatClient({
               {openDropdown === 'JENIS' && (
                 <div className="absolute right-0 sm:left-0 sm:right-auto mt-1.5 w-64 max-h-72 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200/90 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-2.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase sticky top-0 bg-white border-b border-slate-100 mb-1">
-                    Jenis Rapat
+                    Jenis Kegiatan
                   </div>
                   {jenisFilters.map((jf) => {
                     const isActive = jf.value === 'ALL'
@@ -1082,8 +1117,22 @@ export function SemuaRapatClient({
                       isTodayPresetActive ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
                     )}
                   >
-                    <span>Hari Ini</span>
+                    <span>Harian (Hari Ini)</span>
                     {isTodayPresetActive && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handlePreset('THIS_WEEK');
+                      setOpenDropdown(null);
+                    }}
+                    className={cn(
+                      "flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[12px] text-left transition-colors cursor-pointer",
+                      isThisWeekPresetActive ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                    )}
+                  >
+                    <span>Mingguan (Minggu Ini)</span>
+                    {isThisWeekPresetActive && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
                   </button>
                   <button
                     type="button"
@@ -1096,7 +1145,7 @@ export function SemuaRapatClient({
                       isThisMonthPresetActive ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
                     )}
                   >
-                    <span>Bulan Ini</span>
+                    <span>Bulanan (Bulan Ini)</span>
                     {isThisMonthPresetActive && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
                   </button>
                   <button
@@ -1110,7 +1159,7 @@ export function SemuaRapatClient({
                       isThisYearPresetActive ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
                     )}
                   >
-                    <span>Tahun Ini</span>
+                    <span>Tahunan (Tahun Ini)</span>
                     {isThisYearPresetActive && <Check className="w-3.5 h-3.5 text-[#31889C]" />}
                   </button>
                   <div className="my-1 border-t border-slate-100" />
@@ -1206,7 +1255,7 @@ export function SemuaRapatClient({
               {/* Bulan */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Bulan Rapat
+                  Bulan Kegiatan
                 </label>
                 <select
                   value={monthIdx !== null ? (monthIdx + 1).toString() : 'ALL'}
@@ -1301,7 +1350,7 @@ export function SemuaRapatClient({
         }}
       />
 
-      {/* Danger Modal: Konfirmasi Hapus Semua Rapat */}
+      {/* Danger Modal: Konfirmasi Hapus Semua Kegiatan */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl border border-red-200 shadow-2xl max-w-lg w-full p-6 animate-in fade-in zoom-in-95 duration-200">
@@ -1312,11 +1361,11 @@ export function SemuaRapatClient({
               </div>
               <div className="space-y-1">
                 <h3 className="font-bold text-[18px] text-slate-900">
-                  Konfirmasi Hapus Semua Rapat
+                  Konfirmasi Hapus Semua Kegiatan
                 </h3>
                 <p className="text-[13px] text-slate-600 leading-relaxed">
-                  Tindakan ini akan menghapus permanen <strong>seluruh data rapat ({initialMeetings.length} rapat)</strong>,
-                  beserta notulen risalah, presensi peserta, dan butir tindak lanjut dari basis data Neon PostgreSQL.
+                  Tindakan ini akan menghapus permanen <strong>seluruh data kegiatan ({initialMeetings.length} kegiatan)</strong>,
+                  beserta notulen risalah dan butir tindak lanjut dari basis data.
                 </p>
               </div>
             </div>
@@ -1325,7 +1374,7 @@ export function SemuaRapatClient({
             <div className="mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-[12.5px] text-red-800 space-y-1">
               <span className="font-bold block">⚠️ Peringatan: Tindakan ini permanen!</span>
               <p>
-                Seluruh data sidang akan dikosongkan. Nomor urut rapat masing-masing biro juga akan direset kembali ke 001.
+                Seluruh data kegiatan akan dikosongkan. Nomor urut kegiatan masing-masing biro juga akan direset kembali ke 001.
               </p>
             </div>
 
@@ -1370,7 +1419,7 @@ export function SemuaRapatClient({
                 ) : (
                   <Trash2 className="w-4 h-4" />
                 )}
-                <span>{isDeletingAll ? 'Menghapus Semua...' : 'Ya, Hapus Semua Rapat'}</span>
+                <span>{isDeletingAll ? 'Menghapus Semua...' : 'Ya, Hapus Semua Kegiatan'}</span>
               </button>
             </div>
           </div>
