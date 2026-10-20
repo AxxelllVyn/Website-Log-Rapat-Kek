@@ -277,21 +277,43 @@ export function Sidebar({
 
                   {!collapsed && isTimOpen && (
                     <div className="pl-7 pr-2 py-1 space-y-1">
-                      {[
-                        { code: 'INV', name: 'Tim Investasi', href: '/semua-rapat?tim=INV' },
-                        { code: 'KS', name: 'Tim Kerja Sama', href: '/semua-rapat?tim=KS' },
-                        { code: 'KOM', name: 'Tim Komunikasi', href: '/semua-rapat?tim=KOM' },
-                        { code: 'SI', name: 'Tim Sistem Informasi', href: '/semua-rapat?tim=SI' },
-                        { code: 'POKJA', name: 'Pokja', href: '/semua-rapat?tim=POKJA' },
-                      ]
-                        .filter((tim) => {
-                          // Untuk role Staf, hanya tampilkan tim yang sesuai dengan tim mereka jika ada spesifik tim
-                          if (userRole === 'STAFF' && session?.user?.teamCode) {
-                            return tim.code.toUpperCase() === session.user.teamCode.toUpperCase();
+                      {(() => {
+                        const defaultTeams = [
+                          { code: 'INV', name: 'Tim Investasi', href: '/semua-rapat?tim=INV' },
+                          { code: 'KS', name: 'Tim Kerja Sama', href: '/semua-rapat?tim=KS' },
+                          { code: 'KOM', name: 'Tim Komunikasi', href: '/semua-rapat?tim=KOM' },
+                          { code: 'SI', name: 'Tim Sistem Informasi', href: '/semua-rapat?tim=SI' },
+                          { code: 'POKJA', name: 'Pokja', href: '/semua-rapat?tim=POKJA' },
+                        ];
+
+                        const userAssigned = (session?.user as any)?.assignedTeams || [];
+                        const userAssignedCodes = Array.from(
+                          new Set([
+                            ...userAssigned.map((t: any) => (t.code || '').toUpperCase()),
+                            ...(session?.user?.teamCode ? [session.user.teamCode.toUpperCase()] : []),
+                          ])
+                        ).filter(Boolean);
+
+                        const allTeams = [...defaultTeams];
+                        for (const u of userAssigned) {
+                          if (u.code && !allTeams.some((t) => t.code.toUpperCase() === u.code.toUpperCase())) {
+                            allTeams.push({
+                              code: u.code,
+                              name: u.name?.startsWith('Tim ') || u.name?.startsWith('Pokja') ? u.name : `Tim ${u.name}`,
+                              href: `/semua-rapat?tim=${u.code}`,
+                            });
+                          }
+                        }
+
+                        return allTeams.filter((tim) => {
+                          if (userRole === 'STAFF') {
+                            if (userAssignedCodes.length > 0) {
+                              return userAssignedCodes.includes(tim.code.toUpperCase());
+                            }
                           }
                           return true;
-                        })
-                        .map((tim) => (
+                        });
+                      })().map((tim) => (
                         <Link
                           key={tim.code}
                           href={tim.href}

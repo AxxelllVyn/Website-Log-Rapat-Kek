@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { UserRole } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export type AppPermission =
   | 'view:dashboard'
@@ -86,6 +87,7 @@ export interface AuthUser {
   teamId?: string | null;
   teamCode?: string | null;
   teamName?: string | null;
+  assignedTeams?: Array<{ id: string; code: string; name: string; role?: string | null }>;
 }
 
 let testUserOverride: AuthUser | null = null;
@@ -109,6 +111,39 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     if (!session?.user?.id || !session.user.role) {
       return null;
     }
+
+    let assignedTeams = (session.user as any).assignedTeams || [];
+    if (assignedTeams.length === 0 && session.user.id) {
+      try {
+        const uTeams = await prisma.userTeam.findMany({
+          where: { userId: session.user.id },
+          include: { team: true },
+        });
+        const map = new Map<string, { id: string; code: string; name: string; role?: string | null }>();
+        if (session.user.teamId && session.user.teamCode && session.user.teamName) {
+          map.set(session.user.teamId, {
+            id: session.user.teamId,
+            code: session.user.teamCode,
+            name: session.user.teamName,
+            role: 'PRIMARY',
+          });
+        }
+        for (const ut of uTeams) {
+          if (ut.team && ut.team.isActive && !map.has(ut.team.id)) {
+            map.set(ut.team.id, {
+              id: ut.team.id,
+              code: ut.team.code,
+              name: ut.team.name,
+              role: ut.role || 'ANGGOTA',
+            });
+          }
+        }
+        assignedTeams = Array.from(map.values());
+      } catch {
+        // Fallback error ignored
+      }
+    }
+
     return {
       id: session.user.id,
       name: session.user.name,
@@ -120,6 +155,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       teamId: session.user.teamId,
       teamCode: session.user.teamCode,
       teamName: session.user.teamName,
+      assignedTeams,
     };
   } catch (error) {
     console.error('Error getting current user:', error);

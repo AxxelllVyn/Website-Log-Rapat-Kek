@@ -9,6 +9,24 @@ export interface BiroTeam {
   isActive?: boolean;
 }
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  teamRole?: string;
+  isActive: boolean;
+}
+
+export interface TeamWithMembers {
+  id: string;
+  code: string;
+  name: string;
+  shortName?: string;
+  description?: string | null;
+  members: TeamMember[];
+}
+
 export interface Biro {
   id?: string;
   code: BiroCode;

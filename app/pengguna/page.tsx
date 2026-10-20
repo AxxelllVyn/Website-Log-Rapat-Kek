@@ -107,23 +107,92 @@ export default async function PenggunaPage() {
               primaryMeetings: true,
             },
           },
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              isActive: true,
+            },
+            orderBy: [{ role: 'asc' }, { name: 'asc' }],
+          },
+          userTeams: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                  isActive: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'asc' },
+          },
         },
         orderBy: [{ isActive: 'desc' }, { code: 'asc' }],
       }),
     ])
   );
 
-  const formattedTeams = dbTeams.map((t) => ({
-    id: t.id,
-    code: t.code,
-    name: t.name.startsWith('Tim ') ? t.name : `Tim ${t.name}`,
-    shortName: t.name.replace(/^Tim\s+/, ''),
-    description: t.description,
-    isActive: t.isActive,
-    biroId: t.biroId,
-    memberCount: Math.max(t._count.users, t._count.userTeams),
-    meetingCount: t._count.primaryMeetings,
-  }));
+  const formattedTeams = dbTeams.map((t) => {
+    // Map to deduplicate members by userId
+    const memberMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        teamRole?: string;
+        isActive: boolean;
+      }
+    >();
+
+    // 1. Add direct members (teamId == t.id)
+    for (const u of t.users) {
+      memberMap.set(u.id, {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        teamRole: 'PJ_UTAMA',
+        isActive: u.isActive,
+      });
+    }
+
+    // 2. Add / enrich multi-team members from userTeams
+    for (const ut of t.userTeams) {
+      if (ut.user) {
+        const existing = memberMap.get(ut.user.id);
+        memberMap.set(ut.user.id, {
+          id: ut.user.id,
+          name: ut.user.name,
+          email: ut.user.email,
+          role: ut.user.role,
+          teamRole: ut.role || existing?.teamRole || 'ANGGOTA',
+          isActive: ut.user.isActive,
+        });
+      }
+    }
+
+    const members = Array.from(memberMap.values());
+
+    return {
+      id: t.id,
+      code: t.code,
+      name: t.name.startsWith('Tim ') ? t.name : `Tim ${t.name}`,
+      shortName: t.name.replace(/^Tim\s+/, ''),
+      description: t.description,
+      isActive: t.isActive,
+      biroId: t.biroId,
+      memberCount: Math.max(members.length, t._count.users, t._count.userTeams),
+      meetingCount: t._count.primaryMeetings,
+      members,
+    };
+  });
 
   return (
     <UserManagementView

@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { Biro, Meeting, BiroCode, MeetingStatus, BureauWorkload, DashboardMetric, MonthlyActivity, TeamWorkloadMetric } from './types';
+import { Biro, Meeting, BiroCode, MeetingStatus, BureauWorkload, DashboardMetric, MonthlyActivity, TeamWorkloadMetric, TeamWithMembers, TeamMember } from './types';
 
 /**
  * Service to fetch official data directly from Neon PostgreSQL database.
@@ -225,6 +225,7 @@ export async function getActionItemsFromDb(filters?: {
   biroCode?: string;
   status?: string;
   teamCode?: string | null;
+  teamCodes?: string[] | null;
   teamId?: string | null;
   userId?: string | null;
 }) {
@@ -244,17 +245,23 @@ export async function getActionItemsFromDb(filters?: {
         });
       }
 
-      if (filters?.teamCode || filters?.teamId || filters?.userId) {
+      if ((filters?.teamCodes && filters.teamCodes.length > 0) || filters?.teamCode || filters?.teamId || filters?.userId) {
         const teamOrs: any[] = [];
-        if (filters.teamCode) {
+        if (filters?.teamCodes && filters.teamCodes.length > 0) {
+          const uCodes = filters.teamCodes.map((c) => c.toUpperCase());
+          teamOrs.push({ picTeam: { code: { in: uCodes } } });
+          uCodes.forEach((code) => {
+            teamOrs.push({ meeting: { meetingNumber: { startsWith: `${code}-` } } });
+          });
+        } else if (filters?.teamCode) {
           const tCode = filters.teamCode.toUpperCase();
           teamOrs.push({ picTeam: { code: tCode } });
           teamOrs.push({ meeting: { meetingNumber: { startsWith: `${tCode}-` } } });
         }
-        if (filters.teamId) {
+        if (filters?.teamId) {
           teamOrs.push({ picTeamId: filters.teamId });
         }
-        if (filters.userId) {
+        if (filters?.userId) {
           teamOrs.push({ picUserId: filters.userId });
         }
         if (teamOrs.length > 0) {
@@ -337,6 +344,7 @@ export async function getMeetingsFromDb(filters?: {
   biroCode?: string | null;
   status?: MeetingStatus | null;
   teamCode?: string | null;
+  teamCodes?: string[] | null;
   teamId?: string | null;
 }): Promise<Meeting[]> {
   try {
@@ -352,7 +360,17 @@ export async function getMeetingsFromDb(filters?: {
         });
       }
 
-      if (filters?.teamCode) {
+      if (filters?.teamCodes && filters.teamCodes.length > 0) {
+        const uppercaseCodes = filters.teamCodes.map((c) => c.toUpperCase());
+        const teamOrs: any[] = [
+          { primaryTeam: { code: { in: uppercaseCodes } } },
+          ...uppercaseCodes.map((code) => ({ meetingNumber: { startsWith: `${code}-` } })),
+        ];
+        if (filters.teamId) {
+          teamOrs.push({ primaryTeamId: filters.teamId });
+        }
+        andConditions.push({ OR: teamOrs });
+      } else if (filters?.teamCode) {
         const tCode = filters.teamCode.toUpperCase();
         const teamOrs: any[] = [
           { primaryTeam: { code: tCode } },
@@ -961,3 +979,101 @@ export async function getDashboardStats() {
     return null;
   }
 }
+
+export async function getTeamsWithMembers(biroCode?: string): Promise<TeamWithMembers[]> {
+  try {
+    return await withDbRetry(async () => {
+      const where: any = { isActive: true };
+      if (biroCode) {
+        let upper = biroCode.toUpperCase().trim();
+        if (upper === 'INV') upper = 'IKK';
+        where.biro = { code: upper };
+      }
+
+      const dbTeams = await prisma.biroTeam.findMany({
+        where,
+        include: {
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              isActive: true,
+            },
+            orderBy: [{ role: 'asc' }, { name: 'asc' }],
+          },
+          userTeams: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                  isActive: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        orderBy: [{ code: 'asc' }],
+      });
+
+      return dbTeams.map((t) => {
+        const memberMap = new Map<string, TeamMember>();
+
+        // 1. Direct assigned users
+        for (const u of t.users) {
+          memberMap.set(u.id, {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            teamRole: u.role === 'ADMIN' ? 'PJ_UTAMA' : 'ANGGOTA',
+            isActive: u.isActive,
+          });
+        }
+
+        // 2. Multi-team users from userTeams
+        for (const ut of t.userTeams) {
+          if (ut.user) {
+            const existing = memberMap.get(ut.user.id);
+            memberMap.set(ut.user.id, {
+              id: ut.user.id,
+              name: ut.user.name,
+              email: ut.user.email,
+              role: ut.user.role,
+              teamRole: ut.role || existing?.teamRole || 'ANGGOTA',
+              isActive: ut.user.isActive,
+            });
+          }
+        }
+
+        const members = Array.from(memberMap.values()).sort((a, b) => {
+          const getPriority = (m: TeamMember) => {
+            if (m.teamRole === 'PJ_UTAMA' || m.teamRole === 'PIC') return 1;
+            if (m.role === 'ADMIN') return 2;
+            if (m.role === 'STAFF') return 3;
+            return 4;
+          };
+          return getPriority(a) - getPriority(b) || a.name.localeCompare(b.name);
+        });
+
+        return {
+          id: t.id,
+          code: t.code,
+          name: t.name,
+          shortName: t.code,
+          description: t.description,
+          members,
+        };
+      });
+    });
+  } catch (error) {
+    console.error('Error fetching teams with members from Neon DB:', error);
+    return [];
+  }
+}
+

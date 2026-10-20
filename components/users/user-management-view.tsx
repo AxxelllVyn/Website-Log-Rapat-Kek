@@ -33,6 +33,15 @@ import {
 import { toast, confirmModal } from '@/components/providers/toast-provider';
 import { TeamManagementPanel, TeamData } from '@/components/teams/team-management-panel';
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  teamRole?: string;
+  isActive: boolean;
+}
+
 export interface TeamItem {
   id: string;
   code: string;
@@ -43,6 +52,7 @@ export interface TeamItem {
   description?: string | null;
   memberCount?: number;
   meetingCount?: number;
+  members?: TeamMember[];
 }
 
 const CANONICAL_TEAMS: TeamItem[] = [
@@ -381,8 +391,8 @@ export function UserManagementView({
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
-      {/* Super Admin Top Navigation Tabs */}
-      {currentUserRole === 'SUPER_ADMIN' && (
+      {/* Navigation Tabs (Super Admin, Pimpinan, Admin) */}
+      {(currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'PIMPINAN' || currentUserRole === 'ADMIN') && (
         <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
           <button
             type="button"
@@ -435,9 +445,9 @@ export function UserManagementView({
       )}
 
       {/* Tab Content: Kelola Tim Kerja */}
-      {activeTab === 'teams' && currentUserRole === 'SUPER_ADMIN' ? (
+      {activeTab === 'teams' ? (
         <TeamManagementPanel
-          initialTeams={availableTeams as TeamData[]}
+          initialTeams={(availableTeams && availableTeams.length > 0 ? availableTeams : teamsList) as TeamData[]}
           currentUserRole={currentUserRole}
         />
       ) : (

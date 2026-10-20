@@ -1,4 +1,4 @@
-import { getMeetingsFromDb, getOfficialBiros } from '@/lib/db-service';
+import { getMeetingsFromDb, getOfficialBiros, getTeamsWithMembers } from '@/lib/db-service';
 import { getCurrentUser } from '@/lib/auth/authorization';
 import { SemuaRapatClient } from './semua-rapat-client';
 import { Suspense } from 'react';
@@ -7,7 +7,10 @@ import { BIRO_LIST } from '@/lib/mock-data';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function SemuaRapatPage() {
+export default async function SemuaRapatPage(props: {
+  searchParams?: Promise<{ tim?: string; biro?: string; [key: string]: string | undefined }>;
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : {};
   const currentUser = await getCurrentUser();
   const isPrivileged =
     currentUser?.role === 'SUPER_ADMIN' ||
@@ -17,19 +20,60 @@ export default async function SemuaRapatPage() {
   // Strict Bureau Scoping: Non-admin users only see meetings for their own bureau
   const userBiroCode = !isPrivileged && currentUser?.biroCode ? currentUser.biroCode : undefined;
 
-  // Strict Team Scoping: Staff only sees meetings for their own assigned work team
+  // Multi-Team Scoping: Gather all assigned teams for the user
   const isStaff = currentUser?.role === 'STAFF';
-  const userTeamCode = isStaff && currentUser?.teamCode ? currentUser.teamCode : undefined;
-  const userTeamName = isStaff && currentUser?.teamName ? currentUser.teamName : undefined;
-  const userTeamId = isStaff && currentUser?.teamId ? currentUser.teamId : undefined;
+  const userAssignedTeams = currentUser?.assignedTeams || [];
+  const userAssignedCodes = Array.from(
+    new Set([
+      ...userAssignedTeams.map((t) => t.code.toUpperCase()),
+      ...(currentUser?.teamCode ? [currentUser.teamCode.toUpperCase()] : []),
+    ])
+  ).filter(Boolean);
 
-  const [meetings, dbBiros] = await Promise.all([
+  const rawRequestedTim = (searchParams.tim || searchParams.biro || '').toUpperCase().trim();
+  const requestedTim =
+    rawRequestedTim && rawRequestedTim !== 'ALL' && rawRequestedTim !== 'IKK' && rawRequestedTim !== 'BIRO-IKK'
+      ? rawRequestedTim
+      : undefined;
+
+  let queryTeamCode: string | undefined = undefined;
+  let queryTeamCodes: string[] | undefined = undefined;
+  let lockedTeamCode: string | undefined = undefined;
+  let lockedTeamName: string | undefined = undefined;
+
+  if (isStaff) {
+    if (requestedTim && (userAssignedCodes.length === 0 || userAssignedCodes.includes(requestedTim))) {
+      // Staff explicitly navigated to one of their assigned teams (e.g. from sidebar /semua-rapat?tim=KOM)
+      queryTeamCode = requestedTim;
+    } else if (userAssignedCodes.length > 1) {
+      // Staff belongs to multiple teams and hasn't filtered to a specific team
+      queryTeamCodes = userAssignedCodes;
+    } else if (userAssignedCodes.length === 1) {
+      // Staff strictly belongs to only 1 team
+      queryTeamCode = userAssignedCodes[0];
+      lockedTeamCode = userAssignedCodes[0];
+      lockedTeamName = currentUser?.teamName || undefined;
+    } else if (currentUser?.teamCode) {
+      queryTeamCode = currentUser.teamCode;
+      lockedTeamCode = currentUser.teamCode;
+      lockedTeamName = currentUser?.teamName || undefined;
+    }
+  } else {
+    // Admin, Pimpinan, Super Admin
+    if (requestedTim) {
+      queryTeamCode = requestedTim;
+    }
+  }
+
+  const [meetings, dbBiros, dbTeamsWithMembers] = await Promise.all([
     getMeetingsFromDb({
       biroCode: userBiroCode,
-      teamCode: userTeamCode,
-      teamId: userTeamId,
+      teamCode: queryTeamCode,
+      teamCodes: queryTeamCodes,
+      teamId: !requestedTim && isStaff && userAssignedCodes.length <= 1 ? (currentUser?.teamId ?? undefined) : undefined,
     }),
     getOfficialBiros(),
+    getTeamsWithMembers(userBiroCode || 'IKK'),
   ]);
 
   const availableBiros = dbBiros && dbBiros.length > 0 ? dbBiros : BIRO_LIST;
@@ -39,11 +83,15 @@ export default async function SemuaRapatPage() {
       <SemuaRapatClient
         initialMeetings={meetings}
         availableBiros={availableBiros}
+        availableTeams={dbTeamsWithMembers}
         lockedBiroCode={userBiroCode}
         currentUserBiroName={currentUser?.biroName}
         currentUserRole={currentUser?.role}
-        lockedTeamCode={userTeamCode}
-        lockedTeamName={userTeamName}
+        allowedTeamCodes={userAssignedCodes.length > 0 ? userAssignedCodes : undefined}
+        lockedTeamCode={lockedTeamCode}
+        lockedTeamName={lockedTeamName}
+        currentUserId={currentUser?.id}
+        currentUserEmail={currentUser?.email ?? undefined}
       />
     </Suspense>
   );

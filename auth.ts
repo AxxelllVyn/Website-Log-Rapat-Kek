@@ -32,7 +32,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: normalizedEmail },
-          include: { biro: true, team: true },
+          include: {
+            biro: true,
+            team: true,
+            userTeams: {
+              include: {
+                team: true,
+              },
+            },
+          },
         });
 
         // Reject if user doesn't exist, has no password, or is deactivated
@@ -43,6 +51,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
           return null;
+        }
+
+        const assignedTeamsMap = new Map<string, { id: string; code: string; name: string; role?: string | null }>();
+        if (user.team && user.team.isActive) {
+          assignedTeamsMap.set(user.team.id, {
+            id: user.team.id,
+            code: user.team.code,
+            name: user.team.name,
+            role: 'PRIMARY',
+          });
+        }
+        if (user.userTeams && Array.isArray(user.userTeams)) {
+          for (const ut of user.userTeams) {
+            if (ut.team && ut.team.isActive && !assignedTeamsMap.has(ut.team.id)) {
+              assignedTeamsMap.set(ut.team.id, {
+                id: ut.team.id,
+                code: ut.team.code,
+                name: ut.team.name,
+                role: ut.role || 'ANGGOTA',
+              });
+            }
+          }
         }
 
         return {
@@ -56,6 +86,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           teamId: user.teamId,
           teamCode: user.team?.code,
           teamName: user.team?.name,
+          assignedTeams: Array.from(assignedTeamsMap.values()),
         };
       },
     }),
@@ -73,6 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.teamId = user.teamId;
         token.teamCode = user.teamCode;
         token.teamName = user.teamName;
+        token.assignedTeams = (user as any).assignedTeams || [];
       }
 
       // Handle client-side session update
@@ -89,9 +121,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (session.user?.teamCode) token.teamCode = session.user.teamCode;
         if (session.teamName) token.teamName = session.teamName;
         if (session.user?.teamName) token.teamName = session.user.teamName;
+        if (session.user?.assignedTeams) token.assignedTeams = session.user.assignedTeams;
       }
 
-      // Realtime sync from database: ensures profile edits are immediately reflected
+      // Realtime sync from database: ensures profile edits and team assignments are immediately reflected
       if (token?.id) {
         try {
           const dbUser = await prisma.user.findUnique({
@@ -101,8 +134,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               role: true,
               isActive: true,
               teamId: true,
-              team: { select: { id: true, code: true, name: true } },
+              team: { select: { id: true, code: true, name: true, isActive: true } },
               biro: { select: { id: true, code: true, shortName: true } },
+              userTeams: {
+                select: {
+                  role: true,
+                  team: { select: { id: true, code: true, name: true, isActive: true } },
+                },
+              },
             },
           });
           if (dbUser && dbUser.isActive) {
@@ -116,6 +155,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.biroCode = dbUser.biro.code;
               token.biroName = dbUser.biro.shortName;
             }
+
+            const teamsMap = new Map<string, { id: string; code: string; name: string; role?: string | null }>();
+            if (dbUser.team && dbUser.team.isActive) {
+              teamsMap.set(dbUser.team.id, {
+                id: dbUser.team.id,
+                code: dbUser.team.code,
+                name: dbUser.team.name,
+                role: 'PRIMARY',
+              });
+            }
+            if (dbUser.userTeams) {
+              for (const ut of dbUser.userTeams) {
+                if (ut.team && ut.team.isActive && !teamsMap.has(ut.team.id)) {
+                  teamsMap.set(ut.team.id, {
+                    id: ut.team.id,
+                    code: ut.team.code,
+                    name: ut.team.name,
+                    role: ut.role || 'ANGGOTA',
+                  });
+                }
+              }
+            }
+            token.assignedTeams = Array.from(teamsMap.values());
           }
         } catch {
           // If DB query fails temporarily, retain token data
@@ -135,6 +197,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.teamId = (token.teamId as string) || null;
         session.user.teamCode = (token.teamCode as string) || null;
         session.user.teamName = (token.teamName as string) || null;
+        session.user.assignedTeams = (token.assignedTeams as any) || [];
       }
       return session;
     },
