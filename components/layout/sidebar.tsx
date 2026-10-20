@@ -129,7 +129,7 @@ export function Sidebar({
               {!collapsed && (
                 <div className="flex flex-col min-w-0 text-left">
                   <span className="font-extrabold text-[12.5px] text-white tracking-wide leading-tight">
-                    AKTIVITAS BIRO 3
+                    Aktivitas Kegiatan Biro 3
                   </span>
                   <span className="text-[10px] text-teal-100 font-medium leading-[1.25] mt-0.5 line-clamp-2">
                     Biro Investasi, Kerja Sama &amp; Komunikasi

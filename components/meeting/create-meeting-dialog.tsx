@@ -369,7 +369,7 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
           {/* 4. Kategori Naskah */}
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
             <label className="block text-xs font-bold text-slate-800">
-              4. Kategori Dasar Naskah:
+              4. Kategori Kegiatan:
             </label>
             <select
               value={kategoriRapat}

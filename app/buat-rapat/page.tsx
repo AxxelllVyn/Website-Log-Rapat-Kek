@@ -18,7 +18,6 @@ import {
   RefreshCw,
   FolderOpen,
   ChevronDown,
-  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -673,10 +672,10 @@ export default function BuatRapatPage() {
               <div className="flex items-center justify-between">
                 <label htmlFor="kategori-naskah-select" className="font-bold text-slate-800 flex items-center gap-2 text-sm cursor-pointer">
                   <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">4</span>
-                  <span>Kategori Dasar Naskah</span>
+                  <span>Kategori Kegiatan</span>
                   <span className="text-red-500">*</span>
                 </label>
-                <span className="text-xs text-slate-400">Pilih salah satu dasar pencatatan</span>
+                <span className="text-xs text-slate-400">Pilih salah satu kategori kegiatan</span>
               </div>
 
               {/* Field Dropdown Kategori Naskah */}
@@ -839,25 +838,6 @@ export default function BuatRapatPage() {
           </div>
         </div>
 
-        {/* ========================================================================= */}
-        {/* BAGIAN IV: TAHAP OUTPUT HASIL KEGIATAN (DIISI PASCA-PELAKSANAAN)          */}
-        {/* ========================================================================= */}
-        <div className="bg-gradient-to-r from-teal-50 via-cyan-50/60 to-emerald-50 rounded-2xl border border-teal-200/80 p-5 shadow-xs flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#1E6B7B] text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-            <Info className="w-5 h-5" />
-          </div>
-          <div className="space-y-1.5">
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <span>Hasil Kegiatan, Output Kerja &amp; Tindak Lanjut</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-[#1E6B7B] border border-teal-200">
-                Tahap Pasca-Kegiatan
-              </span>
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Untuk alur pencatatan yang rapi, <strong>Tautan Google Drive</strong>, <strong>Catatan Capaian Hasil</strong>, <strong>Nota Dinas Konsumsi (Nd Konsum)</strong>, dan <strong>Rilis Berita</strong> akan diisi langsung oleh PIC terkait setelah kegiatan dilaksanakan melalui tombol <em>&quot;Edit / Isi Hasil Kegiatan&quot;</em> di halaman detail kegiatan.
-            </p>
-          </div>
-        </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">

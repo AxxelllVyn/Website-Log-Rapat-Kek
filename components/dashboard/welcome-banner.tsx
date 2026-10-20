@@ -144,7 +144,7 @@ export function WelcomeBanner({
 
           {/* Dynamic Personalized Heading */}
           <h1 className="text-[24px] md:text-[28px] text-slate-900 font-bold tracking-tight">
-            Aktivitas Biro 3 — Selamat Datang, {userName}
+            Selamat Datang, {userName}
           </h1>
 
           {/* Simple, Clear Subtext */}
