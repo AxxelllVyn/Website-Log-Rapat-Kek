@@ -138,17 +138,6 @@ export function CommandPalette({ isOpen, onClose, onCreateMeeting }: CommandPale
         },
       },
       {
-        id: 'act-followups',
-        title: 'Tindak Lanjut & Matriks Keputusan',
-        subtitle: 'Pantau status resolusi dan action items tiap biro',
-        category: 'action',
-        icon: <Clock className="w-4 h-4 text-[#F99D1C]" />,
-        action: () => {
-          onClose();
-          router.push('/tindak-lanjut');
-        },
-      },
-      {
         id: 'act-settings',
         title: 'Pengaturan Sistem',
         subtitle: 'Konfigurasi akun, preferensi dan manajemen pengguna',
