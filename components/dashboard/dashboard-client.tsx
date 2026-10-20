@@ -53,10 +53,8 @@ function isMatchTeam(m: Meeting, code: string): boolean {
   if (m.primaryTeamCode?.toUpperCase() === c) return true;
   if (m.primaryTeamId?.toUpperCase().includes(c)) return true;
   if (c === 'INV' && (m.primaryTeamName?.toLowerCase().includes('investasi') || m.primaryTeamCode === 'TIM-001' || m.primaryTeamId === 'TIM-001')) return true;
-  if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamName?.toLowerCase().includes('kerjasama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
+  if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
   if (c === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002')) return true;
-  if (c === 'SI' && (m.primaryTeamName?.toLowerCase().includes('sistem informasi') || m.primaryTeamCode === 'TIM-004' || m.primaryTeamId === 'TIM-004')) return true;
-  if (c === 'POKJA' && (m.primaryTeamName?.toLowerCase().includes('pokja') || m.primaryTeamCode === 'TIM-005' || m.primaryTeamId === 'TIM-005')) return true;
   return false;
 }
 
@@ -114,15 +112,17 @@ export function DashboardClient({
     };
   }, [initialTeamWorkload]);
 
-  const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA'];
+  const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA', 'UMUM'];
   const sanitizedTeamWorkload = useMemo(() => {
-    return (teamWorkload || [])
-      .filter((t) => CANONICAL_CODES.includes(t.code.toUpperCase()))
-      .sort(
-        (a, b) =>
-          CANONICAL_CODES.indexOf(a.code.toUpperCase()) -
-          CANONICAL_CODES.indexOf(b.code.toUpperCase())
-      );
+    if (!teamWorkload || teamWorkload.length === 0) return [];
+    return [...teamWorkload].sort((a, b) => {
+      const idxA = CANONICAL_CODES.indexOf(a.code.toUpperCase());
+      const idxB = CANONICAL_CODES.indexOf(b.code.toUpperCase());
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.name.localeCompare(b.name);
+    });
   }, [teamWorkload]);
 
   // Khusus staf: temukan data beban kerja dan pekerjaan tim yang sesuai
@@ -267,9 +267,9 @@ export function DashboardClient({
       return [
         {
           id: 'total-rapat',
-          label: `TOTAL KEGIATAN (YTD ${selectedYear})`,
+          label: `TOTAL RAPAT (YTD ${selectedYear})`,
           value: totalYearMeetings,
-          unit: 'Kegiatan',
+          unit: 'Rapat',
           changeValue: totalYearMeetings > 0 ? '+100%' : '0%',
           changeLabel: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `Tahun ${selectedYear}`,
           variant: 'default',
@@ -297,9 +297,9 @@ export function DashboardClient({
         },
         {
           id: 'perlu-atensi',
-          label: 'MONITORING PROSES KEGIATAN',
+          label: 'MONITORING PROSES RAPAT',
           value: yearOnProgress + yearStart,
-          unit: 'Kegiatan',
+          unit: 'Rapat',
           badgeText: `${yearOnProgress} Dalam Proses • ${yearStart} Belum Dimulai`,
           badgeSubtext: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `Tahun ${selectedYear}`,
           variant: yearOnProgress > 0 ? 'default' : 'default',
@@ -321,9 +321,9 @@ export function DashboardClient({
     return [
       {
         id: 'total-rapat',
-        label: `TOTAL KEGIATAN (YTD s/d ${selectedMonth})`,
+        label: `TOTAL RAPAT (YTD s/d ${selectedMonth})`,
         value: ytdMeetings.length,
-        unit: 'Kegiatan',
+        unit: 'Rapat',
         changeValue: `${ytdMeetings.length}/${yearMeetings.length || 1}`,
         changeLabel: isStaff && userTeamWorkload ? `Tim ${userTeamWorkload.name}` : `s/d ${selectedMonth} ${selectedYear}`,
         variant: 'default',
@@ -331,7 +331,7 @@ export function DashboardClient({
       },
       {
         id: 'rapat-bulan-ini',
-        label: `KEGIATAN BULAN ${fullMonthName.toUpperCase()}`,
+        label: `RAPAT BULAN ${fullMonthName.toUpperCase()}`,
         value: totalMonth,
         unit: 'Agenda',
         badgeText: totalMonth > 0 ? `${finishMonth} Selesai • ${onProgressMonth} Dalam Proses` : '0 Agenda',
@@ -351,9 +351,9 @@ export function DashboardClient({
       },
       {
         id: 'perlu-atensi',
-        label: 'MONITORING PROSES KEGIATAN',
+        label: 'MONITORING PROSES RAPAT',
         value: onProgressMonth + startMonth,
-        unit: 'Kegiatan',
+        unit: 'Rapat',
         badgeText: `${onProgressMonth} Dalam Proses • ${startMonth} Belum Dimulai`,
         badgeSubtext: `${fullMonthName} ${selectedYear}`,
         variant: onProgressMonth > 0 ? 'default' : 'default',
@@ -475,14 +475,6 @@ function computeDonutMetrics(
       {/* 1. Executive Welcome Banner */}
       <WelcomeBanner
         onScheduleMeeting={() => router.push('/buat-rapat')}
-      />
-
-      {/* 2. Top Metric Cards - Dinamis terhubung dengan Filter Bulan & Tahun */}
-      <StatsOverview
-        metrics={displayMetrics}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        onResetMonth={() => setSelectedMonth(null)}
       />
 
       {/* 3. Executive 3 Tim Kerja KEK (Investasi, Kerja Sama, Komunikasi) - Hanya Super Admin, Admin, Pimpinan (bukan Staf) */}

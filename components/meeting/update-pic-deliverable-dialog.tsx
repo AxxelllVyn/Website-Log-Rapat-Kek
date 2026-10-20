@@ -214,14 +214,27 @@ export function UpdatePicDeliverableDialog({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Status & Progress Slider */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
+          {/* Status Perkembangan Tugas (Status Saja Tanpa Persentase) */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                 Status Perkembangan Tugas
               </label>
-              <span className="text-xs font-bold text-[#1E6B7B] bg-[#F0F9FA] px-2.5 py-0.5 rounded-full border border-[#BCE3EB]">
-                {progress}% Selesai
+              <span
+                className={cn(
+                  "text-xs font-bold px-2.5 py-0.5 rounded-full border transition-colors",
+                  status === 'COMPLETED'
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : status === 'IN_PROGRESS'
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200"
+                )}
+              >
+                {status === 'COMPLETED'
+                  ? 'Selesai'
+                  : status === 'IN_PROGRESS'
+                  ? 'Sedang Dikerjakan'
+                  : 'Belum Dimulai'}
               </span>
             </div>
 
@@ -230,7 +243,7 @@ export function UpdatePicDeliverableDialog({
                 type="button"
                 onClick={() => handleStatusSelect('PENDING')}
                 className={cn(
-                  "py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer",
+                  "py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
                   status === 'PENDING'
                     ? "bg-slate-700 text-white border-slate-700 shadow-xs"
                     : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
@@ -242,7 +255,7 @@ export function UpdatePicDeliverableDialog({
                 type="button"
                 onClick={() => handleStatusSelect('IN_PROGRESS')}
                 className={cn(
-                  "py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer",
+                  "py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
                   status === 'IN_PROGRESS'
                     ? "bg-amber-600 text-white border-amber-600 shadow-xs"
                     : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
@@ -254,7 +267,7 @@ export function UpdatePicDeliverableDialog({
                 type="button"
                 onClick={() => handleStatusSelect('COMPLETED')}
                 className={cn(
-                  "py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer",
+                  "py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer",
                   status === 'COMPLETED'
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
                     : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
@@ -262,32 +275,6 @@ export function UpdatePicDeliverableDialog({
               >
                 Selesai
               </button>
-            </div>
-
-            {/* Slider Percentage */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                <span>0% (Awal)</span>
-                <span>25%</span>
-                <span>50%</span>
-                <span>75%</span>
-                <span>100% (Tuntas)</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={progress}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setProgress(val);
-                  if (val === 100) setStatus('COMPLETED');
-                  else if (val === 0) setStatus('PENDING');
-                  else setStatus('IN_PROGRESS');
-                }}
-                className="w-full accent-[#1E6B7B] cursor-pointer"
-              />
             </div>
           </div>
 

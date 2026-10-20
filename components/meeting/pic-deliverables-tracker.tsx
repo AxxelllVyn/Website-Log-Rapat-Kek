@@ -373,10 +373,10 @@ export function PicDeliverablesTracker({
                           )}
                           <span>
                             {isCompleted
-                              ? 'Selesai (100%)'
+                              ? 'Selesai'
                               : isInProgress
-                              ? `Sedang Dikerjakan (${progressVal}%)`
-                              : 'Belum Dimulai (0%)'}
+                              ? `Sedang Dikerjakan`
+                              : 'Belum Dimulai'}
                           </span>
                         </span>
 
