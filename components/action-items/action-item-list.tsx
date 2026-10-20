@@ -35,6 +35,7 @@ import {
   cleanTextWithoutLink,
   RenderTextWithLinks,
 } from './google-drive-link-badge';
+import { parsePicDeliverableDescription } from '@/lib/pic-deliverables';
 import { updateActionItemStatusAction } from '@/app/actions/action-item-actions';
 import { useSession } from 'next-auth/react';
 import { toast } from '@/components/providers/toast-provider';
@@ -524,8 +525,14 @@ export function ActionItemList({
                       {item.title}
                     </h4>
                     {(() => {
-                      const allUrls = extractAllLinks(item.description);
-                      const cleanDesc = allUrls.length > 0 ? cleanTextWithoutLink(item.description) : item.description;
+                      const parsed = parsePicDeliverableDescription(item.description);
+                      const rawNotes = parsed.notes || item.description || '';
+                      const allUrls = Array.from(new Set([
+                        ...(parsed.linkUrl ? [parsed.linkUrl] : []),
+                        ...(parsed.fileUrl ? [parsed.fileUrl] : []),
+                        ...extractAllLinks(rawNotes),
+                      ]));
+                      const cleanDesc = cleanTextWithoutLink(rawNotes);
 
                       return (
                         <div className="space-y-1.5 pt-0.5">
@@ -540,7 +547,7 @@ export function ActionItemList({
                                 <GoogleDriveLinkCard
                                   key={url + idx}
                                   url={url}
-                                  label={allUrls.length > 1 ? `Buka Google Drive ${idx + 1}` : undefined}
+                                  label={allUrls.length > 1 ? `Buka Link Luaran ${idx + 1}` : (parsed.linkTitle || 'Buka Link Bukti Luaran')}
                                   variant="badge"
                                 />
                               ))}
@@ -553,16 +560,6 @@ export function ActionItemList({
 
                   {/* Actions buttons */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Log & Progress History Button (All members can view & PIC can add) */}
-                    <button
-                      type="button"
-                      onClick={() => setLoggingItem(item)}
-                      className="p-1.5 text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
-                      title="Lihat Riwayat & Kirim Progres / Google Drive"
-                    >
-                      <History className="w-4 h-4" />
-                    </button>
-
                     {(canEditThisItem(item) || canDeleteItem) && (
                       <>
                         {canEditThisItem(item) && (
@@ -572,8 +569,8 @@ export function ActionItemList({
                               setEditingItem(item);
                               setIsFormOpen(true);
                             }}
-                            className="p-1.5 text-slate-500 hover:text-[#31889C] hover:bg-[#F0F9FA] rounded-lg transition-colors cursor-pointer"
-                            title="Ubah Tindak Lanjut"
+                            className="p-1.5 text-slate-400 hover:text-[#31889C] hover:bg-[#F0F9FA] rounded-lg transition-colors cursor-pointer"
+                            title="Ubah Rincian Tindak Lanjut"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -617,7 +614,11 @@ export function ActionItemList({
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-50 text-slate-800 border border-slate-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                          {item.picTeam ? `Tim ${item.picTeam.name}` : item.picBiro?.shortName || 'Tim Pelaksana'}
+                          {item.picTeam
+                            ? (item.picTeam.name.startsWith('Tim ') || item.picTeam.name.startsWith('Pokja')
+                                ? item.picTeam.name
+                                : `Tim ${item.picTeam.name}`)
+                            : item.picBiro?.shortName || 'Tim Pelaksana'}
                         </span>
                       )}
                     </div>
@@ -668,44 +669,49 @@ export function ActionItemList({
                     </div>
 
                     {/* Controls & Actions */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* Tandai Selesai Quick Button (Opens Evidence Modal pre-filled to Completed) */}
-                      {canEditThisItem(item) && item.status !== 'COMPLETED' && (
-                        <button
-                          type="button"
-                          onClick={() => openUpdateDialog(item, 'COMPLETED', 100)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#4D8F3D] border border-emerald-200 text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
-                          title="Tandai Selesai beserta Catatan & Bukti Google Drive"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Tandai Selesai</span>
-                        </button>
-                      )}
-
-                      {/* Update Status button */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Tombol Utama: Update Status & Bukti (Jika Selesai, tampilkan status Selesai) */}
                       {canEditThisItem(item) && (
-                        <button
-                          type="button"
-                          onClick={() => openUpdateDialog(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E8F5F7] hover:bg-[#D5EEF2] text-[#215865] border border-[#BCE3EB] text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
-                          title="Perbarui status tindak lanjut atau tautan bukti"
-                        >
-                          <TrendingUp className="w-3.5 h-3.5 text-[#31889C]" />
-                          <span>Update Status</span>
-                        </button>
+                        item.status === 'COMPLETED' ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-[#2C6E20] border border-emerald-200 text-[11px] font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#4D8F3D]" />
+                              <span>Selesai</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openUpdateDialog(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-medium transition-all cursor-pointer"
+                              title="Perbarui catatan atau link bukti penyelesaian"
+                            >
+                              <TrendingUp className="w-3 h-3 text-slate-500" />
+                              <span>Ubah Bukti</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openUpdateDialog(item)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#31889C] hover:bg-[#266F80] text-white text-[11.5px] font-bold transition-all cursor-pointer shadow-2xs"
+                            title="Perbarui progres pekerjaan, unggah link output, atau tandai selesai"
+                          >
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span>Update Progres &amp; Bukti</span>
+                          </button>
+                        )
                       )}
 
-                      {/* History / Audit Trail button */}
+                      {/* Tombol Sekunder: Riwayat Log */}
                       <button
                         type="button"
                         onClick={() => openAuditTrailDialog(item)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-semibold transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 text-[11.5px] font-semibold transition-all cursor-pointer shadow-2xs"
                         title="Lihat riwayat catatan progres dan bukti pelaksanaan"
                       >
                         <History className="w-3.5 h-3.5 text-slate-400" />
                         <span>Riwayat Log</span>
                         {Boolean(item.logsCount && item.logsCount > 0) && (
-                          <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 text-[9px] font-black">
+                          <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[9.5px] font-black border border-slate-200">
                             {item.logsCount}
                           </span>
                         )}

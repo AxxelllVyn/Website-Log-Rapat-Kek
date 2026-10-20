@@ -1276,7 +1276,11 @@ export function MeetingDetailView({
             <div>
               <p className="text-[11px] text-slate-400 font-semibold uppercase">Tim Kerja Pelaksana</p>
               <p className="font-bold text-slate-800">
-                {meeting.primaryTeam?.name ? `Tim ${meeting.primaryTeam.name}` : (meeting.primaryTeam?.code || 'Tim Investasi')}
+                {meeting.primaryTeam?.name
+                  ? (meeting.primaryTeam.name.startsWith('Tim ') || meeting.primaryTeam.name.startsWith('Pokja')
+                      ? meeting.primaryTeam.name
+                      : `Tim ${meeting.primaryTeam.name}`)
+                  : (meeting.primaryTeam?.code || 'Tim Investasi')}
               </p>
             </div>
           </div>

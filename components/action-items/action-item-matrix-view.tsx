@@ -202,7 +202,11 @@ export function ActionItemMatrixView({
     }
     return {
       code: 'INV',
-      name: task.picTeam?.name ? `Tim ${task.picTeam.name}` : 'Tim Investasi',
+      name: task.picTeam?.name
+        ? (task.picTeam.name.startsWith('Tim ') || task.picTeam.name.startsWith('Pokja')
+            ? task.picTeam.name
+            : `Tim ${task.picTeam.name}`)
+        : 'Tim Investasi',
       badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200/90',
       dotColor: 'bg-emerald-500',
       refBadgeClass: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100',

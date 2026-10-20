@@ -485,7 +485,11 @@ export function MeetingDetailDialog({
                   <div>
                     <p className="text-[11px] text-slate-400 font-semibold uppercase">Tim Kerja Penyelenggara</p>
                     <p className="font-bold text-slate-800">
-                      {meeting.primaryTeamName ? `Tim ${meeting.primaryTeamName}` : (meeting.primaryTeamCode || 'Tim Investasi')}
+                      {meeting.primaryTeamName
+                        ? (meeting.primaryTeamName.startsWith('Tim ') || meeting.primaryTeamName.startsWith('Pokja')
+                            ? meeting.primaryTeamName
+                            : `Tim ${meeting.primaryTeamName}`)
+                        : (meeting.primaryTeamCode || 'Tim Investasi')}
                     </p>
                   </div>
                 </div>
@@ -525,7 +529,11 @@ export function MeetingDetailDialog({
                     <Layers className="w-5 h-5 text-amber-700 shrink-0" />
                     <div>
                       <p className="text-[11px] text-amber-800 font-semibold uppercase">Tim Kerja Pelaksana</p>
-                      <p className="font-bold text-amber-950">Tim {meeting.primaryTeamName}</p>
+                      <p className="font-bold text-amber-950">
+                        {meeting.primaryTeamName.startsWith('Tim ') || meeting.primaryTeamName.startsWith('Pokja')
+                          ? meeting.primaryTeamName
+                          : `Tim ${meeting.primaryTeamName}`}
+                      </p>
                     </div>
                   </div>
                 )}
