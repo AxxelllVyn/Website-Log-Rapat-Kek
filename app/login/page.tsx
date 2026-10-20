@@ -146,17 +146,17 @@ function LoginForm() {
                 htmlFor="login-email"
                 className="block text-[12px] font-bold text-slate-700"
               >
-                Email Kedinasan
+                Email Kedinasan atau Username
               </label>
               <div className="relative">
                 <input
                   id="login-email"
-                  type="email"
+                  type="text"
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   spellCheck={false}
                   disabled={isLoading}
-                  placeholder="nama@kek.go.id atau email kedinasan"
+                  placeholder="nama@kek.go.id atau username (contoh: staf.investasi)"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);

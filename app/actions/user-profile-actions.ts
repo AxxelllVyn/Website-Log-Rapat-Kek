@@ -63,7 +63,13 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
       return { success: false, error: 'Anda harus masuk ke sistem terlebih dahulu.' };
     }
 
-    const parsed = updateProfileSchema.safeParse(input);
+    const rawEmail = input.email ? input.email.trim() : '';
+    const formattedEmail = rawEmail.includes('@') ? rawEmail : `${rawEmail}@kek.go.id`;
+
+    const parsed = updateProfileSchema.safeParse({
+      ...input,
+      email: formattedEmail,
+    });
     if (!parsed.success) {
       const errorMsg = parsed.error.issues.map((i) => i.message).join(', ');
       return { success: false, error: errorMsg };

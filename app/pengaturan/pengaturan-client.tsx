@@ -178,16 +178,20 @@ export function PengaturanClient({
             </div>
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                Alamat Email Dinas
+                Alamat Email Dinas / Username
               </label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@kek.go.id"
+                placeholder="nama@kek.go.id atau username"
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C]"
                 required
               />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Username login: <span className="font-bold text-[#1E6B7B]">{email ? email.split('@')[0] : '-'}</span>
+                <span className="text-slate-400 font-normal ml-1">(Bisa digunakan langsung saat login tanpa @kek.go.id)</span>
+              </p>
             </div>
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
