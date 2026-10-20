@@ -186,13 +186,42 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
       },
     });
 
+    // Resolve valid user ID for ActionItemLog to prevent foreign key violation
+    let validUserId: string | null = null;
+    if (currentUser?.id) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: currentUser.id },
+        select: { id: true },
+      });
+      if (dbUser) {
+        validUserId = dbUser.id;
+      } else if (currentUser.email) {
+        const dbUserByEmail = await prisma.user.findUnique({
+          where: { email: currentUser.email.toLowerCase().trim() },
+          select: { id: true },
+        });
+        if (dbUserByEmail) {
+          validUserId = dbUserByEmail.id;
+        }
+      }
+    }
+    if (!validUserId && existing.picUserId) {
+      const dbPicUser = await prisma.user.findUnique({
+        where: { id: existing.picUserId },
+        select: { id: true },
+      });
+      if (dbPicUser) {
+        validUserId = dbPicUser.id;
+      }
+    }
+
     // Create ActionItemLog
     const nextLogId = await getNextActionItemLogId();
     await prisma.actionItemLog.create({
       data: {
         id: nextLogId,
         actionItemId,
-        userId: currentUser.id,
+        userId: validUserId,
         previousStatus: existing.status,
         newStatus: statusEnum,
         notes: notes || (linkUrl ? `Melampirkan tautan: ${linkUrl}` : 'Pembaruan progres pengerjaan'),

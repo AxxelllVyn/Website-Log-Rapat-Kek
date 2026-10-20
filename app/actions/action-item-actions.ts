@@ -848,13 +848,33 @@ export async function addActionItemLogAction(input: AddActionItemLogInput) {
       },
     });
 
+    // Resolve valid user ID for ActionItemLog to prevent foreign key violation
+    let validLogUserId: string | null = null;
+    if (currentUser?.id) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: currentUser.id },
+        select: { id: true },
+      });
+      if (dbUser) {
+        validLogUserId = dbUser.id;
+      } else if (currentUser.email) {
+        const dbUserByEmail = await prisma.user.findUnique({
+          where: { email: currentUser.email.toLowerCase().trim() },
+          select: { id: true },
+        });
+        if (dbUserByEmail) {
+          validLogUserId = dbUserByEmail.id;
+        }
+      }
+    }
+
     // Create the audit log record with clean sequential ID
     const nextLogId = await getNextActionItemLogId();
     const log = await prisma.actionItemLog.create({
       data: {
         id: nextLogId,
         actionItemId,
-        userId: currentUser?.id || null,
+        userId: validLogUserId,
         previousStatus: existing.status,
         newStatus: targetStatus,
         notes,
