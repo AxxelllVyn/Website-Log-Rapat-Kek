@@ -87,6 +87,18 @@ export async function getActiveUsersAction() {
             name: true,
           },
         },
+        userTeams: {
+          select: {
+            role: true,
+            team: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ name: 'asc' }],
     });
@@ -347,11 +359,11 @@ export async function createMeetingAction(input: CreateMeetingInput) {
       const rawDateObj = new Date(input.date);
       const meetingDateFormatted = !isNaN(rawDateObj.getTime())
         ? rawDateObj.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
         : input.date;
 
       // Create MeetingParticipant records and send targeted per-user notifications
@@ -850,7 +862,7 @@ export async function updateMeetingCategoryAction(
     const resolvedSubCategory = data.subCategory || data.documentSubCategory || null;
 
     const isPostponed = resolvedCategory === 'SURAT_DITUNDA' || resolvedCategory === 'TUNDA_RAPAT';
-    const hasSourceOrigin = ['NASKAH_MASUK', 'DISPOSISI_SEKJEN', 'DISPOSISI_BIRO'].includes(resolvedCategory);
+    const hasSourceOrigin = ['NASKAH_MASUK', 'DISPOSISI_Setjen', 'DISPOSISI_BIRO'].includes(resolvedCategory);
 
     const updated = await prisma.meeting.update({
       where: { id: meetingId },
@@ -859,11 +871,11 @@ export async function updateMeetingCategoryAction(
         documentSubCategory:
           resolvedCategory === 'NASKAH_MASUK'
             ? resolvedSubCategory
-            : resolvedCategory === 'DISPOSISI_SEKJEN'
-            ? 'DISPOSISI_SEKJEN'
-            : resolvedCategory === 'DISPOSISI_BIRO'
-            ? 'DISPOSISI_BIRO'
-            : null,
+            : resolvedCategory === 'DISPOSISI_Setjen'
+              ? 'DISPOSISI_Setjen'
+              : resolvedCategory === 'DISPOSISI_BIRO'
+                ? 'DISPOSISI_BIRO'
+                : null,
         sourceOrigin: hasSourceOrigin ? (data.sourceOrigin || null) : null,
         postponeReason: isPostponed ? (data.postponeReason || null) : null,
       },
@@ -1046,11 +1058,11 @@ export async function addParticipantToMeetingAction(
           const rawDateObj = new Date(meetingInfo.date);
           const meetingDateFormatted = !isNaN(rawDateObj.getTime())
             ? rawDateObj.toLocaleDateString('id-ID', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })
             : String(meetingInfo.date);
 
           const existingNotif = await prisma.notification.findFirst({

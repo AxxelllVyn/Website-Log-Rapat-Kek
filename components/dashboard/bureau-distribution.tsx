@@ -32,42 +32,42 @@ const CATEGORY_DEFINITIONS: Array<{
   barColor: string;
   textColor: string;
 }> = [
-  {
-    key: 'UNDANGAN_INTERNAL',
-    label: 'Undangan Internal',
-    icon: '🏢',
-    barColor: 'bg-[#31889C]',
-    textColor: 'text-[#31889C]',
-  },
-  {
-    key: 'DISPOSISI_SEKJEN',
-    label: 'Disposisi Sekjen',
-    icon: '🏛️',
-    barColor: 'bg-indigo-600',
-    textColor: 'text-indigo-600',
-  },
-  {
-    key: 'NASKAH_MASUK',
-    label: 'Daftar Naskah Masuk',
-    icon: '📥',
-    barColor: 'bg-amber-500',
-    textColor: 'text-amber-600',
-  },
-  {
-    key: 'DISPOSISI_BIRO',
-    label: 'Disposisi Biro',
-    icon: '📑',
-    barColor: 'bg-purple-600',
-    textColor: 'text-purple-600',
-  },
-  {
-    key: 'SURAT_DITUNDA',
-    label: 'Tunda Rapat',
-    icon: '⏳',
-    barColor: 'bg-rose-500',
-    textColor: 'text-rose-600',
-  },
-];
+    {
+      key: 'UNDANGAN_INTERNAL',
+      label: 'Undangan Internal',
+      icon: '🏢',
+      barColor: 'bg-[#31889C]',
+      textColor: 'text-[#31889C]',
+    },
+    {
+      key: 'DISPOSISI_Setjen',
+      label: 'Disposisi Setjen',
+      icon: '🏛️',
+      barColor: 'bg-indigo-600',
+      textColor: 'text-indigo-600',
+    },
+    {
+      key: 'NASKAH_MASUK',
+      label: 'Daftar Naskah Masuk',
+      icon: '📥',
+      barColor: 'bg-amber-500',
+      textColor: 'text-amber-600',
+    },
+    {
+      key: 'DISPOSISI_BIRO',
+      label: 'Disposisi Biro',
+      icon: '📑',
+      barColor: 'bg-purple-600',
+      textColor: 'text-purple-600',
+    },
+    {
+      key: 'SURAT_DITUNDA',
+      label: 'Tunda Rapat',
+      icon: '⏳',
+      barColor: 'bg-rose-500',
+      textColor: 'text-rose-600',
+    },
+  ];
 
 export function BureauDistribution({
   meetings,
@@ -133,13 +133,13 @@ export function BureauDistribution({
           if (def.key === 'UNDANGAN_INTERNAL') {
             return cat === 'UNDANGAN_INTERNAL';
           }
-          if (def.key === 'DISPOSISI_SEKJEN') {
-            return cat === 'DISPOSISI_SEKJEN' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_SEKJEN');
+          if (def.key === 'DISPOSISI_Setjen') {
+            return cat === 'DISPOSISI_Setjen' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_Setjen');
           }
           if (def.key === 'NASKAH_MASUK') {
             return (
               (cat === 'NASKAH_MASUK' || cat === 'DAFTAR_NASKAH_MASUK') &&
-              sub !== 'DISPOSISI_SEKJEN' &&
+              sub !== 'DISPOSISI_Setjen' &&
               sub !== 'DISPOSISI_BIRO'
             );
           }
@@ -245,9 +245,8 @@ export function BureauDistribution({
               {/* Animated Progress Bar Track with Shimmer Shine */}
               <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden relative">
                 <div
-                  className={`h-full ${cat.barColor} rounded-full transition-all duration-900 ease-out relative ${
-                    isAnimated ? 'animate-shimmer' : ''
-                  }`}
+                  className={`h-full ${cat.barColor} rounded-full transition-all duration-900 ease-out relative ${isAnimated ? 'animate-shimmer' : ''
+                    }`}
                   style={{
                     width: isAnimated ? `${Math.max(cat.percentage, cat.count > 0 ? 8 : 0)}%` : '0%',
                     transitionDelay: isAnimated ? `${120 + idx * 90}ms` : '0ms',

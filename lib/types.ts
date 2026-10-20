@@ -108,13 +108,13 @@ export interface ActionItemProgressData {
 export type MeetingDocumentCategory =
   | 'UNDANGAN_INTERNAL'
   | 'NASKAH_MASUK'
-  | 'DISPOSISI_SEKJEN'
+  | 'DISPOSISI_Setjen'
   | 'DISPOSISI_BIRO'
   | 'SURAT_DITUNDA'
   | 'TUNDA_RAPAT';
 
 export type MeetingDocumentSubCategory =
-  | 'DISPOSISI_SEKJEN'
+  | 'DISPOSISI_Setjen'
   | 'DISPOSISI_BIRO'
   | 'SURAT_EKSTERNAL';
 
@@ -145,9 +145,9 @@ export const MEETING_CATEGORY_OPTIONS: MeetingCategoryOption[] = [
     description: 'Kegiatan koordinasi berdasarkan agenda daftar naskah dinas atau surat masuk via SRIKANDI.',
   },
   {
-    key: 'DISPOSISI_SEKJEN',
-    label: 'Disposisi Sekjen',
-    badgeLabel: 'Disposisi Sekjen',
+    key: 'DISPOSISI_Setjen',
+    label: 'Disposisi Setjen',
+    badgeLabel: 'Disposisi Setjen',
     badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     badgeIcon: '🏛️',
     description: 'Tindak lanjut arahan atau disposisi resmi dari Sekretaris Jenderal Dewan Nasional KEK.',
@@ -243,12 +243,12 @@ export function getMeetingCategoryInfo(
     };
   }
 
-  if (cat === 'DISPOSISI_SEKJEN' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_SEKJEN')) {
+  if (cat === 'DISPOSISI_Setjen' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_Setjen')) {
     return {
-      key: 'DISPOSISI_SEKJEN',
-      label: 'Disposisi Sekjen',
-      subLabel: 'Disposisi Sekjen (SRIKANDI)',
-      badgeLabel: 'Disposisi Sekjen',
+      key: 'DISPOSISI_Setjen',
+      label: 'Disposisi Setjen',
+      subLabel: 'Disposisi Setjen (SRIKANDI)',
+      badgeLabel: 'Disposisi Setjen',
       badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       badgeIcon: '🏛️',
       description: 'Tindak lanjut arahan atau disposisi resmi dari Sekretaris Jenderal Dewan Nasional KEK.',

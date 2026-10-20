@@ -48,6 +48,14 @@ interface AvailableUser {
     code: string;
     name: string;
   } | null;
+  userTeams?: Array<{
+    role?: string | null;
+    team: {
+      id?: string;
+      code?: string;
+      name?: string;
+    };
+  }>;
 }
 
 export const JENIS_KEGIATAN_OPTIONS = [
@@ -149,7 +157,7 @@ export default function BuatRapatPage() {
   // 3. Tanggal Pelaksanaan Kegiatan
   const [date, setDate] = useState(todayStr);
 
-  // 4. Kategori Naskah / Dasar Kegiatan (Undangan Internal, Daftar Naskah Masuk, Disposisi Sekjen/Biro, Tunda Rapat)
+  // 4. Kategori Naskah / Dasar Kegiatan (Undangan Internal, Daftar Naskah Masuk, Disposisi Setjen/Biro, Tunda Rapat)
   const [kategoriRapat, setKategoriRapat] = useState<string>('UNDANGAN_INTERNAL');
   const [sourceOrigin, setSourceOrigin] = useState<string>('');
   const [postponeReason, setPostponeReason] = useState<string>('');
@@ -227,7 +235,7 @@ export default function BuatRapatPage() {
             setRegistrationNumber(res.data);
           }
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setIsLoadingNumber(false));
     }
   }, [selectedTeamId, isManualNumber]);
@@ -259,7 +267,7 @@ export default function BuatRapatPage() {
           toast.success(`Nomor registrasi diperbarui: ${res.data}`);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setIsLoadingNumber(false));
   };
 
@@ -337,11 +345,11 @@ export default function BuatRapatPage() {
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
         documentSubCategory:
-          kategoriRapat === 'DISPOSISI_SEKJEN'
-            ? 'DISPOSISI_SEKJEN'
+          kategoriRapat === 'DISPOSISI_Setjen'
+            ? 'DISPOSISI_Setjen'
             : kategoriRapat === 'DISPOSISI_BIRO'
-            ? 'DISPOSISI_BIRO'
-            : undefined,
+              ? 'DISPOSISI_BIRO'
+              : undefined,
         sourceOrigin: sourceOrigin.trim() || undefined,
         postponeReason: postponeReason.trim() || undefined,
         previousMeetingId: previousMeetingId || undefined,
@@ -688,7 +696,7 @@ export default function BuatRapatPage() {
                 >
                   <option value="UNDANGAN_INTERNAL">Undangan Internal</option>
                   <option value="NASKAH_MASUK">Daftar Naskah Masuk</option>
-                  <option value="DISPOSISI_SEKJEN">Disposisi Sekjen</option>
+                  <option value="DISPOSISI_Setjen">Disposisi Setjen</option>
                   <option value="DISPOSISI_BIRO">Disposisi Biro</option>
                   <option value="SURAT_DITUNDA">Tunda Kegiatan</option>
                 </select>
@@ -711,16 +719,16 @@ export default function BuatRapatPage() {
                 </div>
               )}
 
-              {kategoriRapat === 'DISPOSISI_SEKJEN' && (
+              {kategoriRapat === 'DISPOSISI_Setjen' && (
                 <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-indigo-200/80">
                   <label className="block text-xs font-semibold text-indigo-900">
-                    Nomor Agenda / Catatan Disposisi Sekjen (Opsional):
+                    Nomor Agenda / Catatan Disposisi Setjen (Opsional):
                   </label>
                   <input
                     type="text"
                     value={sourceOrigin}
                     onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: No. Agenda 184 / Disposisi Sekjen via SRIKANDI..."
+                    placeholder="Contoh: No. Agenda 184 / Disposisi Setjen via SRIKANDI..."
                     className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                   />
                 </div>
@@ -799,8 +807,8 @@ export default function BuatRapatPage() {
         {/* ========================================================================= */}
         {/* BAGIAN III: PIC PELAKSANA KEGIATAN (Bisa Langsung > 1 Orang)               */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden border-t-4 border-t-[#31889C]">
-          <div className="px-6 py-4.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-[#31889C]">
+          <div className="px-6 py-4.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between rounded-t-2xl">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-[#F0F9FA] border border-[#BCE3EB] flex items-center justify-center text-[#1E6B7B]">
                 <Users className="w-5 h-5" />

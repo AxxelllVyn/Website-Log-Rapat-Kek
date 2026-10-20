@@ -149,10 +149,10 @@ export function MeetingTable({
           prev.map((item) =>
             item.id === meeting.id
               ? {
-                  ...item,
-                  progressStatus: 'Dalam Proses',
-                  status: 'REVIEW' as MeetingStatus,
-                }
+                ...item,
+                progressStatus: 'Dalam Proses',
+                status: 'REVIEW' as MeetingStatus,
+              }
               : item
           )
         );
@@ -185,10 +185,10 @@ export function MeetingTable({
           prev.map((item) =>
             item.id === meeting.id
               ? {
-                  ...item,
-                  progressStatus: 'Selesai',
-                  status: 'APPROVED' as MeetingStatus,
-                }
+                ...item,
+                progressStatus: 'Selesai',
+                status: 'APPROVED' as MeetingStatus,
+              }
               : item
           )
         );
@@ -538,9 +538,9 @@ export function MeetingTable({
           if (cat !== 'UNDANGAN_INTERNAL') return false;
         } else if (filterCategory === 'NASKAH_MASUK') {
           if (cat !== 'NASKAH_MASUK' && cat !== 'DAFTAR_NASKAH_MASUK') return false;
-          if (subCat === 'DISPOSISI_SEKJEN' || subCat === 'DISPOSISI_BIRO') return false;
-        } else if (filterCategory === 'DISPOSISI_SEKJEN') {
-          if (cat !== 'DISPOSISI_SEKJEN' && !(cat === 'NASKAH_MASUK' && subCat === 'DISPOSISI_SEKJEN')) return false;
+          if (subCat === 'DISPOSISI_Setjen' || subCat === 'DISPOSISI_BIRO') return false;
+        } else if (filterCategory === 'DISPOSISI_Setjen') {
+          if (cat !== 'DISPOSISI_Setjen' && !(cat === 'NASKAH_MASUK' && subCat === 'DISPOSISI_Setjen')) return false;
         } else if (filterCategory === 'DISPOSISI_BIRO') {
           if (cat !== 'DISPOSISI_BIRO' && !(cat === 'NASKAH_MASUK' && subCat === 'DISPOSISI_BIRO')) return false;
         } else if (filterCategory === 'SURAT_DITUNDA' || filterCategory === 'TUNDA_RAPAT') {
@@ -653,10 +653,10 @@ export function MeetingTable({
                   progressTabFilter === 'ALL'
                     ? "bg-[#F0F9FA] text-[#215865] border-[#BCE3EB] hover:bg-[#E2F4F7] ring-2 ring-[#31889C]/20"
                     : progressTabFilter === 'Belum Dimulai'
-                    ? "bg-sky-50 text-sky-900 border-sky-300 ring-2 ring-sky-300/40 hover:bg-sky-100"
-                    : progressTabFilter === 'Dalam Proses'
-                    ? "bg-amber-50 text-amber-900 border-amber-300 ring-2 ring-amber-300/40 hover:bg-amber-100"
-                    : "bg-emerald-50 text-emerald-900 border-emerald-300 ring-2 ring-emerald-300/40 hover:bg-emerald-100"
+                      ? "bg-sky-50 text-sky-900 border-sky-300 ring-2 ring-sky-300/40 hover:bg-sky-100"
+                      : progressTabFilter === 'Dalam Proses'
+                        ? "bg-amber-50 text-amber-900 border-amber-300 ring-2 ring-amber-300/40 hover:bg-amber-100"
+                        : "bg-emerald-50 text-emerald-900 border-emerald-300 ring-2 ring-emerald-300/40 hover:bg-emerald-100"
                 )}
                 title="Pilih filter status kegiatan"
               >
@@ -667,10 +667,10 @@ export function MeetingTable({
                       progressTabFilter === 'ALL'
                         ? "bg-[#31889C]"
                         : progressTabFilter === 'Belum Dimulai'
-                        ? "bg-sky-500"
-                        : progressTabFilter === 'Dalam Proses'
-                        ? "bg-amber-500 animate-pulse"
-                        : "bg-emerald-500"
+                          ? "bg-sky-500"
+                          : progressTabFilter === 'Dalam Proses'
+                            ? "bg-amber-500 animate-pulse"
+                            : "bg-emerald-500"
                     )}
                   />
                   <span>
@@ -684,19 +684,19 @@ export function MeetingTable({
                       progressTabFilter === 'ALL'
                         ? "bg-[#D8F0F4] text-[#1B4B56]"
                         : progressTabFilter === 'Belum Dimulai'
-                        ? "bg-sky-200/80 text-sky-900"
-                        : progressTabFilter === 'Dalam Proses'
-                        ? "bg-amber-200/80 text-amber-900"
-                        : "bg-emerald-200/80 text-emerald-900"
+                          ? "bg-sky-200/80 text-sky-900"
+                          : progressTabFilter === 'Dalam Proses'
+                            ? "bg-amber-200/80 text-amber-900"
+                            : "bg-emerald-200/80 text-emerald-900"
                     )}
                   >
                     {progressTabFilter === 'ALL'
                       ? meetings.length
                       : progressTabFilter === 'Belum Dimulai'
-                      ? countBelumDimulai
-                      : progressTabFilter === 'Dalam Proses'
-                      ? countDalamProses
-                      : countSelesai}
+                        ? countBelumDimulai
+                        : progressTabFilter === 'Dalam Proses'
+                          ? countDalamProses
+                          : countSelesai}
                   </span>
                 </div>
                 <ChevronDown
@@ -1258,8 +1258,8 @@ export function MeetingTable({
               disabled={safePage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium shadow-xs transition-all ${safePage <= 1
-                  ? 'bg-white border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
-                  : 'bg-white border-slate-300 text-slate-700 hover:bg-[#F0F9FA] cursor-pointer'
+                ? 'bg-white border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
+                : 'bg-white border-slate-300 text-slate-700 hover:bg-[#F0F9FA] cursor-pointer'
                 }`}
             >
               Sebelumnya
@@ -1282,8 +1282,8 @@ export function MeetingTable({
                   type="button"
                   onClick={() => setCurrentPage(pageNum)}
                   className={`px-3 py-1.5 rounded-lg text-[12px] font-bold shadow-xs transition-all cursor-pointer ${isActive
-                      ? 'bg-[#31889C] text-white border border-[#31889C]'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#F0F9FA]'
+                    ? 'bg-[#31889C] text-white border border-[#31889C]'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#F0F9FA]'
                     }`}
                 >
                   {pageNum}
@@ -1297,8 +1297,8 @@ export function MeetingTable({
               disabled={safePage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               className={`px-3 py-1.5 rounded-lg border text-[12px] font-medium shadow-xs transition-all ${safePage >= totalPages
-                  ? 'bg-white border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
-                  : 'bg-white border-slate-300 text-slate-700 hover:bg-[#F0F9FA] cursor-pointer'
+                ? 'bg-white border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
+                : 'bg-white border-slate-300 text-slate-700 hover:bg-[#F0F9FA] cursor-pointer'
                 }`}
             >
               Berikutnya

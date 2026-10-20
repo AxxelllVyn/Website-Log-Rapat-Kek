@@ -53,7 +53,7 @@
         <mxCell id="actor_admin" value="&lt;b&gt;Admin Biro / Tim&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748B&quot; style=&quot;font-size: 10px;&quot;&gt;(Pengelola Rapat)&lt;/font&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFFFFF;strokeColor=#1E293B;strokeWidth=2;fontSize=12;fontColor=#0F172A;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
           <mxGeometry x="170" y="575" width="65" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="actor_super_admin" value="&lt;b&gt;Super Admin&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748B&quot; style=&quot;font-size: 10px;&quot;&gt;(Pimpinan Sekjen)&lt;/font&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFFFFF;strokeColor=#1E293B;strokeWidth=2;fontSize=12;fontColor=#0F172A;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
+        <mxCell id="actor_super_admin" value="&lt;b&gt;Super Admin&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748B&quot; style=&quot;font-size: 10px;&quot;&gt;(Pimpinan Setjen)&lt;/font&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFFFFF;strokeColor=#1E293B;strokeWidth=2;fontSize=12;fontColor=#0F172A;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
           <mxGeometry x="865" y="479" width="65" height="95" as="geometry" />
         </mxCell>
         <mxCell id="edge_staff_uc01" style="endArrow=none;html=1;rounded=0;strokeColor=#1E293B;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="actor_staff" target="uc01">

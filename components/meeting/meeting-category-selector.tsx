@@ -44,8 +44,8 @@ export function MeetingCategorySelector({
 
   if (rawCat === 'SURAT_DITUNDA' || rawCat === 'TUNDA_RAPAT') {
     normalizedKey = 'SURAT_DITUNDA';
-  } else if (rawCat === 'DISPOSISI_SEKJEN' || (rawCat === 'NASKAH_MASUK' && rawSub === 'DISPOSISI_SEKJEN')) {
-    normalizedKey = 'DISPOSISI_SEKJEN';
+  } else if (rawCat === 'DISPOSISI_Setjen' || (rawCat === 'NASKAH_MASUK' && rawSub === 'DISPOSISI_Setjen')) {
+    normalizedKey = 'DISPOSISI_Setjen';
   } else if (rawCat === 'DISPOSISI_BIRO' || (rawCat === 'NASKAH_MASUK' && rawSub === 'DISPOSISI_BIRO')) {
     normalizedKey = 'DISPOSISI_BIRO';
   } else if (rawCat === 'NASKAH_MASUK') {
@@ -68,10 +68,10 @@ export function MeetingCategorySelector({
         sourceOrigin: '',
         postponeReason: currentPostponeReason,
       });
-    } else if (cat === 'DISPOSISI_SEKJEN') {
+    } else if (cat === 'DISPOSISI_Setjen') {
       onChange({
-        category: 'DISPOSISI_SEKJEN',
-        subCategory: 'DISPOSISI_SEKJEN',
+        category: 'DISPOSISI_Setjen',
+        subCategory: 'DISPOSISI_Setjen',
         sourceOrigin: currentSourceOrigin,
         postponeReason: '',
       });
@@ -129,7 +129,7 @@ export function MeetingCategorySelector({
           >
             <option value="UNDANGAN_INTERNAL">Undangan Internal</option>
             <option value="NASKAH_MASUK">Daftar Naskah Masuk</option>
-            <option value="DISPOSISI_SEKJEN">Disposisi Sekjen</option>
+            <option value="DISPOSISI_Setjen">Disposisi Setjen</option>
             <option value="DISPOSISI_BIRO">Disposisi Biro</option>
             <option value="SURAT_DITUNDA">Tunda Kegiatan</option>
           </select>
@@ -181,11 +181,11 @@ export function MeetingCategorySelector({
         </div>
       )}
 
-      {/* 3. Disposisi Sekjen */}
-      {normalizedKey === 'DISPOSISI_SEKJEN' && (
+      {/* 3. Disposisi Setjen */}
+      {normalizedKey === 'DISPOSISI_Setjen' && (
         <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-200 space-y-2.5 animate-in fade-in duration-150">
           <label className="text-[12.5px] font-semibold text-slate-800 block">
-            Nomor Agenda / Catatan Disposisi Sekjen (Opsional)
+            Nomor Agenda / Catatan Disposisi Setjen (Opsional)
           </label>
           <input
             type="text"
@@ -193,13 +193,13 @@ export function MeetingCategorySelector({
             value={currentSourceOrigin}
             onChange={(e) =>
               onChange({
-                category: 'DISPOSISI_SEKJEN',
-                subCategory: 'DISPOSISI_SEKJEN',
+                category: 'DISPOSISI_Setjen',
+                subCategory: 'DISPOSISI_Setjen',
                 sourceOrigin: e.target.value,
                 postponeReason: '',
               })
             }
-            placeholder="Contoh: No. Agenda 184 / Disposisi Sekjen perihal Percepatan Fasilitasi KEK"
+            placeholder="Contoh: No. Agenda 184 / Disposisi Setjen perihal Percepatan Fasilitasi KEK"
             className="w-full px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-[13px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-600"
           />
         </div>

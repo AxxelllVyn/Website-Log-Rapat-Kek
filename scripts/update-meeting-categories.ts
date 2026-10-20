@@ -6,7 +6,7 @@ async function main() {
   console.log('Menyinkronkan kategori naskah rapat di database...');
 
   const categoryMap: Record<string, string[]> = {
-    DISPOSISI_SEKJEN: ['MTG-004', 'MTG-005', 'MTG-006', 'MTG-007', 'MTG-015', 'MTG-017'],
+    DISPOSISI_Setjen: ['MTG-004', 'MTG-005', 'MTG-006', 'MTG-007', 'MTG-015', 'MTG-017'],
     NASKAH_MASUK: ['MTG-002', 'MTG-003', 'MTG-013', 'MTG-014'],
     DISPOSISI_BIRO: ['MTG-009', 'MTG-010', 'MTG-018'],
     SURAT_DITUNDA: ['MTG-023'],

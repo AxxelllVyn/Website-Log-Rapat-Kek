@@ -29,6 +29,14 @@ export interface PicOptionUser {
     code?: string;
     name?: string;
   } | null;
+  userTeams?: Array<{
+    role?: string | null;
+    team: {
+      id?: string;
+      code?: string;
+      name?: string;
+    };
+  }>;
 }
 
 export interface PicSelectorProps {
@@ -51,10 +59,11 @@ export const TEAM_TABS = [
   { key: 'POKJA', label: 'Pokja' },
 ];
 
-export function getUserTeamCode(u: PicOptionUser): 'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA' | null {
-  const tc = (u.team?.code || '').toUpperCase();
-  const tid = u.team?.id || '';
-  const tname = (u.team?.name || '').toLowerCase();
+export function resolveTeamCode(team?: { id?: string; code?: string; name?: string } | null): 'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA' | null {
+  if (!team) return null;
+  const tc = (team.code || '').toUpperCase();
+  const tid = team.id || '';
+  const tname = (team.name || '').toLowerCase();
 
   if (tc === 'INV' || tid === 'TIM-001' || tname.includes('investasi')) return 'INV';
   if (tc === 'KS' || tid === 'TIM-003' || tname.includes('kerja sama') || tname.includes('kerjasama')) return 'KS';
@@ -62,6 +71,25 @@ export function getUserTeamCode(u: PicOptionUser): 'INV' | 'KS' | 'KOM' | 'SI' |
   if (tc === 'SI' || tid === 'TIM-004' || tname.includes('sistem informasi') || tname.includes('si')) return 'SI';
   if (tc === 'POKJA' || tid === 'TIM-005' || tname.includes('pokja')) return 'POKJA';
   return null;
+}
+
+export function getUserTeamCodes(u: PicOptionUser): Array<'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA'> {
+  const codes = new Set<'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA'>();
+  const primary = resolveTeamCode(u.team);
+  if (primary) codes.add(primary);
+
+  if (Array.isArray(u.userTeams)) {
+    u.userTeams.forEach((ut) => {
+      const c = resolveTeamCode(ut.team);
+      if (c) codes.add(c);
+    });
+  }
+  return Array.from(codes);
+}
+
+export function getUserTeamCode(u: PicOptionUser): 'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA' | null {
+  const all = getUserTeamCodes(u);
+  return all.length > 0 ? all[0] : null;
 }
 
 export const TEAM_STYLE: Record<string, { bg: string; text: string; border: string; avatarBg: string; label: string }> = {
@@ -151,12 +179,12 @@ export function PicSelector({
 
   // Counts per team
   const teamCounts = useMemo(() => {
-    const counts = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0 };
+    const counts: Record<string, number> = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0, SI: 0, POKJA: 0 };
     availableUsers.forEach((u) => {
-      const code = getUserTeamCode(u);
-      if (code === 'INV') counts.INV++;
-      else if (code === 'KS') counts.KS++;
-      else if (code === 'KOM') counts.KOM++;
+      const codes = getUserTeamCodes(u);
+      codes.forEach((code) => {
+        if (counts[code] !== undefined) counts[code]++;
+      });
     });
     return counts;
   }, [availableUsers]);
@@ -167,13 +195,15 @@ export function PicSelector({
     return availableUsers.filter((u) => {
       // Team filter
       if (teamFilter !== 'ALL') {
-        const code = getUserTeamCode(u);
-        if (code !== teamFilter) return false;
+        const codes = getUserTeamCodes(u);
+        if (!codes.includes(teamFilter as any)) return false;
       }
       // Search query
       if (q) {
         const nameMatch = u.name.toLowerCase().includes(q);
-        const teamMatch = u.team?.name?.toLowerCase().includes(q);
+        const teamMatch =
+          u.team?.name?.toLowerCase().includes(q) ||
+          u.userTeams?.some((ut) => ut.team?.name?.toLowerCase().includes(q));
         const emailMatch = u.email?.toLowerCase().includes(q);
         return nameMatch || teamMatch || emailMatch;
       }
@@ -549,10 +579,12 @@ export function MultiPicSelector({
   const teamCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0, SI: 0, POKJA: 0 };
     availableUsers.forEach((u) => {
-      const code = getUserTeamCode(u);
-      if (code && counts[code] !== undefined) {
-        counts[code]++;
-      }
+      const codes = getUserTeamCodes(u);
+      codes.forEach((code) => {
+        if (counts[code] !== undefined) {
+          counts[code]++;
+        }
+      });
     });
     return counts;
   }, [availableUsers]);
@@ -561,12 +593,14 @@ export function MultiPicSelector({
     const q = searchQuery.trim().toLowerCase();
     return availableUsers.filter((u) => {
       if (teamFilter !== 'ALL') {
-        const code = getUserTeamCode(u);
-        if (code !== teamFilter) return false;
+        const codes = getUserTeamCodes(u);
+        if (!codes.includes(teamFilter as any)) return false;
       }
       if (q) {
         const nameMatch = u.name.toLowerCase().includes(q);
-        const teamMatch = u.team?.name?.toLowerCase().includes(q);
+        const teamMatch =
+          u.team?.name?.toLowerCase().includes(q) ||
+          u.userTeams?.some((ut) => ut.team?.name?.toLowerCase().includes(q));
         const emailMatch = u.email?.toLowerCase().includes(q);
         return nameMatch || teamMatch || emailMatch;
       }
@@ -632,7 +666,7 @@ export function MultiPicSelector({
       </div>
 
       {/* Button to open dropdown */}
-      <div className="relative">
+      <div className="w-full">
         <button
           type="button"
           disabled={disabled}
@@ -647,15 +681,17 @@ export function MultiPicSelector({
         >
           <div className="flex items-center gap-2 text-xs font-bold text-[#1E6B7B]">
             <Users className="w-4 h-4" />
-            <span>+ Pilih / Tambah Staf PIC Kegiatan ({selectedUsers.length} dipilih)</span>
+            <span>
+              {isOpen ? 'Tutup Pemilihan Staf PIC' : '+ Pilih / Tambah Staf PIC Kegiatan'} ({selectedUsers.length} dipilih)
+            </span>
           </div>
-          <ChevronDown className={cn('w-4 h-4 text-slate-400 transition-transform', isOpen && 'rotate-180')} />
+          <ChevronDown className={cn('w-4 h-4 text-slate-400 transition-transform duration-200', isOpen && 'rotate-180')} />
         </button>
 
         {isOpen && (
-          <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-200 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="mt-2.5 bg-white rounded-2xl border border-slate-200 shadow-md p-3.5 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
             {/* Search Input */}
-            <div className="relative mb-2">
+            <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 ref={searchInputRef}
@@ -677,7 +713,7 @@ export function MultiPicSelector({
             </div>
 
             {/* Team Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 border-b border-slate-100 scrollbar-none text-[11px]">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 border-b border-slate-100 scrollbar-none text-[11px]">
               {TEAM_TABS.map((tab) => {
                 const isSelected = teamFilter === tab.key;
                 const count = teamCounts[tab.key] || 0;
@@ -687,14 +723,14 @@ export function MultiPicSelector({
                     type="button"
                     onClick={() => setTeamFilter(tab.key)}
                     className={cn(
-                      'px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1',
+                      'px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1 border',
                       isSelected
-                        ? 'bg-[#1E6B7B] text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-[#1E6B7B] text-white border-[#175360] shadow-2xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                     )}
                   >
                     <span>{tab.label}</span>
-                    <span className={cn('text-[10px] px-1 rounded-full', isSelected ? 'bg-white/20' : 'bg-slate-200')}>
+                    <span className={cn('text-[10px] px-1.5 py-0.2 rounded-full font-bold', isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600')}>
                       {count}
                     </span>
                   </button>
@@ -703,16 +739,15 @@ export function MultiPicSelector({
             </div>
 
             {/* Users List with Multi-Checkbox */}
-            <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
+            <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
               {filteredUsers.length === 0 ? (
-                <div className="p-4 text-center text-xs text-slate-400">
-                  Tidak ditemukan staf yang cocok.
+                <div className="p-6 text-center text-xs text-slate-400">
+                  Tidak ditemukan staf yang cocok dengan filter atau pencarian.
                 </div>
               ) : (
                 filteredUsers.map((u) => {
                   const isChecked = selectedUserIds.includes(u.id);
-                  const code = getUserTeamCode(u);
-                  const style = code ? TEAM_STYLE[code] : null;
+                  const userCodes = getUserTeamCodes(u);
 
                   return (
                     <button
@@ -720,10 +755,10 @@ export function MultiPicSelector({
                       type="button"
                       onClick={() => onToggleUser(u)}
                       className={cn(
-                        'w-full p-2 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer border',
+                        'w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer border',
                         isChecked
                           ? 'bg-[#E8F5F7] border-[#1E6B7B] text-[#1E6B7B] font-bold shadow-2xs'
-                          : 'bg-white border-transparent hover:bg-slate-50 text-slate-700'
+                          : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50/80 text-slate-700'
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -736,36 +771,51 @@ export function MultiPicSelector({
                           {isChecked && <Check className="w-3.5 h-3.5" />}
                         </div>
 
-                        <div className="min-w-0">
-                          <p className="text-xs truncate">{u.name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs truncate text-slate-800">{u.name}</p>
                           {u.email && <p className="text-[10px] text-slate-400 truncate">{u.email}</p>}
                         </div>
                       </div>
 
-                      {u.team?.name && (
-                        <span
-                          className={cn(
-                            'text-[10px] px-2 py-0.5 rounded-md font-bold shrink-0 ml-2 border',
-                            style ? cn(style.bg, style.text, style.border) : 'bg-slate-100 text-slate-600 border-slate-200'
-                          )}
-                        >
-                          {u.team.name}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0 ml-2 flex-wrap justify-end">
+                        {userCodes.length > 0 ? (
+                          userCodes.map((code) => {
+                            const style = TEAM_STYLE[code];
+                            return (
+                              <span
+                                key={code}
+                                className={cn(
+                                  'text-[10px] px-2 py-0.5 rounded-md font-bold border',
+                                  style ? cn(style.bg, style.text, style.border) : 'bg-slate-100 text-slate-600 border-slate-200'
+                                )}
+                              >
+                                {style?.label || code}
+                              </span>
+                            );
+                          })
+                        ) : u.team?.name ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md font-bold border bg-slate-100 text-slate-600 border-slate-200">
+                            {u.team.name}
+                          </span>
+                        ) : null}
+                      </div>
                     </button>
                   );
                 })
               )}
             </div>
 
-            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <span>{selectedUsers.length} staf dipilih sebagai PIC</span>
+            <div className="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span className="font-medium">
+                <strong className="text-slate-800 font-bold">{selectedUsers.length}</strong> staf dipilih sebagai PIC
+              </span>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-3 py-1 rounded-lg bg-[#1E6B7B] text-white font-bold hover:bg-[#164E59] cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-[#1E6B7B] text-white font-bold hover:bg-[#164E59] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-colors"
               >
-                Selesai
+                <Check className="w-3.5 h-3.5" />
+                <span>Selesai Memilih</span>
               </button>
             </div>
           </div>

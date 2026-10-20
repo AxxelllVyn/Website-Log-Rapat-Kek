@@ -306,9 +306,9 @@ export function SemuaRapatClient({
           if (cat !== 'UNDANGAN_INTERNAL') return false;
         } else if (kategoriParam === 'NASKAH_MASUK') {
           if (cat !== 'NASKAH_MASUK' && cat !== 'DAFTAR_NASKAH_MASUK') return false;
-          if (subCat === 'DISPOSISI_SEKJEN' || subCat === 'DISPOSISI_BIRO') return false;
-        } else if (kategoriParam === 'DISPOSISI_SEKJEN') {
-          if (cat !== 'DISPOSISI_SEKJEN' && !(cat === 'NASKAH_MASUK' && subCat === 'DISPOSISI_SEKJEN')) return false;
+          if (subCat === 'DISPOSISI_Setjen' || subCat === 'DISPOSISI_BIRO') return false;
+        } else if (kategoriParam === 'DISPOSISI_Setjen') {
+          if (cat !== 'DISPOSISI_Setjen' && !(cat === 'NASKAH_MASUK' && subCat === 'DISPOSISI_Setjen')) return false;
         } else if (kategoriParam === 'DISPOSISI_BIRO') {
           if (cat !== 'DISPOSISI_BIRO' && !(cat === 'NASKAH_MASUK' && subCat === 'DISPOSISI_BIRO')) return false;
         } else if (kategoriParam === 'SURAT_DITUNDA' || kategoriParam === 'TUNDA_RAPAT') {
@@ -360,13 +360,13 @@ export function SemuaRapatClient({
   const countNaskahMasuk = teamFilteredMeetings.filter((m) => {
     const cat = ((m as any).documentCategory || '').toUpperCase();
     const sub = ((m as any).documentSubCategory || '').toUpperCase();
-    return (cat === 'NASKAH_MASUK' || cat === 'DAFTAR_NASKAH_MASUK') && sub !== 'DISPOSISI_SEKJEN' && sub !== 'DISPOSISI_BIRO';
+    return (cat === 'NASKAH_MASUK' || cat === 'DAFTAR_NASKAH_MASUK') && sub !== 'DISPOSISI_Setjen' && sub !== 'DISPOSISI_BIRO';
   }).length;
 
-  const countDisposisiSekjen = teamFilteredMeetings.filter((m) => {
+  const countDisposisiSetjen = teamFilteredMeetings.filter((m) => {
     const cat = ((m as any).documentCategory || '').toUpperCase();
     const sub = ((m as any).documentSubCategory || '').toUpperCase();
-    return cat === 'DISPOSISI_SEKJEN' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_SEKJEN');
+    return cat === 'DISPOSISI_Setjen' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_Setjen');
   }).length;
 
   const countDisposisiBiro = teamFilteredMeetings.filter((m) => {
@@ -384,7 +384,7 @@ export function SemuaRapatClient({
     { label: 'Semua Kategori', value: 'ALL', count: teamFilteredMeetings.length, icon: '🏷️' },
     { label: 'Undangan Internal', value: 'UNDANGAN_INTERNAL', count: countUndanganInternal, icon: '🏢' },
     { label: 'Daftar Naskah Masuk', value: 'NASKAH_MASUK', count: countNaskahMasuk, icon: '📥' },
-    { label: 'Disposisi Sekjen', value: 'DISPOSISI_SEKJEN', count: countDisposisiSekjen, icon: '🏛️' },
+    { label: 'Disposisi Setjen', value: 'DISPOSISI_Setjen', count: countDisposisiSetjen, icon: '🏛️' },
     { label: 'Disposisi Biro', value: 'DISPOSISI_BIRO', count: countDisposisiBiro, icon: '📑' },
     { label: 'Tunda Kegiatan', value: 'SURAT_DITUNDA', count: countTundaRapat, icon: '⏳' },
   ];
@@ -471,11 +471,11 @@ export function SemuaRapatClient({
     sublabel?: string;
     dotColor: string;
   }[] = [
-    { label: 'Semua Status', value: 'ALL', count: countAll, dotColor: 'bg-slate-400' },
-    { label: 'Belum Dimulai', value: 'Belum Dimulai', count: countBelumDimulai, sublabel: 'Persiapan / Terjadwal', dotColor: 'bg-sky-500' },
-    { label: 'Dalam Proses', value: 'Dalam Proses', count: countDalamProses, sublabel: 'Sedang Berjalan / Telaah', dotColor: 'bg-amber-500' },
-    { label: 'Selesai', value: 'Selesai', count: countSelesai, sublabel: 'Selesai & Disahkan', dotColor: 'bg-emerald-500' },
-  ];
+      { label: 'Semua Status', value: 'ALL', count: countAll, dotColor: 'bg-slate-400' },
+      { label: 'Belum Dimulai', value: 'Belum Dimulai', count: countBelumDimulai, sublabel: 'Persiapan / Terjadwal', dotColor: 'bg-sky-500' },
+      { label: 'Dalam Proses', value: 'Dalam Proses', count: countDalamProses, sublabel: 'Sedang Berjalan / Telaah', dotColor: 'bg-amber-500' },
+      { label: 'Selesai', value: 'Selesai', count: countSelesai, sublabel: 'Selesai & Disahkan', dotColor: 'bg-emerald-500' },
+    ];
 
   // Presets and date helpers
   const todayIso = new Date().toLocaleDateString('en-CA');

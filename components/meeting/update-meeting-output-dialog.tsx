@@ -312,7 +312,7 @@ export function UpdateMeetingOutputDialog({
                   type="text"
                   value={releaseTitle}
                   onChange={(e) => setReleaseTitle(e.target.value)}
-                  placeholder="Contoh: Sekjen Dewan Nasional KEK Dorong Akselerasi Investasi..."
+                  placeholder="Contoh: Setjen Dewan Nasional KEK Dorong Akselerasi Investasi..."
                   className="w-full px-3 h-[38px] rounded-lg border border-slate-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20"
                 />
               </div>

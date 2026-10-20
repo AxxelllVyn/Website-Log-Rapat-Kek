@@ -894,17 +894,17 @@ export async function getDashboardStats() {
       const countUndanganInternal = allMeetingsCategory.filter(
         (m) => (m.documentCategory || 'UNDANGAN_INTERNAL').toUpperCase() === 'UNDANGAN_INTERNAL'
       ).length;
-      const countDisposisiSekjen = allMeetingsCategory.filter((m) => {
+      const countDisposisiSetjen = allMeetingsCategory.filter((m) => {
         const cat = (m.documentCategory || '').toUpperCase();
         const sub = (m.documentSubCategory || '').toUpperCase();
-        return cat === 'DISPOSISI_SEKJEN' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_SEKJEN');
+        return cat === 'DISPOSISI_Setjen' || (cat === 'NASKAH_MASUK' && sub === 'DISPOSISI_Setjen');
       }).length;
       const countNaskahMasuk = allMeetingsCategory.filter((m) => {
         const cat = (m.documentCategory || '').toUpperCase();
         const sub = (m.documentSubCategory || '').toUpperCase();
         return (
           (cat === 'NASKAH_MASUK' || cat === 'DAFTAR_NASKAH_MASUK') &&
-          sub !== 'DISPOSISI_SEKJEN' &&
+          sub !== 'DISPOSISI_Setjen' &&
           sub !== 'DISPOSISI_BIRO'
         );
       }).length;
@@ -926,10 +926,10 @@ export async function getDashboardStats() {
           percentage: totalMeetings > 0 ? Math.round((countUndanganInternal / totalMeetings) * 100) : 0,
         },
         {
-          key: 'DISPOSISI_SEKJEN',
-          label: 'Disposisi Sekjen',
-          count: countDisposisiSekjen,
-          percentage: totalMeetings > 0 ? Math.round((countDisposisiSekjen / totalMeetings) * 100) : 0,
+          key: 'DISPOSISI_Setjen',
+          label: 'Disposisi Setjen',
+          count: countDisposisiSetjen,
+          percentage: totalMeetings > 0 ? Math.round((countDisposisiSetjen / totalMeetings) * 100) : 0,
         },
         {
           key: 'NASKAH_MASUK',

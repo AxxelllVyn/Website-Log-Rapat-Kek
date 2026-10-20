@@ -24,7 +24,7 @@ File diagram Draw.io resmi telah disediakan di repository dalam arsitektur **Mul
    - Format klasik sesuai contoh standar perancangan UML (seperti contoh referensi diagram ATM / perbankan).
    - Menampilkan batas sistem vertikal `«subsystem» Log_Book_Rapat KEK RI` dengan susunan **12 kasus penggunaan (*use case*) vertikal**.
    - Aktor operasional di sisi kiri: **Staf Pelaksana** & **Admin Biro / Tim**.
-   - Aktor pengawas di sisi kanan: **Super Admin** (Pimpinan Sekjen).
+   - Aktor pengawas di sisi kanan: **Super Admin** (Pimpinan Setjen).
    - Garis asosiasi lurus, bersih, tanpa persilangan garis (*zero line crossing*), sangat mudah dipahami oleh dosen penguji dan reviewer.
 2. **Tab 2: `2. Use Case Komprehensif (27 UC & 6 Modul)`**
    - Format rinci berbasis 6 modul fungsional sistem.
@@ -74,7 +74,7 @@ flowchart LR
 
     %% Aktor Kanan
     subgraph AKTOR_KANAN["Aktor Pengawas"]
-        SuperAdmin["👤 Super Admin<br/>(Pimpinan Sekjen)"]
+        SuperAdmin["👤 Super Admin<br/>(Pimpinan Setjen)"]
     end
 
     %% Asosiasi Staf Pelaksana (Atas)
@@ -241,7 +241,7 @@ Berikut adalah rincian lengkap 27 Use Case yang mencakup seluruh alur kerja sist
 | **UC-11** | Edit Agenda Rapat | Admin, Super Admin | Dasar | Mengubah judul, waktu, lokasi, atau deskripsi agenda rapat yang belum berstatus final. | Rapat telah terdaftar dan belum final. | Perubahan agenda rapat tersimpan. |
 | **UC-12** | Batalkan / Hapus Rapat | Admin, Super Admin | Dasar | Membatalkan rapat atau menghapus draf agenda rapat yang dibatalkan pimpinan. | Rapat terdaftar di sistem. | Rapat terhapus / status menjadi dibatalkan. |
 | **UC-13** | Generate Nomor Rapat Otomatis | Sistem | `«include»` oleh UC-10 | Sistem otomatis menghitung nomor urut dan menyusun kode surat rapat dinas (misal: `INV-014`). | Form penjadwalan rapat diinisialisasi. | Nomor rapat unik tercatat pada tabel penomoran. |
-| **UC-14** | Tentukan Kategori Dokumen Masuk | Admin, Super Admin | `«include»` oleh UC-10 | Menetapkan dasar undangan (Disposisi Sekjen, Undangan Internal, Naskah Masuk SRIKANDI). | Form penjadwalan rapat sedang diisi. | Klasifikasi tersimpan pada data rapat. |
+| **UC-14** | Tentukan Kategori Dokumen Masuk | Admin, Super Admin | `«include»` oleh UC-10 | Menetapkan dasar undangan (Disposisi Setjen, Undangan Internal, Naskah Masuk SRIKANDI). | Form penjadwalan rapat sedang diisi. | Klasifikasi tersimpan pada data rapat. |
 | **UC-15** | Kelola Peserta & Pimpinan Rapat | Admin, Super Admin | `«include»` oleh UC-10 | Menentukan ketua sidang, notulis, biro pemrakarsa, dan daftar pegawai yang diundang. | Data rapat sedang dibuat atau diedit. | Daftar peserta tersimpan di tabel `peserta_rapat`. |
 | **UC-16** | Presensi Kehadiran Peserta | Admin, Super Admin | `«include»` oleh UC-15 | Mencatat status kehadiran peserta rapat (*Hadir, Tidak Hadir, Izin, Diundang*). | Rapat telah terselenggara. | Status kehadiran peserta terbarui. |
 

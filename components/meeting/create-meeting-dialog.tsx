@@ -196,11 +196,11 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
         documentSubCategory:
-          kategoriRapat === 'DISPOSISI_SEKJEN'
-            ? 'DISPOSISI_SEKJEN'
+          kategoriRapat === 'DISPOSISI_Setjen'
+            ? 'DISPOSISI_Setjen'
             : kategoriRapat === 'DISPOSISI_BIRO'
-            ? 'DISPOSISI_BIRO'
-            : undefined,
+              ? 'DISPOSISI_BIRO'
+              : undefined,
         sourceOrigin: sourceOrigin.trim() || undefined,
         postponeReason: postponeReason.trim() || undefined,
       });
@@ -378,7 +378,7 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
             >
               <option value="UNDANGAN_INTERNAL">Undangan Internal</option>
               <option value="NASKAH_MASUK">Daftar Naskah Masuk</option>
-              <option value="DISPOSISI_SEKJEN">Disposisi Sekjen</option>
+              <option value="DISPOSISI_Setjen">Disposisi Setjen</option>
               <option value="DISPOSISI_BIRO">Disposisi Biro</option>
               <option value="SURAT_DITUNDA">Tunda Kegiatan</option>
             </select>
