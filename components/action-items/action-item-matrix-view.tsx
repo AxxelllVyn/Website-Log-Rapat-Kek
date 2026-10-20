@@ -27,6 +27,7 @@ import {
   Layers,
   ChevronDown,
   X,
+  MoreVertical,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
@@ -143,6 +144,17 @@ export function ActionItemMatrixView({
   const [dialogInitialTab, setDialogInitialTab] = useState<'trail' | 'update'>('update');
   const [dialogDefaultStatus, setDialogDefaultStatus] = useState<ActionItemStatus | undefined>(undefined);
   const [dialogDefaultProgress, setDialogDefaultProgress] = useState<number | undefined>(undefined);
+  const [activeMenuTaskId, setActiveMenuTaskId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleCloseMenu = () => {
+      setActiveMenuTaskId(null);
+    };
+    if (activeMenuTaskId) {
+      document.addEventListener('click', handleCloseMenu);
+      return () => document.removeEventListener('click', handleCloseMenu);
+    }
+  }, [activeMenuTaskId]);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
@@ -1013,7 +1025,7 @@ export function ActionItemMatrixView({
                 <th className="py-3.5 px-4 w-[140px] whitespace-nowrap">Tenggat Waktu</th>
                 <th className="py-3.5 px-4 w-[155px] whitespace-nowrap">Prioritas</th>
                 <th className="py-3.5 px-4 w-[140px] whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-4 w-[110px] text-right whitespace-nowrap">Aksi</th>
+                <th className="py-3.5 px-4 w-[165px] text-right whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1075,8 +1087,17 @@ export function ActionItemMatrixView({
                       <td className="py-3.5 px-4 align-top">
                         <p className="font-bold text-slate-900 leading-snug">{task.title}</p>
                         {(() => {
-                          const allUrls = extractAllLinks(task.description);
-                          const cleanDesc = allUrls.length > 0 ? cleanTextWithoutLink(task.description) : task.description;
+                          let rawDesc = task.description || '';
+                          if (rawDesc.trim().startsWith('{') && rawDesc.includes('"notes"')) {
+                            try {
+                              const parsed = JSON.parse(rawDesc);
+                              rawDesc = parsed.notes || parsed.description || rawDesc;
+                            } catch {
+                              // fallback to raw text
+                            }
+                          }
+                          const allUrls = extractAllLinks(rawDesc);
+                          const cleanDesc = allUrls.length > 0 ? cleanTextWithoutLink(rawDesc) : rawDesc;
 
                           return (
                             <div className="space-y-1 mt-0.5">
@@ -1187,75 +1208,132 @@ export function ActionItemMatrixView({
                         )}
                       </td>
 
-                      {/* Actions */}
+                      {/* Actions: 1 Primary Button + More Menu */}
                       <td className="py-3.5 px-4 align-top text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Quick Finish - opens evidence modal prefilled to COMPLETED */}
-                          {canEditTask(task) && task.status !== 'COMPLETED' && (
-                            <button
-                              type="button"
-                              onClick={() => openUpdateDialog(task, 'COMPLETED', 100)}
-                              className="p-1 rounded text-[#4D8F3D] hover:bg-[#ECF8E9] transition-colors cursor-pointer"
-                              title="Tandai Selesai (Catat Hasil & Bukti Dukung)"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          {/* Update Progres button */}
-                          {canEditTask(task) && (
+                        <div className="relative inline-flex items-center justify-end gap-1.5">
+                          {/* 1. Tombol Utama yang Jelas dan Ramah Pemula */}
+                          {canEditTask(task) ? (
                             <button
                               type="button"
                               onClick={() => openUpdateDialog(task)}
-                              className="p-1 text-[#31889C] hover:text-[#215865] hover:bg-[#F0F9FA] rounded transition-colors cursor-pointer"
-                              title="Update Progres & Bukti Tindak Lanjut"
+                              className={cn(
+                                "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs whitespace-nowrap",
+                                task.status === 'COMPLETED'
+                                  ? "bg-[#ECF8E9] text-[#2C6E20] hover:bg-[#DDF2D8] border border-[#BDE7B5]"
+                                  : "bg-[#31889C] hover:bg-[#266F80] text-white shadow-xs"
+                              )}
+                              title="Klik untuk memperbarui progres, catatan hasil, atau bukti dukung"
                             >
-                              <TrendingUp className="w-4 h-4" />
+                              <TrendingUp className="w-3.5 h-3.5" />
+                              <span>{task.status === 'COMPLETED' ? 'Lihat Capaian' : 'Update Progres'}</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openAuditTrailDialog(task)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+                              title="Lihat riwayat catatan progres"
+                            >
+                              <History className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Riwayat Log</span>
                             </button>
                           )}
 
-                          {/* Audit Trail & Progress Log button */}
-                          <button
-                            type="button"
-                            onClick={() => openAuditTrailDialog(task)}
-                            className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors cursor-pointer relative"
-                            title="Lihat Riwayat & Catatan Progres"
-                          >
-                            <History className="w-4 h-4" />
-                            {Boolean(task.logsCount && task.logsCount > 0) && (
-                              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#31889C] text-white text-[8px] font-bold flex items-center justify-center">
-                                {task.logsCount}
-                              </span>
-                            )}
-                          </button>
-
-                          {/* Edit button - only if user can edit this task */}
-                          {canEditTask(task) && (
+                          {/* 2. Menu Titik Tiga (...) untuk Aksi Tambahan */}
+                          <div className="relative">
                             <button
                               type="button"
-                              onClick={() => {
-                                setEditingItem(task);
-                                setSelectedMeetingIdForCreate(task.meetingId);
-                                setIsFormOpen(true);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuTaskId((prev) => (prev === task.id ? null : task.id));
                               }}
-                              className="p-1 text-slate-400 hover:text-[#31889C] hover:bg-[#F0F9FA] rounded transition-colors cursor-pointer"
-                              title="Ubah Tindak Lanjut"
+                              className={cn(
+                                "p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent",
+                                activeMenuTaskId === task.id ? "bg-slate-100 text-slate-900 border-slate-200" : ""
+                              )}
+                              title="Opsi Aksi Lainnya"
                             >
-                              <Edit2 className="w-4 h-4" />
+                              <MoreVertical className="w-4 h-4" />
                             </button>
-                          )}
 
-                          {/* Delete button - only if user can delete */}
-                          {canDeleteItem && (
-                            <button
-                              type="button"
-                              onClick={() => setDeletingItem(task)}
-                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                              title="Hapus Tindak Lanjut"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
+                            {/* Dropdown Menu */}
+                            {activeMenuTaskId === task.id && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30 text-left animate-in fade-in zoom-in-95 duration-100"
+                              >
+                                {/* Tandai Selesai Cepat */}
+                                {canEditTask(task) && task.status !== 'COMPLETED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuTaskId(null);
+                                      openUpdateDialog(task, 'COMPLETED', 100);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs font-semibold text-[#2C6E20] hover:bg-[#ECF8E9] flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-[#4D8F3D]" />
+                                    <span>Tandai Selesai Cepat</span>
+                                  </button>
+                                )}
+
+                                {/* Riwayat & Catatan Log */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMenuTaskId(null);
+                                    openAuditTrailDialog(task);
+                                  }}
+                                  className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <History className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Riwayat &amp; Catatan Log</span>
+                                  </div>
+                                  {Boolean(task.logsCount && task.logsCount > 0) && (
+                                    <span className="px-1.5 py-0.2 rounded-full bg-[#31889C] text-white text-[9px] font-bold">
+                                      {task.logsCount}
+                                    </span>
+                                  )}
+                                </button>
+
+                                {/* Ubah Rincian & Tenggat */}
+                                {canEditTask(task) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuTaskId(null);
+                                      setEditingItem(task);
+                                      setSelectedMeetingIdForCreate(task.meetingId);
+                                      setIsFormOpen(true);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Ubah Rincian &amp; Tenggat</span>
+                                  </button>
+                                )}
+
+                                {/* Hapus */}
+                                {canDeleteItem && (
+                                  <>
+                                    <div className="my-1 border-t border-slate-100" />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveMenuTaskId(null);
+                                        setDeletingItem(task);
+                                      }}
+                                      className="w-full px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Hapus Tindak Lanjut</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
