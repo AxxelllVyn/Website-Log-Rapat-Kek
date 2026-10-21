@@ -292,31 +292,55 @@ export async function createActionItemAction(input: ActionItemInput) {
     let effectiveBiroId = picBiroId ? picBiroId.trim() : '';
     let effectiveTeamId = picTeamId ? picTeamId.trim() : null;
 
+    let resolvedTeam: { id: string; biroId: string; code: string; name: string } | null = null;
     if (effectiveTeamId) {
-      const team = await prisma.biroTeam.findUnique({
-        where: { id: effectiveTeamId },
+      resolvedTeam = await prisma.biroTeam.findFirst({
+        where: {
+          OR: [
+            { id: effectiveTeamId },
+            { code: effectiveTeamId.toUpperCase() },
+            ...(effectiveTeamId === 'TIM-001' ? [{ code: 'INV' }] : []),
+            ...(effectiveTeamId === 'TIM-002' ? [{ code: 'KOM' }] : []),
+            ...(effectiveTeamId === 'TIM-003' ? [{ code: 'KS' }] : []),
+            ...(effectiveTeamId === 'TIM-004' ? [{ code: 'SI' }] : []),
+            ...(effectiveTeamId === 'TIM-005' ? [{ code: 'POKJA' }] : []),
+          ],
+        },
         select: { id: true, biroId: true, code: true, name: true },
       });
-      if (team?.biroId) {
-        effectiveBiroId = team.biroId;
+      if (resolvedTeam) {
+        effectiveTeamId = resolvedTeam.id;
+        effectiveBiroId = resolvedTeam.biroId;
       }
     }
 
-    if (!effectiveBiroId) {
-      const ikkBiro = await prisma.biro.findFirst({
-        where: { code: 'IKK' },
-        select: { id: true },
+    // Resolve Biro by id or code
+    let biro = null;
+    if (effectiveBiroId) {
+      biro = await prisma.biro.findFirst({
+        where: {
+          OR: [
+            { id: effectiveBiroId },
+            { code: effectiveBiroId.toUpperCase() },
+            { code: effectiveBiroId.toUpperCase().replace('BIRO-', '') },
+          ],
+        },
       });
-      effectiveBiroId = ikkBiro?.id || 'BIRO-IKK';
     }
 
-    // Ensure Biro exists
-    const biro = await prisma.biro.findUnique({
-      where: { id: effectiveBiroId },
-    });
+    if (!biro) {
+      if (meeting.primaryBiroId) {
+        biro = await prisma.biro.findUnique({ where: { id: meeting.primaryBiroId } });
+      }
+      if (!biro) {
+        biro = await prisma.biro.findFirst({ where: { code: 'IKK' } });
+      }
+    }
+
     if (!biro) {
       return { success: false, error: 'Biro/Unit kerja penanggung jawab tidak ditemukan.' };
     }
+    effectiveBiroId = biro.id;
 
     // Authorization Check: Must have 'create:action_item' permission (SUPER_ADMIN, ADMIN, STAFF)
     const currentUser = await requirePermission('create:action_item');
@@ -332,25 +356,50 @@ export async function createActionItemAction(input: ActionItemInput) {
     }
 
     // Team Scoping: Staff users can only assign action items to their own work team
-    if (currentUser.role === 'STAFF' && currentUser.teamId && effectiveTeamId && effectiveTeamId !== currentUser.teamId) {
-      return {
-        success: false,
-        error: 'Anda hanya dapat menugaskan tindak lanjut ke tim kerja Anda sendiri.',
-      };
+    if (currentUser.role === 'STAFF' && currentUser.teamId && effectiveTeamId) {
+      const allowedTeamIds = [
+        currentUser.teamId,
+        ...(currentUser.assignedTeams || []).map((t) => t.id),
+      ].filter(Boolean);
+      const allowedTeamCodes = [
+        ...(currentUser.teamCode ? [currentUser.teamCode.toUpperCase()] : []),
+        ...(currentUser.assignedTeams || []).map((t) => (t.code || '').toUpperCase()),
+      ].filter(Boolean);
+
+      const isAllowedTeam =
+        allowedTeamIds.includes(effectiveTeamId) ||
+        (resolvedTeam && allowedTeamCodes.includes(resolvedTeam.code.toUpperCase()));
+
+      if (!isAllowedTeam) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat menugaskan tindak lanjut ke tim kerja Anda sendiri.',
+        };
+      }
     }
 
-    // Meeting Scoping: Staff users can only create action items on meetings belonging to their own work team
+    // Meeting Scoping: Staff users can only create action items on meetings belonging to their own work team, or general bureau meetings
     if (currentUser.role === 'STAFF') {
-      const userTeamCode = currentUser.teamCode?.toUpperCase();
-      const userTeamId = currentUser.teamId;
+      const userTeamCodes = [
+        ...(currentUser.teamCode ? [currentUser.teamCode.toUpperCase()] : []),
+        ...(currentUser.assignedTeams || []).map((t) => (t.code || '').toUpperCase()),
+      ].filter(Boolean);
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...(currentUser.assignedTeams || []).map((t) => t.id),
+      ].filter(Boolean);
+
       const meetingTeamCode = meeting.primaryTeam?.code?.toUpperCase();
       const meetingTeamId = meeting.primaryTeamId;
       const meetingNumber = meeting.meetingNumber?.toUpperCase() || '';
 
       const isMatch =
-        (userTeamId && meetingTeamId === userTeamId) ||
-        (userTeamCode && meetingTeamCode === userTeamCode) ||
-        (userTeamCode && meetingNumber.startsWith(`${userTeamCode}-`));
+        !meetingTeamId ||
+        meetingNumber.startsWith('POKJA-') ||
+        meetingNumber.startsWith('PLENO-') ||
+        (meetingTeamId && userTeamIds.includes(meetingTeamId)) ||
+        (meetingTeamCode && userTeamCodes.includes(meetingTeamCode)) ||
+        userTeamCodes.some((tc) => meetingNumber.startsWith(`${tc}-`));
 
       if (!isMatch) {
         return {
@@ -363,13 +412,18 @@ export async function createActionItemAction(input: ActionItemInput) {
     // 4. Validate picUser if provided
     let validPicUserId: string | null = null;
     if (picUserId && picUserId.trim() !== '') {
-      const user = await prisma.user.findUnique({
-        where: { id: picUserId },
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: picUserId },
+            { email: picUserId },
+            { name: picUserId },
+          ],
+        },
       });
-      if (!user) {
-        return { success: false, error: 'PIC Pengguna tidak ditemukan.' };
+      if (user) {
+        validPicUserId = user.id;
       }
-      validPicUserId = user.id;
     }
 
     // 5. Calculate completedAt
@@ -470,23 +524,55 @@ export async function updateActionItemAction(input: UpdateActionItemInput) {
     let effectiveTeamId = picTeamId !== undefined ? (picTeamId ? picTeamId.trim() : null) : existing.picTeamId;
     let effectiveBiroId = picBiroId ? picBiroId.trim() : existing.picBiroId;
 
+    let resolvedTeam: { id: string; biroId: string; code: string; name: string } | null = null;
     if (effectiveTeamId) {
-      const team = await prisma.biroTeam.findUnique({
-        where: { id: effectiveTeamId },
-        select: { id: true, biroId: true },
+      resolvedTeam = await prisma.biroTeam.findFirst({
+        where: {
+          OR: [
+            { id: effectiveTeamId },
+            { code: effectiveTeamId.toUpperCase() },
+            ...(effectiveTeamId === 'TIM-001' ? [{ code: 'INV' }] : []),
+            ...(effectiveTeamId === 'TIM-002' ? [{ code: 'KOM' }] : []),
+            ...(effectiveTeamId === 'TIM-003' ? [{ code: 'KS' }] : []),
+            ...(effectiveTeamId === 'TIM-004' ? [{ code: 'SI' }] : []),
+            ...(effectiveTeamId === 'TIM-005' ? [{ code: 'POKJA' }] : []),
+          ],
+        },
+        select: { id: true, biroId: true, code: true, name: true },
       });
-      if (team?.biroId) {
-        effectiveBiroId = team.biroId;
+      if (resolvedTeam) {
+        effectiveTeamId = resolvedTeam.id;
+        effectiveBiroId = resolvedTeam.biroId;
       }
     }
 
-    if (!effectiveBiroId) {
-      const ikkBiro = await prisma.biro.findFirst({
-        where: { code: 'IKK' },
-        select: { id: true },
+    // Resolve Biro by id or code
+    let biro = null;
+    if (effectiveBiroId) {
+      biro = await prisma.biro.findFirst({
+        where: {
+          OR: [
+            { id: effectiveBiroId },
+            { code: effectiveBiroId.toUpperCase() },
+            { code: effectiveBiroId.toUpperCase().replace('BIRO-', '') },
+          ],
+        },
       });
-      effectiveBiroId = ikkBiro?.id || 'BIRO-IKK';
     }
+
+    if (!biro) {
+      if (existing.picBiroId) {
+        biro = await prisma.biro.findUnique({ where: { id: existing.picBiroId } });
+      }
+      if (!biro) {
+        biro = await prisma.biro.findFirst({ where: { code: 'IKK' } });
+      }
+    }
+
+    if (!biro) {
+      return { success: false, error: 'Biro/Unit kerja penanggung jawab tidak ditemukan.' };
+    }
+    effectiveBiroId = biro.id;
 
     // Bureau Scoping: Non-admin users cannot edit action items of another bureau, nor reassign outside their bureau
     if (!isPrivileged && currentUser.biroId) {
@@ -500,13 +586,21 @@ export async function updateActionItemAction(input: UpdateActionItemInput) {
 
     // Team Scoping: Staff users cannot reassign or manage action items of another team
     if (currentUser.role === 'STAFF' && currentUser.teamId) {
-      if (existing.picTeamId && existing.picTeamId !== currentUser.teamId && existing.picUserId !== currentUser.id) {
-        return {
-          success: false,
-          error: 'Anda hanya dapat mengelola tindak lanjut untuk tim kerja Anda sendiri.',
-        };
-      }
-      if (effectiveTeamId && effectiveTeamId !== currentUser.teamId) {
+      const allowedTeamIds = [
+        currentUser.teamId,
+        ...(currentUser.assignedTeams || []).map((t) => t.id),
+      ].filter(Boolean);
+      const allowedTeamCodes = [
+        ...(currentUser.teamCode ? [currentUser.teamCode.toUpperCase()] : []),
+        ...(currentUser.assignedTeams || []).map((t) => (t.code || '').toUpperCase()),
+      ].filter(Boolean);
+
+      const isAllowedTeam =
+        !effectiveTeamId ||
+        allowedTeamIds.includes(effectiveTeamId) ||
+        (resolvedTeam && allowedTeamCodes.includes(resolvedTeam.code.toUpperCase()));
+
+      if (!isAllowedTeam) {
         return {
           success: false,
           error: 'Anda hanya dapat menugaskan tindak lanjut ke tim kerja Anda sendiri.',
@@ -523,24 +617,21 @@ export async function updateActionItemAction(input: UpdateActionItemInput) {
       return { success: false, error: 'Rapat tidak ditemukan.' };
     }
 
-    // 4. Ensure Biro exists
-    const biro = await prisma.biro.findUnique({
-      where: { id: effectiveBiroId },
-    });
-    if (!biro) {
-      return { success: false, error: 'Biro/Unit kerja penanggung jawab tidak ditemukan.' };
-    }
-
-    // 5. Validate picUser if provided
+    // 4. Validate picUser if provided
     let validPicUserId: string | null = null;
     if (picUserId && picUserId.trim() !== '') {
-      const user = await prisma.user.findUnique({
-        where: { id: picUserId },
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: picUserId },
+            { email: picUserId },
+            { name: picUserId },
+          ],
+        },
       });
-      if (!user) {
-        return { success: false, error: 'PIC Pengguna tidak ditemukan.' };
+      if (user) {
+        validPicUserId = user.id;
       }
-      validPicUserId = user.id;
     }
 
     // 6. Handle completedAt logic

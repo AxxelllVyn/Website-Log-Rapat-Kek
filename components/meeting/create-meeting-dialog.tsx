@@ -420,7 +420,7 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
               onChange={(e) => setJenisKegiatan(e.target.value)}
               className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
             >
-              {JENIS_KEGIATAN_OPTIONS.map((opt) => (
+              {JENIS_KEGIATAN_OPTIONS.map((opt: string) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>

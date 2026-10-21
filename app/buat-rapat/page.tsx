@@ -18,6 +18,10 @@ import {
   RefreshCw,
   FolderOpen,
   ChevronDown,
+  UploadCloud,
+  Paperclip,
+  FileCheck,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -27,6 +31,7 @@ import {
   getMeetingOptionsAction,
   previewNextMeetingNumberAction,
 } from '@/app/actions/meeting-actions';
+import { uploadGenericMeetingFileAction } from '@/app/actions/meeting-upload-actions';
 import { getTeamsAction } from '@/app/actions/team-actions';
 import { toast } from '@/components/providers/toast-provider';
 import { Badge } from '@/components/ui/badge';
@@ -58,17 +63,23 @@ interface AvailableUser {
   }>;
 }
 
-export const JENIS_KEGIATAN_OPTIONS = [
-  'Rapat Kerja / Koordinasi',
-  'Kunjungan Lapangan / Kunker',
-  'Audiensi / Kemitraan',
-  'Sosialisasi / Forum / Workshop',
-  'Media Gathering / Publikasi',
-  'Penandatanganan MoU / PKS',
-  'Groundbreaking / Seremoni',
-  'Pelantikan',
-  'Other',
+export const KATEGORI_KEGIATAN_OPTIONS = [
+  { value: 'NASKAH_MASUK', label: 'Naskah Masuk', desc: 'Surat dinas atau naskah masuk dari kementerian/lembaga/pihak eksternal' },
+  { value: 'DISPOSISI_SEKJEN', label: 'Disposisi Sekjen', desc: 'Arahan dan disposisi resmi Sekretaris Jenderal Dewan Nasional KEK' },
+  { value: 'DISPOSISI_KARO', label: 'Disposisi Karo', desc: 'Arahan dan disposisi Kepala Biro IKK (Biro 3)' },
+  { value: 'KEGIATAN_INTERNAL', label: 'Kegiatan Internal', desc: 'Rapat koordinasi internal, pembahasan teknis, atau agenda tim kerja' },
+  { value: 'LAPORAN_RUTIN', label: 'Laporan Rutin', desc: 'Laporan berkala atau rekapitulasi capaian mingguan/bulanan' },
 ];
+
+export const KATEGORI_LABEL_MAP: Record<string, string> = {
+  NASKAH_MASUK: 'Naskah Masuk',
+  DISPOSISI_SEKJEN: 'Disposisi Sekjen',
+  DISPOSISI_KARO: 'Disposisi Karo',
+  KEGIATAN_INTERNAL: 'Kegiatan Internal',
+  LAPORAN_RUTIN: 'Laporan Rutin',
+};
+
+export const JENIS_KEGIATAN_OPTIONS: string[] = KATEGORI_KEGIATAN_OPTIONS.map((k) => k.label);
 
 export const TIM_OPTIONS = [
   {
@@ -172,14 +183,17 @@ export default function BuatRapatPage() {
   // 3. Tanggal Pelaksanaan Kegiatan
   const [date, setDate] = useState(todayStr);
 
-  // 4. Kategori Naskah / Dasar Kegiatan (Undangan Internal, Daftar Naskah Masuk, Disposisi Setjen/Biro, Tunda Rapat)
-  const [kategoriRapat, setKategoriRapat] = useState<string>('UNDANGAN_INTERNAL');
+  // 4. Kategori Kegiatan (5 Opsi Ringkas Sesuai Usulan Mentor)
+  const [kategoriRapat, setKategoriRapat] = useState<string>('KEGIATAN_INTERNAL');
   const [sourceOrigin, setSourceOrigin] = useState<string>('');
-  const [postponeReason, setPostponeReason] = useState<string>('');
 
-  // 5. Jenis Kegiatan (Pengganti Jenis Rapat)
-  const [jenisKegiatan, setJenisKegiatan] = useState<string>('Rapat Kerja / Koordinasi');
-  const [customJenisKegiatan, setCustomJenisKegiatan] = useState<string>('');
+  // 5. Dokumen Lampiran (Poin 5 & 6 Digabung Jadi Dokumen)
+  const [uploadedDoc, setUploadedDoc] = useState<{
+    url: string;
+    name: string;
+    size: number;
+  } | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
 
   // 6. PIC Kegiatan (Bisa lebih dari 1 orang langsung)
   const [selectedPicIds, setSelectedPicIds] = useState<string[]>([]);
@@ -311,6 +325,34 @@ export default function BuatRapatPage() {
     setPicName('');
   };
 
+  // Handle document file upload (Poin 5 Dokumen)
+  const handleDocChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingDoc(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('type', 'dokumen');
+      const res = await uploadGenericMeetingFileAction(fd);
+      if (res.success && res.data) {
+        setUploadedDoc({
+          url: res.data.url,
+          name: res.data.name,
+          size: res.data.size,
+        });
+        toast.success(`Dokumen "${res.data.name}" berhasil diunggah.`);
+      } else {
+        toast.error(res.error || 'Gagal mengunggah dokumen.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan sistem saat unggah dokumen.');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
   // Handle submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -336,17 +378,7 @@ export default function BuatRapatPage() {
         return;
       }
 
-      if (kategoriRapat === 'SURAT_DITUNDA' && !postponeReason.trim()) {
-        toast.error('Mohon cantumkan alasan penundaan untuk kategori Tunda Kegiatan.');
-        setIsSubmitted(false);
-        return;
-      }
-
-      // Determine final jenis kegiatan
-      const finalJenisKegiatan =
-        jenisKegiatan === 'Other'
-          ? (customJenisKegiatan.trim() || 'Lainnya')
-          : jenisKegiatan;
+      const finalJenisKegiatan = KATEGORI_LABEL_MAP[kategoriRapat] || kategoriRapat;
 
       // Submit
       const res = await createMeetingAction({
@@ -365,13 +397,18 @@ export default function BuatRapatPage() {
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
         documentSubCategory:
-          kategoriRapat === 'DISPOSISI_Setjen'
-            ? 'DISPOSISI_Setjen'
-            : kategoriRapat === 'DISPOSISI_BIRO'
-              ? 'DISPOSISI_BIRO'
+          kategoriRapat === 'DISPOSISI_SEKJEN'
+            ? 'DISPOSISI_SEKJEN'
+            : kategoriRapat === 'DISPOSISI_KARO'
+              ? 'DISPOSISI_KARO'
               : undefined,
         sourceOrigin: sourceOrigin.trim() || undefined,
-        postponeReason: postponeReason.trim() || undefined,
+        invitationDocUrl: uploadedDoc?.url || undefined,
+        invitationDocName: uploadedDoc?.name || undefined,
+        invitationDocSize: uploadedDoc?.size || undefined,
+        categoryDocUrl: uploadedDoc?.url || undefined,
+        categoryDocName: uploadedDoc?.name || undefined,
+        categoryDocSize: uploadedDoc?.size || undefined,
         previousMeetingId: previousMeetingId || undefined,
       });
 
@@ -672,7 +709,7 @@ export default function BuatRapatPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* BAGIAN II: KLASIFIKASI NASKAH & JENIS KEGIATAN                            */}
+        {/* BAGIAN II: KATEGORI & DOKUMEN KEGIATAN                                    */}
         {/* ========================================================================= */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden border-t-4 border-t-[#F99D1C]">
           <div className="px-6 py-4.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
@@ -682,10 +719,10 @@ export default function BuatRapatPage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-900">
-                  Bagian II: Kategori Naskah &amp; Bentuk Kegiatan
+                  Bagian II: Kategori Kegiatan &amp; Dokumen Lampiran
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Klasifikasi dasar naskah administrasi dan bentuk format kegiatan Biro 3
+                  Klasifikasi dasar naskah administrasi dan lampiran dokumen kegiatan Biro 3
                 </p>
               </div>
             </div>
@@ -695,7 +732,7 @@ export default function BuatRapatPage() {
           </div>
 
           <div className="p-6 sm:p-7 space-y-6">
-            {/* 4. Kategori Naskah (Undangan Internal, Daftar Naskah Masuk, Disposisi, Tunda Kegiatan) */}
+            {/* 4. Kategori Kegiatan (Ringkas 5 Opsi Sesuai Usulan Mentor) */}
             <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="kategori-naskah-select" className="font-bold text-slate-800 flex items-center gap-2 text-sm cursor-pointer">
@@ -703,10 +740,10 @@ export default function BuatRapatPage() {
                   <span>Kategori Kegiatan</span>
                   <span className="text-red-500">*</span>
                 </label>
-                <span className="text-xs text-slate-400">Pilih salah satu kategori kegiatan</span>
+                <span className="text-xs text-slate-400">Pilih salah satu dari 5 kategori ringkas</span>
               </div>
 
-              {/* Field Dropdown Kategori Naskah */}
+              {/* Field Dropdown Kategori Ringkas */}
               <div className="relative">
                 <select
                   id="kategori-naskah-select"
@@ -714,111 +751,103 @@ export default function BuatRapatPage() {
                   onChange={(e) => setKategoriRapat(e.target.value)}
                   className="w-full px-4 pr-10 h-[46px] rounded-xl border border-slate-300 bg-white text-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/25 focus:border-[#1E6B7B] shadow-2xs cursor-pointer appearance-none transition-all hover:border-slate-400"
                 >
-                  <option value="UNDANGAN_INTERNAL">Undangan Internal</option>
-                  <option value="NASKAH_MASUK">Daftar Naskah Masuk</option>
-                  <option value="DISPOSISI_Setjen">Disposisi Setjen</option>
-                  <option value="DISPOSISI_BIRO">Disposisi Biro</option>
-                  <option value="SURAT_DITUNDA">Tunda Kegiatan</option>
+                  {KATEGORI_KEGIATAN_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} — {opt.desc}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
-              {/* Conditional Input per kategori */}
-              {kategoriRapat === 'NASKAH_MASUK' && (
+              {/* Optional source origin for Naskah Masuk / Disposisi */}
+              {(kategoriRapat === 'NASKAH_MASUK' || kategoriRapat === 'DISPOSISI_SEKJEN' || kategoriRapat === 'DISPOSISI_KARO') && (
                 <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-slate-200/80">
                   <label className="block text-xs font-semibold text-slate-700">
-                    Asal Naskah Masuk / Instansi Pengirim (Opsional):
+                    {kategoriRapat === 'NASKAH_MASUK'
+                      ? 'Asal Naskah Masuk / Instansi Pengirim (Opsional):'
+                      : kategoriRapat === 'DISPOSISI_SEKJEN'
+                        ? 'Nomor Agenda / Catatan Disposisi Sekjen (Opsional):'
+                        : 'Nomor / Catatan Disposisi Karo (Opsional):'}
                   </label>
                   <input
                     type="text"
                     value={sourceOrigin}
                     onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: Kementerian Koordinator Bidang Perekonomian / BUPP KEK Batam..."
+                    placeholder={
+                      kategoriRapat === 'NASKAH_MASUK'
+                        ? 'Contoh: Kemenko Perekonomian / BUPP KEK Batam...'
+                        : 'Contoh: No. Agenda 184 / Arahan Disposisi...'
+                    }
                     className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-              )}
-
-              {kategoriRapat === 'DISPOSISI_Setjen' && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-indigo-200/80">
-                  <label className="block text-xs font-semibold text-indigo-900">
-                    Nomor Agenda / Catatan Disposisi Setjen (Opsional):
-                  </label>
-                  <input
-                    type="text"
-                    value={sourceOrigin}
-                    onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: No. Agenda 184 / Disposisi Setjen via SRIKANDI..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                  />
-                </div>
-              )}
-
-              {kategoriRapat === 'DISPOSISI_BIRO' && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-purple-200/80">
-                  <label className="block text-xs font-semibold text-purple-900">
-                    Nomor / Catatan Disposisi Biro (Opsional):
-                  </label>
-                  <input
-                    type="text"
-                    value={sourceOrigin}
-                    onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: Disposisi Kepala Biro IKK No. ND-082 / Nota Dinas Internal..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600"
-                  />
-                </div>
-              )}
-
-              {(kategoriRapat === 'SURAT_DITUNDA' || kategoriRapat === 'TUNDA_RAPAT') && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-rose-200/80">
-                  <label className="block text-xs font-semibold text-rose-700">
-                    Alasan / Keterangan Penundaan Kegiatan: <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    rows={2}
-                    value={postponeReason}
-                    onChange={(e) => setPostponeReason(e.target.value)}
-                    placeholder="Contoh: Ditunda atas arahan pimpinan menyusul agenda Sidang Kabinet..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
                   />
                 </div>
               )}
             </div>
 
-            {/* 5. Jenis Kegiatan (Ubah dari Jenis Rapat) */}
+            {/* 5. Dokumen Lampiran (Poin 5 & 6 Digabung Jadi Satu "Dokumen") */}
             <div>
-              <label className="font-bold text-slate-800 mb-2 flex items-center gap-2 text-sm">
-                <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">5</span>
-                <span>Jenis Kegiatan</span>
-                <span className="text-red-500">*</span>
+              <label className="font-bold text-slate-800 mb-2 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">5</span>
+                  <span>Dokumen (Surat Undangan / Bahan Paparan / Berkas Acuan)</span>
+                </span>
+                <span className="text-xs text-slate-400 font-normal">Opsional</span>
               </label>
-              <select
-                value={jenisKegiatan}
-                onChange={(e) => setJenisKegiatan(e.target.value)}
-                className="w-full px-4 h-[44px] rounded-xl border border-slate-300 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] shadow-2xs cursor-pointer"
-              >
-                {JENIS_KEGIATAN_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt === 'Other' ? 'Other (Kategori Kegiatan Lainnya...)' : opt}
-                  </option>
-                ))}
-              </select>
 
-              {jenisKegiatan === 'Other' && (
-                <div className="mt-2.5 animate-in fade-in">
+              {uploadedDoc ? (
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <FileCheck className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 truncate">
+                        {uploadedDoc.name}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        {uploadedDoc.size ? `${(uploadedDoc.size / (1024 * 1024)).toFixed(2)} MB` : 'Berkas siap diarsipkan'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUploadedDoc(null)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-red-600 hover:text-red-800 font-semibold cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Hapus</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="relative border-2 border-dashed border-slate-300 hover:border-[#1E6B7B] rounded-2xl p-5 text-center transition-all bg-slate-50/50 hover:bg-[#F0F8FA]/30">
                   <input
-                    type="text"
-                    required
-                    value={customJenisKegiatan}
-                    onChange={(e) => setCustomJenisKegiatan(e.target.value)}
-                    placeholder="Ketikkan jenis kegiatan lainnya di sini..."
-                    className="w-full px-4 h-[40px] rounded-xl border border-[#1E6B7B] bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20"
+                    type="file"
+                    id="doc-upload"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    onChange={handleDocChange}
+                    disabled={isUploadingDoc}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                   />
+                  <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#1E6B7B] shadow-2xs">
+                      {isUploadingDoc ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <UploadCloud className="w-5 h-5" />
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-slate-700">
+                      {isUploadingDoc ? 'Mengunggah Berkas...' : 'Klik atau seret berkas dokumen ke sini'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Format: PDF, Word (DOCX), Bahan Paparan (PPTX), Excel, atau Gambar (Maks. 100MB)
+                    </p>
+                  </div>
                 </div>
               )}
               <p className="text-xs text-slate-400 mt-1.5">
-                Pilih format atau bentuk pelaksanaan kegiatan (Rapat Kerja, Kunker, Audiensi, dll.).
+                Surat undangan dan bahan paparan digabung menjadi satu lampiran dokumen kegiatan.
               </p>
             </div>
           </div>

@@ -60,7 +60,6 @@ import { PreviousMeetingModal } from '@/components/meeting/previous-meeting-moda
 import { LinkMeetingDialog } from '@/components/meeting/link-meeting-dialog';
 import { AgendaSeriesModal } from '@/components/meeting/agenda-series-modal';
 import { GoogleCalendarModal } from '@/components/meeting/google-calendar-modal';
-import { PicDeliverablesTracker } from '@/components/meeting/pic-deliverables-tracker';
 import {
   MeetingCategorySelector,
   CategorySelectionData,
@@ -160,6 +159,9 @@ export function MeetingDetailView({
 
   // Cek kepemilikan tim kegiatan: Staf dan pengguna tim lain hanya memiliki akses lihat saja (read-only)
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
+  const isAdmin = userRole === 'ADMIN';
+  const isPrivileged = isSuperAdmin || isAdmin || userRole === 'PIMPINAN';
+
   const userAssignedList = (session?.user as any)?.assignedTeams || [];
   const userTeamCodes = [
     ...(session?.user?.teamCode ? [session.user.teamCode.toUpperCase()] : []),
@@ -171,7 +173,8 @@ export function MeetingDetailView({
   ].filter(Boolean);
 
   const isMyTeam =
-    isSuperAdmin ||
+    isPrivileged ||
+    !meeting.primaryTeamId ||
     (userTeamCodes.length > 0 &&
       (userTeamCodes.includes((meeting.primaryTeam?.code || '').toUpperCase()) ||
         userTeamCodes.some((tc) => meeting.meetingNumber?.toUpperCase().startsWith(`${tc}-`)))) ||
@@ -192,7 +195,6 @@ export function MeetingDetailView({
       userRole === 'STAFF');
 
   // Biro ownership check for status updates & staff permissions
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroId && session.user.biroId === meeting.primaryBiroId) ||
@@ -1434,17 +1436,7 @@ export function MeetingDetailView({
       {/* Informasi Kegiatan & Tindak Lanjut */}
       <div className="space-y-6">
 
-          {/* Detail Kegiatan */}
-          <PicDeliverablesTracker
-            meetingId={meetingData.id}
-            meetingTitle={meetingData.title}
-            meetingDate={meetingData.date}
-            actionItems={meetingData.actionItems || []}
-            participants={meetingData.participants || []}
-            availableUsers={availableUsers || []}
-            canEdit={canEditMeeting}
-            onRefresh={() => router.refresh()}
-          />
+
 
 
 
@@ -1460,69 +1452,7 @@ export function MeetingDetailView({
             />
           </div>
 
-          {/* Agenda Pembahasan & Ringkasan Kegiatan */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-[16px] font-bold text-slate-900">Agenda &amp; Pokok Pembahasan Kegiatan</h3>
-                <p className="text-[12.5px] text-slate-500 mt-0.5">
-                  Fokus materi dan substansi pokok yang dikoordinasikan oleh{' '}
-                  <strong className="text-slate-700">{meeting.primaryBiro?.name}</strong>
-                </p>
-              </div>
-            </div>
 
-            {agendaItems.length > 0 ? (
-              <div className="space-y-2.5">
-                {agendaItems.map((item: string, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-slate-200/70 hover:bg-white hover:border-slate-300 transition-colors"
-                  >
-                    <span className="w-5 h-5 rounded-full bg-[#1E6B7B]/10 text-[#1E6B7B] text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="text-[13px] text-slate-800 leading-relaxed font-medium">
-                      {item}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 text-[13px] text-slate-600 flex items-start gap-3">
-                <Info className="w-4 h-4 text-[#31889C] shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-slate-800">
-                    Agenda Utama: {meeting.title}
-                  </p>
-                  <p className="text-slate-500 text-[12px] leading-relaxed">
-                    Rincian butir agenda pembahasan belum dimasukkan secara terperinci.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Poin Kesepakatan / Keputusan Utama (jika ada) */}
-            {decisionItems.length > 0 && (
-              <div className="pt-2">
-                <h4 className="text-[13px] font-bold text-slate-900 mb-2.5 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Ringkasan Kesepakatan &amp; Keputusan Kegiatan:</span>
-                </h4>
-                <div className="space-y-2">
-                  {decisionItems.slice(0, 4).map((dec: string, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-start gap-2.5 text-[12.5px] text-slate-700 bg-emerald-50/40 border border-emerald-200/60 p-2.5 rounded-lg"
-                    >
-                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{dec}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
         </div>
 
