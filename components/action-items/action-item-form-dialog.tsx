@@ -778,8 +778,8 @@ export function ActionItemFormDialog({
               </div>
             </div>
 
-            {/* Deadline, Prioritas, Status Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Deadline & Status Tindak Lanjut Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Deadline (Required) */}
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
@@ -796,27 +796,10 @@ export function ActionItemFormDialog({
                 )}
               </div>
 
-              {/* Prioritas */}
+              {/* Status Tindak Lanjut */}
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
-                  Tingkat Prioritas
-                </label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as ActionItemPriority)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
-                >
-                  <option value="LOW">Rendah (LOW)</option>
-                  <option value="MEDIUM">Sedang (MEDIUM)</option>
-                  <option value="HIGH">Tinggi (HIGH)</option>
-                  <option value="URGENT">Sangat Mendesak (URGENT)</option>
-                </select>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Status Pengerjaan
+                  Status Tindak Lanjut
                 </label>
                 <select
                   value={status}

@@ -55,13 +55,10 @@ import {
   mapStatusToProgress,
 } from '@/lib/meeting-status';
 import { cn } from '@/lib/utils';
-import { MeetingMinutesSection } from '@/components/meeting/meeting-minutes/meeting-minutes-section';
-import { MeetingFilePreviewPanel } from '@/components/meeting/file-preview';
 import { ActionItemList } from '@/components/action-items/action-item-list';
 import { PreviousMeetingModal } from '@/components/meeting/previous-meeting-modal';
 import { LinkMeetingDialog } from '@/components/meeting/link-meeting-dialog';
 import { AgendaSeriesModal } from '@/components/meeting/agenda-series-modal';
-import { MinutesHistorySection } from '@/components/meeting/meeting-history/minutes-history-section';
 import { GoogleCalendarModal } from '@/components/meeting/google-calendar-modal';
 import { PicDeliverablesTracker } from '@/components/meeting/pic-deliverables-tracker';
 import {
@@ -1434,155 +1431,8 @@ export function MeetingDetailView({
         </div>
       )}
 
-      {/* Tabs Navigation (4 Tab Utama Terstruktur) */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-0 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => handleTabChange('overview')}
-          className={`flex items-center gap-2 px-5 py-3 font-bold text-[13px] border-b-2 transition-all cursor-pointer whitespace-nowrap ${activeTab === 'overview'
-            ? 'border-[#31889C] text-[#31889C] bg-[#F0F9FA] rounded-t-lg'
-            : 'border-transparent text-slate-600 hover:text-[#31889C] hover:bg-[#F0F9FA]/50'
-            }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Informasi Kegiatan</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('minutes')}
-          className={`flex items-center gap-2 px-5 py-3 font-bold text-[13px] border-b-2 transition-all cursor-pointer whitespace-nowrap ${activeTab === 'minutes'
-            ? 'border-[#31889C] text-[#31889C] bg-[#F0F9FA] rounded-t-lg'
-            : 'border-transparent text-slate-600 hover:text-[#31889C] hover:bg-[#F0F9FA]/50'
-            }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Notulen &amp; Risalah</span>
-          {meeting.minutes ? (
-            <span className="w-2 h-2 rounded-full bg-[#7CC563]" title="Naskah kegiatan telah terisi" />
-          ) : (
-            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-semibold">Kosong</span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('actionItems')}
-          className={`flex items-center gap-2 px-5 py-3 font-bold text-[13px] border-b-2 transition-all cursor-pointer whitespace-nowrap ${activeTab === 'actionItems'
-            ? 'border-[#31889C] text-[#31889C] bg-[#F0F9FA] rounded-t-lg'
-            : 'border-transparent text-slate-600 hover:text-[#31889C] hover:bg-[#F0F9FA]/50'
-            }`}
-        >
-          <CheckSquare className="w-4 h-4" />
-          <span>Tindak Lanjut ({meeting.actionItems ? meeting.actionItems.length : 0})</span>
-        </button>
-      </div>
-
-      {/* Tab 1: Informasi Rapat / Overview */}
-      {activeTab === 'overview' && (
-        <div className="space-y-5">
-          {/* Executive KPI Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {/* KPI 1: Naskah Notula & Risalah */}
-            <div
-              onClick={() => {
-                handleTabChange('minutes');
-                handleMinutesSubTabChange('document');
-              }}
-              role="button"
-              tabIndex={0}
-              className="group bg-white hover:bg-[#F0F9FA] p-4 rounded-xl border border-slate-200 hover:border-[#BCE3EB] transition-all cursor-pointer shadow-xs flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-[#215865]">
-                  Naskah Risalah
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-[#E8F5F7] text-[#1E6B7B] flex items-center justify-center">
-                  <FileText className="w-3.5 h-3.5" />
-                </div>
-              </div>
-              <div className="mt-2.5">
-                <div className="text-xl font-extrabold text-slate-900 group-hover:text-[#1E6B7B]">
-                  {meeting.minutes ? 'Tersedia' : 'Belum Ada'}
-                </div>
-                <div className="flex items-center justify-between text-[11.5px] text-slate-500 mt-1">
-                  <span>
-                    {currentProgress === 'Selesai'
-                      ? 'Naskah Disahkan'
-                      : currentProgress === 'Dalam Proses'
-                        ? 'Dalam Penelaahan'
-                        : 'Persiapan Notula'}
-                  </span>
-                  <span className="font-semibold text-[#1E6B7B] group-hover:underline flex items-center gap-0.5">
-                    Buka <ChevronRight className="w-3 h-3 inline" />
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* KPI 3: Berkas & Paparan */}
-            <div
-              onClick={() => {
-                handleTabChange('minutes');
-                handleMinutesSubTabChange('materials');
-              }}
-              role="button"
-              tabIndex={0}
-              className="group bg-white hover:bg-sky-50/50 p-4 rounded-xl border border-slate-200 hover:border-sky-300 transition-all cursor-pointer shadow-xs flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-sky-700">
-                  Berkas Paparan
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-sky-100/70 text-sky-700 flex items-center justify-center">
-                  <Presentation className="w-3.5 h-3.5" />
-                </div>
-              </div>
-              <div className="mt-2.5">
-                <div className="text-xl font-extrabold text-slate-900 group-hover:text-sky-800">
-                  {totalAttachmentsCount} <span className="text-xs font-semibold text-slate-400">Berkas</span>
-                </div>
-                <div className="flex items-center justify-between text-[11.5px] text-slate-500 mt-1">
-                  <span>{invitationDoc ? '+ Undangan Resmi' : 'Slide & Lampiran'}</span>
-                  <span className="font-semibold text-sky-700 group-hover:underline flex items-center gap-0.5">
-                    Lihat <ChevronRight className="w-3 h-3 inline" />
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* KPI 4: Tindak Lanjut */}
-            <div
-              onClick={() => handleTabChange('actionItems')}
-              role="button"
-              tabIndex={0}
-              className="group bg-white hover:bg-amber-50/40 p-4 rounded-xl border border-slate-200 hover:border-amber-300 transition-all cursor-pointer shadow-xs flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-amber-700">
-                  Tindak Lanjut
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-amber-100/70 text-amber-700 flex items-center justify-center">
-                  <CheckSquare className="w-3.5 h-3.5" />
-                </div>
-              </div>
-              <div className="mt-2.5">
-                <div className="text-xl font-extrabold text-slate-900 group-hover:text-amber-800">
-                  {completedActionCount} <span className="text-xs font-semibold text-slate-400">/ {totalActionCount} Selesai</span>
-                </div>
-                <div className="flex items-center justify-between text-[11.5px] text-slate-500 mt-1">
-                  <span>
-                    {totalActionCount > 0
-                      ? `${Math.round((completedActionCount / totalActionCount) * 100)}% tuntas`
-                      : 'Belum ada PIC'}
-                  </span>
-                  <span className="font-semibold text-amber-700 group-hover:underline flex items-center gap-0.5">
-                    Matriks <ChevronRight className="w-3 h-3 inline" />
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Informasi Kegiatan & Tindak Lanjut */}
+      <div className="space-y-6">
 
           {/* Detail Kegiatan */}
           <PicDeliverablesTracker
@@ -1598,6 +1448,18 @@ export function MeetingDetailView({
 
 
 
+          {/* Tindak Lanjut Kegiatan */}
+          <div className="space-y-4">
+            <ActionItemList
+              meetingId={meeting.id}
+              currentMeeting={meeting}
+              initialItems={meeting.actionItems || []}
+              availableBiros={availableBiros}
+              availableUsers={availableUsers}
+              readOnly={isEffectiveReadOnly}
+            />
+          </div>
+
           {/* Agenda Pembahasan & Ringkasan Kegiatan */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -1608,18 +1470,6 @@ export function MeetingDetailView({
                   <strong className="text-slate-700">{meeting.primaryBiro?.name}</strong>
                 </p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  handleTabChange('minutes');
-                  handleMinutesSubTabChange('document');
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#BCE3EB] bg-[#F0F9FA] hover:bg-[#E0F2F5] text-[#1E6B7B] text-xs font-semibold transition-colors self-start sm:self-auto cursor-pointer"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>{meeting.minutes ? 'Buka Naskah Lengkap' : '+ Susun Naskah Notula'}</span>
-              </button>
             </div>
 
             {agendaItems.length > 0 ? (
@@ -1646,8 +1496,7 @@ export function MeetingDetailView({
                     Agenda Utama: {meeting.title}
                   </p>
                   <p className="text-slate-500 text-[12px] leading-relaxed">
-                    Rincian butir agenda pembahasan belum dimasukkan ke draf naskah risalah.
-                    Penyusun risalah atau biro dapat menambahkan rincian agenda melalui tab <strong>Notulen &amp; Hasil Kegiatan</strong>.
+                    Rincian butir agenda pembahasan belum dimasukkan secara terperinci.
                   </p>
                 </div>
               </div>
@@ -1670,128 +1519,12 @@ export function MeetingDetailView({
                       <span className="leading-relaxed">{dec}</span>
                     </div>
                   ))}
-                  {decisionItems.length > 4 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleTabChange('minutes');
-                        handleMinutesSubTabChange('document');
-                      }}
-                      className="text-xs font-semibold text-[#1E6B7B] hover:underline pt-1 block cursor-pointer"
-                    >
-                      + Lihat {decisionItems.length - 4} keputusan lainnya di naskah notula →
-                    </button>
-                  )}
                 </div>
               </div>
             )}
           </div>
 
         </div>
-      )}
-
-      {/* Tab 2: Notulen & Hasil Kegiatan */}
-      {activeTab === 'minutes' && (
-        <div className="space-y-4">
-          {/* Sub Navigation Bar: Naskah, Berkas & Paparan, Riwayat Perubahan */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-lg text-[13px] font-semibold">
-              <button
-                type="button"
-                onClick={() => handleMinutesSubTabChange('document')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${minutesSubTab === 'document'
-                  ? 'bg-white text-[#31889C] font-bold shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-              >
-                <FileText className="w-4 h-4" />
-                <span>Naskah Risalah &amp; Notulen</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleMinutesSubTabChange('materials')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${minutesSubTab === 'materials'
-                  ? 'bg-white text-[#31889C] font-bold shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-              >
-                <Presentation className="w-4 h-4" />
-                <span>Berkas &amp; Paparan</span>
-                {Array.isArray(meeting.attachments) && meeting.attachments.length > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${minutesSubTab === 'materials' ? 'bg-[#F0F9FA] text-[#215865] border border-[#BCE3EB]' : 'bg-slate-200 text-slate-700'
-                    }`}>
-                    {meeting.attachments.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleMinutesSubTabChange('history')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${minutesSubTab === 'history'
-                  ? 'bg-white text-[#31889C] font-bold shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-              >
-                <History className="w-4 h-4" />
-                <span>Riwayat Perubahan</span>
-              </button>
-            </div>
-
-            <div className="text-[12px] text-slate-500 px-2 hidden md:block">
-              {minutesSubTab === 'document' && 'Format resmi Notula & Nota Dinas Sekretariat KEK'}
-              {minutesSubTab === 'materials' && 'Preview bahan paparan, slide presentasi, dan dokumen tindak lanjut'}
-              {minutesSubTab === 'history' && 'Audit trail riwayat revisi dan versi naskah risalah'}
-            </div>
-          </div>
-
-          {/* Sub Tab Views */}
-          {minutesSubTab === 'document' && (
-            <MeetingMinutesSection
-              meetingId={meeting.id}
-              meeting={meeting}
-              initialMinutes={meeting.minutes}
-              defaultMode="preview"
-              onViewHistoryClick={() => handleMinutesSubTabChange('history')}
-              onApproveClick={handleApproveMeeting}
-              isApproved={currentProgress === 'Selesai'}
-              canApprove={canApprove}
-              isApproving={isUpdatingStatus}
-              canEdit={canEditMinutes}
-              readOnly={isEffectiveReadOnly}
-            />
-          )}
-
-          {minutesSubTab === 'materials' && (
-            <MeetingFilePreviewPanel
-              meetingId={meeting.id}
-              meetingTitle={meeting.title}
-              initialAttachments={meeting.attachments || []}
-              canManage={!isEffectiveReadOnly}
-              readOnly={isEffectiveReadOnly}
-            />
-          )}
-
-          {minutesSubTab === 'history' && (
-            <MinutesHistorySection meetingId={meeting.id} />
-          )}
-        </div>
-      )}
-
-      {/* Tab 4: Tindak Lanjut */}
-      {activeTab === 'actionItems' && (
-        <div className="space-y-4">
-          <ActionItemList
-            meetingId={meeting.id}
-            currentMeeting={meeting}
-            initialItems={meeting.actionItems || []}
-            availableBiros={availableBiros}
-            availableUsers={availableUsers}
-            readOnly={isEffectiveReadOnly}
-          />
-        </div>
-      )}
 
       {/* Modal: Tambah Peserta Kegiatan */}
       {showAddModal && (
