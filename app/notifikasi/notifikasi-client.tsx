@@ -55,7 +55,7 @@ export function NotifikasiClient({
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
   const [unreadCount, setUnreadCount] = useState<number>(initialUnreadCount);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('ALL');
-  const [activeTab, setActiveTab] = useState<'ALL' | 'UNREAD' | 'MEETING' | 'DANGER' | 'INFO'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'UNREAD' | 'DANGER'>('ALL');
   const [errorMessage, setErrorMessage] = useState<string | null>(initialError || null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
@@ -280,9 +280,7 @@ export function NotifikasiClient({
 
   const filtered = notifications.filter((item) => {
     if (activeTab === 'UNREAD') return !item.isRead;
-    if (activeTab === 'MEETING') return item.type === 'meeting';
     if (activeTab === 'DANGER') return item.type === 'danger' || item.type === 'warning';
-    if (activeTab === 'INFO') return item.type === 'info' || item.type === 'success';
     return true;
   });
 
@@ -476,19 +474,6 @@ export function NotifikasiClient({
 
         <button
           type="button"
-          onClick={() => setActiveTab('MEETING')}
-          className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'MEETING'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>Undangan Kegiatan ({notifications.filter((n) => n.type === 'meeting').length})</span>
-        </button>
-
-        <button
-          type="button"
           onClick={() => setActiveTab('DANGER')}
           className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors whitespace-nowrap cursor-pointer ${
             activeTab === 'DANGER'
@@ -500,24 +485,6 @@ export function NotifikasiClient({
           {
             notifications.filter(
               (n) => n.type === 'danger' || n.type === 'warning'
-            ).length
-          }
-          )
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('INFO')}
-          className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors whitespace-nowrap cursor-pointer ${
-            activeTab === 'INFO'
-              ? 'bg-[#215865] text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          Agenda &amp; Catatan (
-          {
-            notifications.filter(
-              (n) => n.type === 'info' || n.type === 'success'
             ).length
           }
           )
