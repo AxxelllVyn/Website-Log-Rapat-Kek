@@ -7,9 +7,7 @@ import { MeetingStatus, BiroCode, Meeting, Biro, TeamWithMembers, TeamMember } f
 import {
   PlusCircle,
   Filter,
-  Trash2,
   AlertTriangle,
-  Loader2,
   CheckCircle2,
   Check,
   X,
@@ -34,8 +32,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { deleteAllMeetingsAction } from '@/app/actions/meeting-actions';
-import { toast } from '@/components/providers/toast-provider';
 import {
   parseMonthFilterIndex,
   parseDayFilterIndex,
@@ -122,7 +118,6 @@ export function SemuaRapatClient({
   const isStaff = userRole === 'STAFF';
   const isPrivileged = isSuperAdmin || isAdmin;
   const canCreate = isPrivileged;
-  const canDeleteAll = isPrivileged;
 
   const effectiveUserId = currentUserId || session?.user?.id;
   const effectiveUserEmail = currentUserEmail || session?.user?.email;
@@ -160,9 +155,6 @@ export function SemuaRapatClient({
     setMeetingsList(initialMeetings.filter((m) => !deletedIds.has(m.id)));
   }, [initialMeetings, deletedIds]);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [confirmInput, setConfirmInput] = useState('');
-  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
   // Filter params
@@ -750,33 +742,6 @@ export function SemuaRapatClient({
 
   const selectedPeriodeLabel = activeTimeLabel || 'Semua Periode';
 
-
-  const handleDeleteAll = async () => {
-    if (confirmInput.trim().toUpperCase() !== 'HAPUS') {
-      return;
-    }
-
-    try {
-      setIsDeletingAll(true);
-      const res = await deleteAllMeetingsAction();
-      if (res.success) {
-        setIsDeleteModalOpen(false);
-        setConfirmInput('');
-        setMeetingsList([]);
-        toast.success(
-          `Berhasil menghapus seluruh data kegiatan (${res.count ?? initialMeetings.length} kegiatan telah dibersihkan).`
-        );
-        router.refresh();
-      } else {
-        toast.error(res.error || 'Gagal menghapus seluruh data kegiatan');
-      }
-    } catch (err: any) {
-      toast.error(`Terjadi kesalahan: ${err?.message || 'Gagal menghapus kegiatan'}`);
-    } finally {
-      setIsDeletingAll(false);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6">
 
@@ -836,19 +801,6 @@ export function SemuaRapatClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-center">
-          {/* Hapus Semua Kegiatan Button (SUPER_ADMIN / ADMIN only) */}
-          {canDeleteAll && meetingsList.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 font-semibold text-[12px] transition-all cursor-pointer shadow-2xs"
-              title="Hapus seluruh data kegiatan dari database (Hanya Administrator)"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-red-600" />
-              <span>Hapus Semua</span>
-            </button>
-          )}
-
           {canCreate && (
             <div className="flex items-center gap-2">
               <Link
@@ -1502,83 +1454,6 @@ export function SemuaRapatClient({
           setMeetingsList((prev) => prev.filter((m) => m.id !== deletedId));
         }}
       />
-
-      {/* Danger Modal: Konfirmasi Hapus Semua Kegiatan */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-red-200 shadow-2xl max-w-lg w-full p-6 animate-in fade-in zoom-in-95 duration-200">
-            {/* Header with warning icon */}
-            <div className="flex items-start gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-red-100 border border-red-200 text-red-600 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-[18px] text-slate-900">
-                  Konfirmasi Hapus Semua Kegiatan
-                </h3>
-                <p className="text-[13px] text-slate-600 leading-relaxed">
-                  Tindakan ini akan menghapus permanen <strong>seluruh data kegiatan ({initialMeetings.length} kegiatan)</strong>,
-                  beserta notulen risalah dan butir tindak lanjut dari basis data.
-                </p>
-              </div>
-            </div>
-
-            {/* Warning Callout */}
-            <div className="mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-[12.5px] text-red-800 space-y-1">
-              <span className="font-bold block">⚠️ Peringatan: Tindakan ini permanen!</span>
-              <p>
-                Seluruh data kegiatan akan dikosongkan. Nomor urut kegiatan masing-masing biro juga akan direset kembali ke 001.
-              </p>
-            </div>
-
-            {/* Verification confirmation input */}
-            <div className="mt-4 space-y-2">
-              <label className="text-[12.5px] font-semibold text-slate-700 block">
-                Ketik <span className="font-mono font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded border border-red-300">HAPUS</span> di bawah ini untuk mengonfirmasi:
-              </label>
-              <input
-                type="text"
-                value={confirmInput}
-                onChange={(e) => setConfirmInput(e.target.value)}
-                placeholder="Ketik HAPUS..."
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-slate-900 font-medium text-[13px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 uppercase tracking-wider"
-                disabled={isDeletingAll}
-                autoFocus
-              />
-            </div>
-
-            {/* Modal Actions */}
-            <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isDeletingAll}
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setConfirmInput('');
-                }}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-[13px] transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Batal
-              </button>
-
-              <button
-                type="button"
-                disabled={confirmInput.trim().toUpperCase() !== 'HAPUS' || isDeletingAll}
-                onClick={handleDeleteAll}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-[13px] shadow-sm shadow-red-600/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isDeletingAll ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-                <span>{isDeletingAll ? 'Menghapus Semua...' : 'Ya, Hapus Semua Kegiatan'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
