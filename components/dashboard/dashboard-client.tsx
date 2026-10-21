@@ -167,28 +167,50 @@ export function DashboardClient({
     });
   }, [relevantMeetings, selectedYear]);
 
-  // Compute monthly activity trend dynamically for the selected year
+  // Compute monthly activity trend dynamically for the selected year - akumulasi jumlah kegiatan dari SEMUA tim
   const yearMonthlyActivity: MonthlyActivity[] = useMemo(() => {
     const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const counts = new Array(12).fill(0);
+    const monthTeamsMap: Record<number, Record<string, { name: string; count: number }>> = {};
 
     yearMeetings.forEach((m) => {
       const d = new Date(m.date);
       const mIdx = d.getMonth();
-      if (mIdx >= 0 && mIdx < 12) counts[mIdx]++;
+      if (mIdx >= 0 && mIdx < 12) {
+        counts[mIdx]++;
+
+        // Catat rincian tim kerja
+        const tCode = m.primaryTeamCode || (m.primaryTeamId ? 'TIM' : 'UMUM');
+        const tName = m.primaryTeamName || 'Lintas / Umum';
+        if (!monthTeamsMap[mIdx]) monthTeamsMap[mIdx] = {};
+        if (!monthTeamsMap[mIdx][tCode]) {
+          monthTeamsMap[mIdx][tCode] = { name: tName, count: 0 };
+        }
+        monthTeamsMap[mIdx][tCode].count++;
+      }
     });
 
     const maxCount = Math.max(...counts, 0);
-    // Display up to current month (min Sep) for current year, or up to the last month with data / full year
-    const lastActiveIdx = counts.reduce((acc, c, idx) => (c > 0 ? idx : acc), -1);
-    const maxMonthIdx = selectedYear === 2026 ? 8 : (lastActiveIdx >= 0 ? Math.max(lastActiveIdx, 8) : 8);
 
-    return monthLabels.slice(0, maxMonthIdx + 1).map((m, idx) => ({
-      month: m,
-      count: counts[idx],
-      isPeak: maxCount > 0 && counts[idx] === maxCount,
-    }));
-  }, [yearMeetings, selectedYear]);
+    return monthLabels.map((m, idx) => {
+      const teamBreakdown = monthTeamsMap[idx]
+        ? Object.entries(monthTeamsMap[idx])
+            .map(([code, val]) => ({
+              code,
+              name: val.name,
+              count: val.count,
+            }))
+            .sort((a, b) => b.count - a.count)
+        : [];
+
+      return {
+        month: m,
+        count: counts[idx],
+        isPeak: maxCount > 0 && counts[idx] === maxCount,
+        teamBreakdown,
+      };
+    });
+  }, [yearMeetings]);
 
   const selectedMonthIdx = selectedMonth ? MONTH_INDEX_MAP[selectedMonth] : null;
   const fullMonthName = selectedMonth ? (FULL_MONTH_NAMES[selectedMonth] || selectedMonth) : '';

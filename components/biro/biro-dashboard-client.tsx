@@ -14,8 +14,6 @@ import {
   Sparkles,
   PlusCircle,
   CheckSquare,
-  Download,
-  Loader2,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from '@/components/providers/toast-provider';
@@ -98,7 +96,6 @@ export function BiroDashboardClient({
 
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
 
   const currentUser = session?.user;
   const userName = currentUser?.name || 'Pejabat Biro';
@@ -133,29 +130,6 @@ export function BiroDashboardClient({
     year: 'numeric',
   });
 
-  const handleDownloadReport = async () => {
-    try {
-      setIsDownloadingReport(true);
-      const res = await fetch(`/api/reports/summary/pdf?period=YEAR&biro=${biro.code}`);
-      if (!res.ok) {
-        throw new Error('Gagal mengunduh ringkasan eksekutif');
-      }
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Laporan-Eksekutif-Biro-${biro.code}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-      toast.success(`Ringkasan Eksekutif Biro ${biro.code} berhasil diunduh.`);
-    } catch (e: any) {
-      toast.error(e?.message || 'Terjadi kesalahan saat mengunduh dokumen.');
-    } finally {
-      setIsDownloadingReport(false);
-    }
-  };
 
   // Discover available years from meetings
   const availableYears = useMemo(() => {
@@ -175,27 +149,50 @@ export function BiroDashboardClient({
     });
   }, [meetingsList, selectedYear]);
 
-  // Monthly trend activity for this biro
+  // Monthly trend activity for this biro - akumulasi jumlah kegiatan seluruh tim
   const yearMonthlyActivity: MonthlyActivity[] = useMemo(() => {
     const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const counts = new Array(12).fill(0);
+    const monthTeamsMap: Record<number, Record<string, { name: string; count: number }>> = {};
 
     yearMeetings.forEach((m) => {
       const d = new Date(m.date);
       const mIdx = d.getMonth();
-      if (mIdx >= 0 && mIdx < 12) counts[mIdx]++;
+      if (mIdx >= 0 && mIdx < 12) {
+        counts[mIdx]++;
+
+        // Catat rincian tim kerja
+        const tCode = m.primaryTeamCode || (m.primaryTeamId ? 'TIM' : 'UMUM');
+        const tName = m.primaryTeamName || 'Lintas / Umum';
+        if (!monthTeamsMap[mIdx]) monthTeamsMap[mIdx] = {};
+        if (!monthTeamsMap[mIdx][tCode]) {
+          monthTeamsMap[mIdx][tCode] = { name: tName, count: 0 };
+        }
+        monthTeamsMap[mIdx][tCode].count++;
+      }
     });
 
     const maxCount = Math.max(...counts, 0);
-    const lastActiveIdx = counts.reduce((acc, c, idx) => (c > 0 ? idx : acc), -1);
-    const maxMonthIdx = selectedYear === 2026 ? 9 : (lastActiveIdx >= 0 ? Math.max(lastActiveIdx, 8) : 8);
 
-    return monthLabels.slice(0, maxMonthIdx + 1).map((m, idx) => ({
-      month: m,
-      count: counts[idx],
-      isPeak: maxCount > 0 && counts[idx] === maxCount,
-    }));
-  }, [yearMeetings, selectedYear]);
+    return monthLabels.map((m, idx) => {
+      const teamBreakdown = monthTeamsMap[idx]
+        ? Object.entries(monthTeamsMap[idx])
+            .map(([code, val]) => ({
+              code,
+              name: val.name,
+              count: val.count,
+            }))
+            .sort((a, b) => b.count - a.count)
+        : [];
+
+      return {
+        month: m,
+        count: counts[idx],
+        isPeak: maxCount > 0 && counts[idx] === maxCount,
+        teamBreakdown,
+      };
+    });
+  }, [yearMeetings]);
 
   const selectedMonthIdx = selectedMonth ? MONTH_INDEX_MAP[selectedMonth] : null;
   const fullMonthName = selectedMonth ? (FULL_MONTH_NAMES[selectedMonth] || selectedMonth) : '';
@@ -513,19 +510,13 @@ export function BiroDashboardClient({
               </Link>
             )}
 
-            <button
-              type="button"
-              onClick={handleDownloadReport}
-              disabled={isDownloadingReport}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#F0F9FA] border border-[#BCE3EB] text-[#215865] hover:bg-[#E8F5F7] transition-all shadow-xs font-semibold text-[12px] cursor-pointer disabled:opacity-50"
+            <Link
+              href={`/tindak-lanjut?biro=${biro.code}`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all shadow-xs font-semibold text-[12.5px] cursor-pointer"
             >
-              {isDownloadingReport ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-[#31889C]" />
-              )}
-              <span>{isDownloadingReport ? 'Membuat PDF...' : 'Unduh Laporan Eksekutif'}</span>
-            </button>
+              <CheckSquare className="w-4 h-4 text-[#31889C]" />
+              <span>Matriks Tindak Lanjut</span>
+            </Link>
           </div>
         </div>
       </div>
