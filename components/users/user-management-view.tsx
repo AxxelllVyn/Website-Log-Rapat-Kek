@@ -25,6 +25,11 @@ import {
 import { UserRole } from '@prisma/client';
 import { cn } from '@/lib/utils';
 import {
+  getRoleSuffix,
+  stripRoleSuffix,
+  formatUserFullName,
+} from '@/lib/validations/user';
+import {
   createUserAction,
   updateUserAction,
   toggleUserStatusAction,
@@ -181,7 +186,8 @@ export function UserManagementView({
       return;
     }
     setEditingUser(user);
-    setFormName(user.name);
+    // Bersihkan suffix role agar hanya menyisakan nama & gelar di input teks
+    setFormName(stripRoleSuffix(user.name));
     setFormUsername(user.username || '');
     setFormEmail(user.email);
     setFormPassword('');
@@ -205,6 +211,13 @@ export function UserManagementView({
     setIsSubmitting(true);
     setFormError(null);
 
+    const finalFullName = formatUserFullName(formName, formRole);
+    if (!finalFullName) {
+      setFormError('Nama lengkap wajib diisi.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const targetTeamIds = isScopedAdmin
       ? (myTeam?.id ? [myTeam.id] : formTeamIds)
       : (formRole === 'STAFF' ? formTeamIds : [formTeamId]);
@@ -216,7 +229,7 @@ export function UserManagementView({
       if (editingUser) {
         const res = await updateUserAction({
           id: editingUser.id,
-          name: formName,
+          name: finalFullName,
           username: formUsername.trim() || null,
           email: formEmail,
           password: formPassword || null,
@@ -232,14 +245,14 @@ export function UserManagementView({
             prev.map((u) => (u.id === editingUser.id ? (res.data as unknown as UserItem) : u))
           );
           setIsDialogOpen(false);
-          toast.success(`Data pengguna "${formName}" berhasil diperbarui.`);
+          toast.success(`Data pengguna "${finalFullName}" berhasil diperbarui.`);
           router.refresh();
         } else {
           setFormError(res.error || 'Gagal memperbarui pengguna.');
         }
       } else {
         const res = await createUserAction({
-          name: formName,
+          name: finalFullName,
           username: formUsername.trim() || null,
           email: formEmail,
           password: formPassword,
@@ -253,7 +266,7 @@ export function UserManagementView({
         if (res.success && res.data) {
           setUsers((prev) => [res.data as unknown as UserItem, ...prev]);
           setIsDialogOpen(false);
-          toast.success(`Pengguna baru "${formName}" berhasil ditambahkan.`);
+          toast.success(`Pengguna baru "${finalFullName}" berhasil ditambahkan.`);
           router.refresh();
         } else {
           setFormError(res.error || 'Gagal menambahkan pengguna.');
@@ -802,19 +815,52 @@ export function UserManagementView({
                 </div>
               )}
 
-              {/* Nama */}
+              {/* Nama Lengkap & Gelar dengan Role Otomatis */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Dr. Ir. Bambang Pranoto, M.T."
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] font-medium text-slate-900 text-[13px]"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-slate-800">
+                    Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-[#31889C] font-semibold flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Role otomatis disematkan
+                  </span>
+                </div>
+                <div className="flex items-stretch rounded-lg border border-slate-200 focus-within:ring-2 focus-within:ring-[#31889C]/30 focus-within:border-[#31889C] overflow-hidden bg-white shadow-xs transition-all">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Dr. Ir. Bambang Pranoto, M.T. atau Kevin"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    onBlur={() => {
+                      if (formName.trim()) {
+                        setFormName(stripRoleSuffix(formName));
+                      }
+                    }}
+                    className="flex-1 min-w-0 px-3.5 py-2 border-0 focus:outline-none font-medium text-slate-900 text-[13px] bg-transparent"
+                  />
+                  {/* Inputan otomatis setelah nama dan gelar */}
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-2 bg-[#F0F9FA] border-l border-[#BCE3EB] text-[#1E6B7B] font-bold text-[13px] shrink-0 select-none"
+                    title="Peran otomatis mengikuti Peran Pengguna (RBAC) yang dipilih"
+                  >
+                    <span className="text-slate-400 font-normal text-[11px] hidden sm:inline">Peran:</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-[#BCE3EB] text-[#1E6B7B] shadow-2xs font-bold text-[12px]">
+                      ({getRoleSuffix(formRole)})
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-500">
+                  <span className="text-slate-500">
+                    Role <strong className="text-[#1E6B7B]">({getRoleSuffix(formRole)})</strong> otomatis diset sesuai pilihan peran di bawah tanpa perlu diketik manual.
+                  </span>
+                  {formName.trim() && (
+                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                      Nama Tersimpan: &ldquo;{formatUserFullName(formName, formRole)}&rdquo;
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Email */}
