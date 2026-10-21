@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { requirePermission, requireAuth, getCurrentUser } from '@/lib/auth/authorization';
 import { extractPlainText } from '@/lib/pdf/pdf-utils';
 import { getNextMeetingId, getNextUserId, getNextParticipantId, getNextNotificationId, getNextActionItemId } from '@/lib/id-generator';
+import { createNotificationRecord } from '@/app/actions/notification-actions';
 
 export interface CreateMeetingInput {
   title: string;
@@ -378,35 +379,35 @@ export async function createMeetingAction(input: CreateMeetingInput) {
           },
         });
 
-        // PER-USER NOTIFICATION: Only delivered to this specific invited participant
-        const nextNotifId = await getNextNotificationId(tx);
-        await tx.notification.create({
-          data: {
-            id: nextNotifId,
+        // PER-USER NOTIFICATION: Delivered to this specific invited participant with team scope
+        await createNotificationRecord(
+          {
             userId: uid,
+            teamId: meeting.primaryTeamId,
             title: `Undangan Rapat: [${finalMeetingNumber}] ${meeting.title}`,
             message: `Anda diundang untuk menghadiri rapat "${meeting.title}" pada ${meetingDateFormatted} (${input.startTime} - ${input.endTime} WIB) bertempat di ${input.location}.`,
             type: 'meeting',
             link: `/semua-rapat/${meeting.id}`,
             isRead: false,
           },
-        });
+          tx
+        );
       }
 
       // If chairperson was designated and not in targetUserIds, send chairperson notification
       if (input.chairpersonId && !targetUserIds.has(input.chairpersonId)) {
-        const nextNotifId = await getNextNotificationId(tx);
-        await tx.notification.create({
-          data: {
-            id: nextNotifId,
+        await createNotificationRecord(
+          {
             userId: input.chairpersonId,
+            teamId: meeting.primaryTeamId,
             title: `Undangan Pimpinan Sidang: [${finalMeetingNumber}] ${meeting.title}`,
             message: `Anda ditugaskan sebagai Pimpinan Sidang untuk rapat "${meeting.title}" pada ${meetingDateFormatted} (${input.startTime} - ${input.endTime} WIB) bertempat di ${input.location}.`,
             type: 'meeting',
             link: `/semua-rapat/${meeting.id}`,
             isRead: false,
           },
-        });
+          tx
+        );
       }
 
       // 6. Automatically initialize PIC deliverables / action items for each involved PIC
@@ -656,17 +657,14 @@ export async function approveMeetingAction(meetingId: string) {
       }
 
       for (const uid of targetUserIds) {
-        const nextNotifId = await getNextNotificationId();
-        await prisma.notification.create({
-          data: {
-            id: nextNotifId,
-            userId: uid,
-            title: `Hasil Rapat Disetujui: [${existing.meetingNumber}] ${existing.title}`,
-            message: `Hasil dan risalah rapat telah disetujui resmi oleh ${currentUser.name || 'Pimpinan'}. Status rapat kini telah SELESAI.`,
-            type: 'meeting',
-            link: `/semua-rapat/${existing.id}`,
-            isRead: false,
-          },
+        await createNotificationRecord({
+          userId: uid,
+          teamId: existing.primaryTeamId,
+          title: `Hasil Rapat Disetujui: [${existing.meetingNumber}] ${existing.title}`,
+          message: `Hasil dan risalah rapat telah disetujui resmi oleh ${currentUser.name || 'Pimpinan'}. Status rapat kini telah SELESAI.`,
+          type: 'meeting',
+          link: `/semua-rapat/${existing.id}`,
+          isRead: false,
         });
       }
     } catch (notifErr) {
@@ -1102,6 +1100,7 @@ export async function addParticipantToMeetingAction(
             id: true,
             meetingNumber: true,
             title: true,
+            primaryTeamId: true,
             date: true,
             startTime: true,
             endTime: true,
@@ -1129,17 +1128,14 @@ export async function addParticipantToMeetingAction(
           });
 
           if (!existingNotif) {
-            const nextNotifId = await getNextNotificationId();
-            await prisma.notification.create({
-              data: {
-                id: nextNotifId,
-                userId: targetUserId,
-                title: `Undangan Rapat: [${meetingInfo.meetingNumber}] ${meetingInfo.title}`,
-                message: `Anda telah ditambahkan sebagai peserta rapat "${meetingInfo.title}" pada ${meetingDateFormatted} (${meetingInfo.startTime} - ${meetingInfo.endTime} WIB) bertempat di ${meetingInfo.location}.`,
-                type: 'meeting',
-                link: `/semua-rapat/${meetingInfo.id}`,
-                isRead: false,
-              },
+            await createNotificationRecord({
+              userId: targetUserId,
+              teamId: meetingInfo.primaryTeamId,
+              title: `Undangan Rapat: [${meetingInfo.meetingNumber}] ${meetingInfo.title}`,
+              message: `Anda telah ditambahkan sebagai peserta rapat "${meetingInfo.title}" pada ${meetingDateFormatted} (${meetingInfo.startTime} - ${meetingInfo.endTime} WIB) bertempat di ${meetingInfo.location}.`,
+              type: 'meeting',
+              link: `/semua-rapat/${meetingInfo.id}`,
+              isRead: false,
             });
           }
         }

@@ -10,6 +10,7 @@ import {
   getNextActionItemLogId,
   getNextNotificationId,
 } from '@/lib/id-generator';
+import { createNotificationRecord } from '@/app/actions/notification-actions';
 import { ActionItemStatus, ActionItemPriority } from '@prisma/client';
 
 import {
@@ -309,18 +310,16 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
       }
     }
 
-    // Create notification for pimpinan / creator
+    // Create notification for pimpinan / creator (scoped to team)
     try {
-      const nextNotifId = await getNextNotificationId();
-      await prisma.notification.create({
-        data: {
-          id: nextNotifId,
-          title: `Update Output PIC: ${existing.title}`,
-          message: `${currentUser.name || 'PIC'} memperbarui capaian (${progressNum}%): "${(notes || 'Progres diperbarui').slice(0, 80)}"`,
-          type: 'action_item',
-          link: `/semua-rapat/${effectiveMeetingId}`,
-          isRead: false,
-        },
+      const effectiveTeamId = existing.picTeamId || existing.meeting?.primaryTeamId || null;
+      await createNotificationRecord({
+        title: `Update Output PIC: ${existing.title}`,
+        message: `${currentUser.name || 'PIC'} memperbarui capaian (${progressNum}%): "${(notes || 'Progres diperbarui').slice(0, 80)}"`,
+        type: 'action_item',
+        link: `/semua-rapat/${effectiveMeetingId}`,
+        teamId: effectiveTeamId,
+        isRead: false,
       });
     } catch {}
 
@@ -435,20 +434,17 @@ export async function createPicDeliverableAction(input: {
       },
     });
 
-    // Notify assigned PIC user if present
+    // Notify assigned PIC user if present (scoped to team)
     if (picUserId && picUserId !== currentUser.id) {
       try {
-        const nextNotifId = await getNextNotificationId();
-        await prisma.notification.create({
-          data: {
-            id: nextNotifId,
-            userId: picUserId,
-            title: `Penugasan Output Baru: ${title}`,
-            message: `Anda ditugaskan mengerjakan luaran "${title}" pada kegiatan "${meeting.title}".`,
-            type: 'action_item',
-            link: `/semua-rapat/${meetingId}`,
-            isRead: false,
-          },
+        await createNotificationRecord({
+          userId: picUserId,
+          teamId: meeting.primaryTeamId || null,
+          title: `Penugasan Output Baru: ${title}`,
+          message: `Anda ditugaskan mengerjakan luaran "${title}" pada kegiatan "${meeting.title}".`,
+          type: 'action_item',
+          link: `/semua-rapat/${meetingId}`,
+          isRead: false,
         });
       } catch {}
     }

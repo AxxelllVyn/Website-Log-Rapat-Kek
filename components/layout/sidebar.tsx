@@ -100,7 +100,6 @@ export function Sidebar({
 
   const rapatSubItems = [
     { name: 'Arsip Kegiatan', href: '/semua-rapat' },
-    { name: 'Matriks Tindak Lanjut', href: '/tindak-lanjut' },
     ...(isSuperAdmin || isAdmin || userRole === 'STAFF'
       ? [{ name: '+ Catat Kegiatan Baru', href: '/buat-rapat' }]
       : []),

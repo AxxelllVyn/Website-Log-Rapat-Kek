@@ -513,14 +513,6 @@ export function BiroDashboardClient({
               </Link>
             )}
 
-            <Link
-              href={`/tindak-lanjut?biro=${biro.code}`}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all shadow-xs font-semibold text-[12.5px] cursor-pointer"
-            >
-              <CheckSquare className="w-4 h-4 text-[#31889C]" />
-              <span>Matriks Tindak Lanjut</span>
-            </Link>
-
             <button
               type="button"
               onClick={handleDownloadReport}
@@ -577,14 +569,6 @@ export function BiroDashboardClient({
               Daftar seluruh agenda kegiatan yang diselenggarakan di bawah koordinasi {biro.shortName}
             </p>
           </div>
-
-          <Link
-            href={`/tindak-lanjut?biro=${encodeURIComponent(biro.code)}`}
-            className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#31889C] hover:text-[#215865] hover:underline shrink-0"
-          >
-            <span>Matriks Tindak Lanjut {biro.code}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
 
         <MeetingTable
