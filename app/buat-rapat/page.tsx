@@ -58,17 +58,6 @@ interface AvailableUser {
   }>;
 }
 
-export const JENIS_KEGIATAN_OPTIONS = [
-  'Rapat Kerja / Koordinasi',
-  'Kunjungan Lapangan / Kunker',
-  'Audiensi / Kemitraan',
-  'Sosialisasi / Forum / Workshop',
-  'Media Gathering / Publikasi',
-  'Penandatanganan MoU / PKS',
-  'Groundbreaking / Seremoni',
-  'Pelantikan',
-  'Other',
-];
 
 export const TIM_OPTIONS = [
   {
@@ -157,14 +146,10 @@ export default function BuatRapatPage() {
   // 3. Tanggal Pelaksanaan Kegiatan
   const [date, setDate] = useState(todayStr);
 
-  // 4. Kategori Naskah / Dasar Kegiatan (Undangan Internal, Daftar Naskah Masuk, Disposisi Setjen/Biro, Tunda Rapat)
-  const [kategoriRapat, setKategoriRapat] = useState<string>('UNDANGAN_INTERNAL');
-  const [sourceOrigin, setSourceOrigin] = useState<string>('');
-  const [postponeReason, setPostponeReason] = useState<string>('');
+  // 4. Kategori Kegiatan (Pekerjaan Rutin atau Disposisi)
+  const [kategoriRapat, setKategoriRapat] = useState<string>('PEKERJAAN_RUTIN');
+  const [kategoriKomentar, setKategoriKomentar] = useState<string>('');
 
-  // 5. Jenis Kegiatan (Pengganti Jenis Rapat)
-  const [jenisKegiatan, setJenisKegiatan] = useState<string>('Rapat Kerja / Koordinasi');
-  const [customJenisKegiatan, setCustomJenisKegiatan] = useState<string>('');
 
   // 6. PIC Kegiatan (Bisa lebih dari 1 orang langsung)
   const [selectedPicIds, setSelectedPicIds] = useState<string[]>([]);
@@ -316,17 +301,6 @@ export default function BuatRapatPage() {
         return;
       }
 
-      if (kategoriRapat === 'SURAT_DITUNDA' && !postponeReason.trim()) {
-        toast.error('Mohon cantumkan alasan penundaan untuk kategori Tunda Kegiatan.');
-        setIsSubmitted(false);
-        return;
-      }
-
-      // Determine final jenis kegiatan
-      const finalJenisKegiatan =
-        jenisKegiatan === 'Other'
-          ? (customJenisKegiatan.trim() || 'Lainnya')
-          : jenisKegiatan;
 
       // Submit
       const res = await createMeetingAction({
@@ -337,21 +311,14 @@ export default function BuatRapatPage() {
         startTime: '09:00',
         endTime: '12:00',
         location: 'Biro 3 / Luar Kantor',
-        meetingKind: finalJenisKegiatan,
+        meetingKind: undefined,
         picName: picName.trim() || undefined,
         participantUserIds: selectedPicIds.length > 0 ? selectedPicIds : undefined,
         chairpersonId: selectedPicIds[0] || undefined,
         progressStatus: 'Belum Dimulai',
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
-        documentSubCategory:
-          kategoriRapat === 'DISPOSISI_Setjen'
-            ? 'DISPOSISI_Setjen'
-            : kategoriRapat === 'DISPOSISI_BIRO'
-              ? 'DISPOSISI_BIRO'
-              : undefined,
-        sourceOrigin: sourceOrigin.trim() || undefined,
-        postponeReason: postponeReason.trim() || undefined,
+        sourceOrigin: kategoriKomentar.trim() || undefined,
         previousMeetingId: previousMeetingId || undefined,
       });
 
@@ -686,7 +653,7 @@ export default function BuatRapatPage() {
                 <span className="text-xs text-slate-400">Pilih salah satu kategori kegiatan</span>
               </div>
 
-              {/* Field Dropdown Kategori Naskah */}
+              {/* Field Dropdown Kategori Kegiatan — hanya 2 opsi */}
               <div className="relative">
                 <select
                   id="kategori-naskah-select"
@@ -694,113 +661,34 @@ export default function BuatRapatPage() {
                   onChange={(e) => setKategoriRapat(e.target.value)}
                   className="w-full px-4 pr-10 h-[46px] rounded-xl border border-slate-300 bg-white text-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/25 focus:border-[#1E6B7B] shadow-2xs cursor-pointer appearance-none transition-all hover:border-slate-400"
                 >
-                  <option value="UNDANGAN_INTERNAL">Undangan Internal</option>
-                  <option value="NASKAH_MASUK">Daftar Naskah Masuk</option>
-                  <option value="DISPOSISI_Setjen">Disposisi Setjen</option>
-                  <option value="DISPOSISI_BIRO">Disposisi Biro</option>
-                  <option value="SURAT_DITUNDA">Tunda Kegiatan</option>
+                  <option value="PEKERJAAN_RUTIN">Pekerjaan Rutin</option>
+                  <option value="DISPOSISI">Disposisi</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
-              {/* Conditional Input per kategori */}
-              {kategoriRapat === 'NASKAH_MASUK' && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-slate-200/80">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Asal Naskah Masuk / Instansi Pengirim (Opsional):
-                  </label>
-                  <input
-                    type="text"
-                    value={sourceOrigin}
-                    onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: Kementerian Koordinator Bidang Perekonomian / BUPP KEK Batam..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-              )}
-
-              {kategoriRapat === 'DISPOSISI_Setjen' && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-indigo-200/80">
-                  <label className="block text-xs font-semibold text-indigo-900">
-                    Nomor Agenda / Catatan Disposisi Setjen (Opsional):
-                  </label>
-                  <input
-                    type="text"
-                    value={sourceOrigin}
-                    onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: No. Agenda 184 / Disposisi Setjen via SRIKANDI..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                  />
-                </div>
-              )}
-
-              {kategoriRapat === 'DISPOSISI_BIRO' && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-purple-200/80">
-                  <label className="block text-xs font-semibold text-purple-900">
-                    Nomor / Catatan Disposisi Biro (Opsional):
-                  </label>
-                  <input
-                    type="text"
-                    value={sourceOrigin}
-                    onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder="Contoh: Disposisi Kepala Biro IKK No. ND-082 / Nota Dinas Internal..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600"
-                  />
-                </div>
-              )}
-
-              {(kategoriRapat === 'SURAT_DITUNDA' || kategoriRapat === 'TUNDA_RAPAT') && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-rose-200/80">
-                  <label className="block text-xs font-semibold text-rose-700">
-                    Alasan / Keterangan Penundaan Kegiatan: <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    rows={2}
-                    value={postponeReason}
-                    onChange={(e) => setPostponeReason(e.target.value)}
-                    placeholder="Contoh: Ditunda atas arahan pimpinan menyusul agenda Sidang Kabinet..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                  />
-                </div>
-              )}
+              {/* Komentar / Detail untuk kategori yang dipilih */}
+              <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-slate-200/80">
+                <label htmlFor="kategori-komentar" className="block text-xs font-semibold text-slate-700">
+                  {kategoriRapat === 'DISPOSISI'
+                    ? 'Detail Disposisi (Opsional)'
+                    : 'Keterangan Tambahan (Opsional)'}
+                </label>
+                <textarea
+                  id="kategori-komentar"
+                  rows={2}
+                  value={kategoriKomentar}
+                  onChange={(e) => setKategoriKomentar(e.target.value)}
+                  placeholder={
+                    kategoriRapat === 'DISPOSISI'
+                      ? 'Contoh: Disposisi dari Kepala Biro No. ND-082 / Disposisi Setjen via SRIKANDI...'
+                      : 'Contoh: Rapat koordinasi rutin mingguan tim kerja...'
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] resize-none"
+                />
+              </div>
             </div>
 
-            {/* 5. Jenis Kegiatan (Ubah dari Jenis Rapat) */}
-            <div>
-              <label className="font-bold text-slate-800 mb-2 flex items-center gap-2 text-sm">
-                <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">5</span>
-                <span>Jenis Kegiatan</span>
-                <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={jenisKegiatan}
-                onChange={(e) => setJenisKegiatan(e.target.value)}
-                className="w-full px-4 h-[44px] rounded-xl border border-slate-300 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] shadow-2xs cursor-pointer"
-              >
-                {JENIS_KEGIATAN_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt === 'Other' ? 'Other (Kategori Kegiatan Lainnya...)' : opt}
-                  </option>
-                ))}
-              </select>
-
-              {jenisKegiatan === 'Other' && (
-                <div className="mt-2.5 animate-in fade-in">
-                  <input
-                    type="text"
-                    required
-                    value={customJenisKegiatan}
-                    onChange={(e) => setCustomJenisKegiatan(e.target.value)}
-                    placeholder="Ketikkan jenis kegiatan lainnya di sini..."
-                    className="w-full px-4 h-[40px] rounded-xl border border-[#1E6B7B] bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20"
-                  />
-                </div>
-              )}
-              <p className="text-xs text-slate-400 mt-1.5">
-                Pilih format atau bentuk pelaksanaan kegiatan (Rapat Kerja, Kunker, Audiensi, dll.).
-              </p>
-            </div>
           </div>
         </div>
 
