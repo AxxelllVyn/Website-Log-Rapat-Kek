@@ -34,7 +34,8 @@ import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
 import { ActionItemFormDialog } from './action-item-form-dialog';
 import { ActionItemDeleteDialog } from './action-item-delete-dialog';
-import { ActionItemLogDialog } from './action-item-log-dialog';
+import { ActionItemUpdateProgressDialog } from './action-item-update-progress-dialog';
+import { ActionItemAuditTrailDrawer } from './action-item-audit-trail-drawer';
 import {
   GoogleDriveLinkCard,
   extractDriveLink,
@@ -139,10 +140,8 @@ export function ActionItemMatrixView({
   );
   const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ActionItem | null>(null);
-  const [loggingItem, setLoggingItem] = useState<ActionItem | null>(null);
-  const [dialogInitialTab, setDialogInitialTab] = useState<'trail' | 'update'>('update');
-  const [dialogDefaultStatus, setDialogDefaultStatus] = useState<ActionItemStatus | undefined>(undefined);
-  const [dialogDefaultProgress, setDialogDefaultProgress] = useState<number | undefined>(undefined);
+  const [updateProgressItem, setUpdateProgressItem] = useState<ActionItem | null>(null);
+  const [auditTrailItem, setAuditTrailItem] = useState<ActionItem | null>(null);
   const [activeMenuTaskId, setActiveMenuTaskId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -211,24 +210,17 @@ export function ActionItemMatrixView({
     };
   };
 
+  const [updateTargetStatus, setUpdateTargetStatus] = useState<ActionItemStatus | undefined>(undefined);
+  const [updateTargetProgress, setUpdateTargetProgress] = useState<number | undefined>(undefined);
+
   const openUpdateDialog = (task: ActionItem, targetStatus?: ActionItemStatus, targetProgress?: number) => {
-    setLoggingItem(task);
-    setDialogInitialTab('update');
-    setDialogDefaultStatus(targetStatus || task.status);
-    setDialogDefaultProgress(
-      targetProgress !== undefined
-        ? targetProgress
-        : targetStatus === 'COMPLETED'
-          ? 100
-          : task.latestProgress
-    );
+    setUpdateProgressItem(task);
+    setUpdateTargetStatus(targetStatus);
+    setUpdateTargetProgress(targetProgress);
   };
 
   const openAuditTrailDialog = (task: ActionItem) => {
-    setLoggingItem(task);
-    setDialogInitialTab('trail');
-    setDialogDefaultStatus(task.status);
-    setDialogDefaultProgress(task.latestProgress);
+    setAuditTrailItem(task);
   };
 
   /**
@@ -1000,6 +992,22 @@ export function ActionItemMatrixView({
               </button>
             )}
 
+            {/* Riwayat Log Aktivitas (Di Luar Tabel) */}
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const targetItem = filteredTasks[0] || items[0];
+                  if (targetItem) openAuditTrailDialog(targetItem);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[12px] border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
+                title="Buka panel riwayat log aktivitas di luar tabel"
+              >
+                <History className="w-3.5 h-3.5 text-[#31889C]" />
+                <span>Riwayat Log</span>
+              </button>
+            )}
+
             {/* Reset Button (If active) */}
             {hasAnyActiveFilter && (
               <button
@@ -1409,22 +1417,42 @@ export function ActionItemMatrixView({
         }}
       />
 
-      {/* Audit Trail & Progress Log Dialog */}
-      <ActionItemLogDialog
-        item={loggingItem}
-        isOpen={Boolean(loggingItem)}
-        initialTab={dialogInitialTab}
-        defaultStatus={dialogDefaultStatus}
-        defaultProgress={dialogDefaultProgress}
-        canEdit={Boolean(loggingItem && canEditTask(loggingItem))}
-        onClose={() => setLoggingItem(null)}
+      {/* Dedicated Modern Update Progress & Evidence Dialog */}
+      <ActionItemUpdateProgressDialog
+        item={updateProgressItem}
+        isOpen={Boolean(updateProgressItem)}
+        defaultStatus={updateTargetStatus}
+        defaultProgress={updateTargetProgress}
+        onClose={() => {
+          setUpdateProgressItem(null);
+          setUpdateTargetStatus(undefined);
+          setUpdateTargetProgress(undefined);
+        }}
+        onOpenAuditTrail={(t) => {
+          setUpdateProgressItem(null);
+          setAuditTrailItem(t);
+        }}
         onItemUpdated={(updated) => {
           setItems((prev) =>
             prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it))
           );
-          setLoggingItem(updated);
+          setUpdateProgressItem(null);
+          setUpdateTargetStatus(undefined);
+          setUpdateTargetProgress(undefined);
           router.refresh();
         }}
+      />
+
+      {/* Dedicated Audit Trail Drawer Outside Table */}
+      <ActionItemAuditTrailDrawer
+        item={auditTrailItem}
+        isOpen={Boolean(auditTrailItem)}
+        onClose={() => setAuditTrailItem(null)}
+        onOpenUpdateProgress={(t) => {
+          setAuditTrailItem(null);
+          setUpdateProgressItem(t);
+        }}
+        canEdit={Boolean(auditTrailItem && canEditTask(auditTrailItem))}
       />
     </div>
   );

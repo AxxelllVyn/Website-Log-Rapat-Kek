@@ -926,12 +926,40 @@ export async function addActionItemLogAction(input: AddActionItemLogInput) {
       completedAt = null;
     }
 
+    // Merge new evidence links/docs into ActionItem.description if present
+    let updatedDescription = existing.description;
+    const hasNewDoc = notes.includes('📎 Dokumen Terkait:');
+    const hasNewDrive = notes.includes('📎 Tautan Google Drive:');
+    if (hasNewDoc || hasNewDrive) {
+      if (!updatedDescription) {
+        updatedDescription = notes;
+      } else {
+        let baseDesc = updatedDescription;
+        if (hasNewDoc) {
+          baseDesc = baseDesc.replace(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
+          const docMatch = notes.match(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/);
+          if (docMatch) {
+            baseDesc = `${baseDesc}\n\n${docMatch[0]}`;
+          }
+        }
+        if (hasNewDrive) {
+          baseDesc = baseDesc.replace(/📎 Tautan Google Drive:\s*\S+/g, '').trim();
+          const driveMatch = notes.match(/📎 Tautan Google Drive:\s*\S+/);
+          if (driveMatch) {
+            baseDesc = `${baseDesc}\n\n${driveMatch[0]}`;
+          }
+        }
+        updatedDescription = baseDesc.trim();
+      }
+    }
+
     // Update the action item
     const updatedItem = await prisma.actionItem.update({
       where: { id: actionItemId },
       data: {
         status: targetStatus,
         completedAt,
+        ...(updatedDescription !== existing.description ? { description: updatedDescription } : {}),
       },
       include: {
         picBiro: true,

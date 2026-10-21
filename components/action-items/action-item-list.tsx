@@ -26,7 +26,8 @@ import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
 import { ActionItemFormDialog } from './action-item-form-dialog';
 import { ActionItemDeleteDialog } from './action-item-delete-dialog';
-import { ActionItemLogDialog } from './action-item-log-dialog';
+import { ActionItemUpdateProgressDialog } from './action-item-update-progress-dialog';
+import { ActionItemAuditTrailDrawer } from './action-item-audit-trail-drawer';
 import {
   GoogleDriveLinkCard,
   extractDriveLink,
@@ -83,30 +84,26 @@ export function ActionItemList({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ActionItem | null>(null);
-  const [loggingItem, setLoggingItem] = useState<ActionItem | null>(null);
-  const [dialogInitialTab, setDialogInitialTab] = useState<'trail' | 'update'>('update');
-  const [dialogDefaultStatus, setDialogDefaultStatus] = useState<ActionItemStatus | undefined>(undefined);
-  const [dialogDefaultProgress, setDialogDefaultProgress] = useState<number | undefined>(undefined);
+  const [updateProgressItem, setUpdateProgressItem] = useState<ActionItem | null>(null);
+  const [auditTrailItem, setAuditTrailItem] = useState<ActionItem | null>(null);
+  const [targetStatus, setTargetStatus] = useState<ActionItemStatus | undefined>(undefined);
+  const [targetProgress, setTargetProgress] = useState<number | undefined>(undefined);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
-  const openUpdateDialog = (item: ActionItem, targetStatus?: ActionItemStatus, targetProgress?: number) => {
-    setLoggingItem(item);
-    setDialogInitialTab('update');
-    setDialogDefaultStatus(targetStatus || item.status);
-    setDialogDefaultProgress(
-      targetProgress !== undefined
-        ? targetProgress
-        : targetStatus === 'COMPLETED'
+  const openUpdateDialog = (item: ActionItem, newStatus?: ActionItemStatus, newProgress?: number) => {
+    setUpdateProgressItem(item);
+    setTargetStatus(newStatus || item.status);
+    setTargetProgress(
+      newProgress !== undefined
+        ? newProgress
+        : newStatus === 'COMPLETED'
         ? 100
         : item.latestProgress
     );
   };
 
   const openAuditTrailDialog = (item: ActionItem) => {
-    setLoggingItem(item);
-    setDialogInitialTab('trail');
-    setDialogDefaultStatus(item.status);
-    setDialogDefaultProgress(item.latestProgress);
+    setAuditTrailItem(item);
   };
 
   const userStaffTeamCode = userRole === 'STAFF' && currentUser?.teamCode ? currentUser.teamCode.toUpperCase() : null;
@@ -744,20 +741,30 @@ export function ActionItemList({
         onSuccess={handleDeleted}
       />
 
-      {/* Progress Log & Google Drive Dialog */}
-      <ActionItemLogDialog
-        isOpen={Boolean(loggingItem)}
-        item={loggingItem}
-        initialTab={dialogInitialTab}
-        defaultStatus={dialogDefaultStatus}
-        defaultProgress={dialogDefaultProgress}
-        canEdit={Boolean(loggingItem && canEditThisItem(loggingItem))}
-        onClose={() => setLoggingItem(null)}
-        onItemUpdated={(updated) => {
+      {/* Progress & Bukti Tindak Lanjut Modal Dialog */}
+      <ActionItemUpdateProgressDialog
+        isOpen={Boolean(updateProgressItem)}
+        item={updateProgressItem}
+        defaultStatus={targetStatus}
+        defaultProgress={targetProgress}
+        onClose={() => setUpdateProgressItem(null)}
+        onSuccess={(updated: any) => {
           setItems((prev) =>
             prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it))
           );
+          setUpdateProgressItem(null);
           router.refresh();
+        }}
+      />
+
+      {/* Slide-over Audit Trail Drawer (Berada di Luar Tabel / Overlay) */}
+      <ActionItemAuditTrailDrawer
+        isOpen={Boolean(auditTrailItem)}
+        item={auditTrailItem}
+        onClose={() => setAuditTrailItem(null)}
+        onOpenUpdate={(item: ActionItem) => {
+          setAuditTrailItem(null);
+          openUpdateDialog(item);
         }}
       />
     </div>
