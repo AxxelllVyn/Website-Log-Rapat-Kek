@@ -63,7 +63,6 @@ import { LinkMeetingDialog } from '@/components/meeting/link-meeting-dialog';
 import { AgendaSeriesModal } from '@/components/meeting/agenda-series-modal';
 import { MinutesHistorySection } from '@/components/meeting/meeting-history/minutes-history-section';
 import { GoogleCalendarModal } from '@/components/meeting/google-calendar-modal';
-import { UpdateMeetingOutputDialog } from '@/components/meeting/update-meeting-output-dialog';
 import { PicDeliverablesTracker } from '@/components/meeting/pic-deliverables-tracker';
 import {
   MeetingCategorySelector,
@@ -1115,15 +1114,6 @@ export function MeetingDetailView({
                   <div className="space-y-1.5">
                     {[
                       {
-                        key: 'Belum Dimulai' as const,
-                        label: 'Belum Dimulai',
-                        sublabel: 'Persiapan / Terjadwal',
-                        desc: 'Kegiatan terjadwal & persiapan administrasi berjalan.',
-                        color: 'bg-sky-50/70 hover:bg-sky-100 text-sky-900 border-sky-200',
-                        activeColor: 'bg-sky-100 text-sky-950 border-sky-400 ring-2 ring-sky-300/40 shadow-2xs font-bold',
-                        dot: 'bg-sky-500',
-                      },
-                      {
                         key: 'Dalam Proses' as const,
                         label: 'Dalam Proses',
                         sublabel: 'Sedang Berlangsung / Pelaksanaan & Telaah',
@@ -1291,60 +1281,21 @@ export function MeetingDetailView({
               <p className="font-bold text-slate-800">
                 {meeting.primaryTeam?.name
                   ? (meeting.primaryTeam.name.startsWith('Tim ') || meeting.primaryTeam.name.startsWith('Pokja')
-                      ? meeting.primaryTeam.name
-                      : `Tim ${meeting.primaryTeam.name}`)
+                    ? meeting.primaryTeam.name
+                    : `Tim ${meeting.primaryTeam.name}`)
                   : (meeting.primaryTeam?.code || 'Tim Investasi')}
               </p>
             </div>
           </div>
 
-          {/* Tanggal & Waktu */}
+          {/* Tanggal Pelaksanaan */}
           <div className="flex items-start gap-2.5">
             <Calendar className="w-4 h-4 text-[#31889C] shrink-0 mt-0.5" />
             <div>
-              <p className="text-[11px] text-slate-400 font-semibold uppercase">Jadwal &amp; Waktu</p>
+              <p className="text-[11px] text-slate-400 font-semibold uppercase">Tanggal Pelaksanaan</p>
               <p className="font-bold text-slate-800">{formattedDate}</p>
-              <p className="text-[12px] text-slate-600">
-                {meeting.startTime} - {meeting.endTime} WIB
-              </p>
             </div>
           </div>
-
-          {/* Lokasi */}
-          {(() => {
-            const virtual = extractVirtualMeetingDetails(meeting.location);
-            return (
-              <div className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-[#31889C] shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-[11px] text-slate-400 font-semibold uppercase">Lokasi / Media</p>
-                  <p className="font-bold text-slate-800 leading-snug">
-                    {virtual.cleanPhysicalLocation || meeting.location}
-                  </p>
-                  {virtual.zoomUrl && (
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <a
-                        href={virtual.zoomUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-[#0B5CFF] hover:bg-blue-100 text-[11px] font-bold border border-blue-200 transition-colors shadow-2xs"
-                        title="Buka Ruang Pertemuan Zoom di tab baru"
-                      >
-                        <Video className="w-3 h-3 text-[#0B5CFF]" />
-                        <span>Buka Zoom</span>
-                        <ExternalLink className="w-2.5 h-2.5 text-blue-400" />
-                      </a>
-                      {virtual.meetingId && (
-                        <span className="text-[10.5px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                          ID: {virtual.meetingId}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
 
           {/* PIC */}
           <div className="flex items-start gap-2.5">
@@ -1633,7 +1584,7 @@ export function MeetingDetailView({
             </div>
           </div>
 
-          {/* Tracking Pekerjaan & Output PIC Kegiatan (Monitoring Pimpinan & Staf) */}
+          {/* Detail Kegiatan */}
           <PicDeliverablesTracker
             meetingId={meetingData.id}
             meetingTitle={meetingData.title}
@@ -1645,122 +1596,7 @@ export function MeetingDetailView({
             onRefresh={() => router.refresh()}
           />
 
-          {/* Panel Output & Hasil Kegiatan Biro 3 (Catatan Mentor) */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4 border-l-4 border-l-emerald-600">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                  <FileCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-[16px] font-bold text-slate-900">Hasil Kegiatan &amp; Output Kerja Biro 3</h3>
-                  <p className="text-[12px] text-slate-500">
-                    Dokumentasi Google Drive, Catatan Ringkas Capaian, Rencana Aksi, Nd Konsum &amp; Rilis Berita
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {meetingData.actionPlan && (
-                  <span className={cn(
-                    "px-3 py-1 rounded-full text-xs font-bold border",
-                    meetingData.actionPlan.toLowerCase().includes('non')
-                      ? "bg-purple-50 text-purple-700 border-purple-200"
-                      : "bg-teal-50 text-teal-800 border-teal-200"
-                  )}>
-                    Rencana Aksi: {meetingData.actionPlan}
-                  </span>
-                )}
-                {canEditMeeting && (
-                  <button
-                    type="button"
-                    onClick={() => setIsOutputDialogOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1E6B7B] hover:bg-[#164E59] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Edit / Isi Hasil Kegiatan</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Grid Tautan Google Drive & Rilis Berita */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-              {/* Google Drive Link */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Berkas Google Drive
-                </span>
-                {meetingData.driveLink ? (
-                  <a
-                    href={meetingData.driveLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
-                  >
-                    <span className="truncate">Buka Folder / Dokumen</span>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">Belum ada tautan Google Drive</span>
-                )}
-              </div>
-
-              {/* Rilis Berita */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Publikasi &amp; Rilis Berita
-                </span>
-                {meetingData.releaseUrl ? (
-                  <a
-                    href={meetingData.releaseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs"
-                    title={meetingData.releaseTitle || "Buka Siaran Pers"}
-                  >
-                    <span className="truncate">{meetingData.releaseTitle || 'Buka Rilis Berita'}</span>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">Belum ada rilis berita</span>
-                )}
-              </div>
-
-              {/* Nd Konsumsi */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Nota Dinas Konsumsi
-                </span>
-                {meetingData.ndConsumptionNumber ? (
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="font-mono text-xs font-bold text-slate-800">
-                      {meetingData.ndConsumptionNumber}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">
-                      {meetingData.ndConsumptionStatus || 'Diproses'}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">Tidak ada pengajuan Nd Konsum</span>
-                )}
-              </div>
-            </div>
-
-            {/* Catatan Hasil Kegiatan */}
-            {meetingData.notes && (
-              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-950 space-y-1 mt-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs uppercase tracking-wider text-amber-800">
-                    Catatan Hasil Kegiatan / Ringkasan Capaian:
-                  </span>
-                </div>
-                <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
-                  {meetingData.notes}
-                </p>
-              </div>
-            )}
-          </div>
 
           {/* Agenda Pembahasan & Ringkasan Kegiatan */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-5">
@@ -2276,18 +2112,7 @@ export function MeetingDetailView({
         </div>
       )}
 
-      {/* Modal: Update / Isi Hasil Kegiatan Pasca Pelaksanaan */}
-      <UpdateMeetingOutputDialog
-        isOpen={isOutputDialogOpen}
-        onClose={() => setIsOutputDialogOpen(false)}
-        meeting={meetingData}
-        onSuccess={(updated) => {
-          setMeetingData(updated);
-          if (updated.progressStatus) {
-            setProgressStatus(updated.progressStatus);
-          }
-        }}
-      />
+
     </div>
   );
 }

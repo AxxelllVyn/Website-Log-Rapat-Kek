@@ -770,15 +770,17 @@ export function UserManagementView({
       {/* User Form Dialog (Create / Edit) */}
       {isDialogOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setIsDialogOpen(false)}
         >
           <div
-            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"
+            className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-[#F8FAFC] border-b border-slate-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F8FAFC] border-b border-slate-200 shrink-0">
               <div>
                 <span className="text-[11px] font-bold text-[#31889C] uppercase tracking-wider">
                   {isScopedAdmin
@@ -806,14 +808,16 @@ export function UserManagementView({
               </button>
             </div>
 
-            {/* Modal Body */}
-            <form onSubmit={handleSubmitForm} className="p-6 space-y-4 text-[13px]">
-              {formError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-start gap-2 text-[12px]">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{formError}</span>
-                </div>
-              )}
+            {/* Modal Form */}
+            <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0 overflow-hidden text-[13px]">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                {formError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-start gap-2 text-[12px]">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{formError}</span>
+                  </div>
+                )}
 
               {/* Nama Lengkap & Gelar dengan Role Otomatis */}
               <div>
@@ -1019,7 +1023,7 @@ export function UserManagementView({
               </div>
 
               {/* Status Aktif */}
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="isActiveCheck"
@@ -1031,38 +1035,39 @@ export function UserManagementView({
                   Akun aktif dan dapat masuk ke sistem
                 </label>
               </div>
+            </div>
 
-              {/* Modal Footer */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => setIsDialogOpen(false)}
-                  className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-800 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#31889C] hover:bg-[#266F80] text-white font-semibold text-[13px] shadow-sm transition-all cursor-pointer disabled:opacity-60"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>
-                    {isSubmitting
-                      ? 'Menyimpan...'
-                      : editingUser
-                      ? 'Simpan Perubahan'
-                      : isScopedAdmin
-                      ? 'Tambah Anggota'
-                      : 'Buat Pengguna'}
-                  </span>
-                </button>
-              </div>
-            </form>
-          </div>
+            {/* Modal Footer (Sticky / Fixed at Bottom) */}
+            <div className="shrink-0 px-6 py-3.5 bg-[#F8FAFC] border-t border-slate-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setIsDialogOpen(false)}
+                className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1E6B7B] hover:bg-[#164E59] text-white font-semibold text-[13px] shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-60"
+              >
+                <Save className="w-4 h-4" />
+                <span>
+                  {isSubmitting
+                    ? 'Menyimpan...'
+                    : editingUser
+                    ? 'Simpan Perubahan'
+                    : isScopedAdmin
+                    ? 'Tambah Anggota'
+                    : 'Buat Pengguna'}
+                </span>
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
+    )}
         </>
       )}
     </div>

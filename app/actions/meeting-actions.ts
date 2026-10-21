@@ -410,39 +410,8 @@ export async function createMeetingAction(input: CreateMeetingInput) {
         );
       }
 
-      // 6. Automatically initialize PIC deliverables / action items for each involved PIC
-      if (targetUserIds.size > 0) {
-        const picUsers = await tx.user.findMany({
-          where: { id: { in: Array.from(targetUserIds) } },
-          select: { id: true, name: true, biroId: true, teamId: true },
-        });
-
-        for (const pUser of picUsers) {
-          const nextActionId = await getNextActionItemId(tx);
-          const initialDesc = JSON.stringify({
-            notes: `Penugasan pelaporan capaian, berkas fisik, dan tautan publikasi kegiatan oleh ${pUser.name}.`,
-            linkUrl: '',
-            linkTitle: '',
-            fileUrl: '',
-            fileName: '',
-          });
-
-          await tx.actionItem.create({
-            data: {
-              id: nextActionId,
-              meetingId: meeting.id,
-              title: `Output & Pelaporan PIC: ${pUser.name}`,
-              description: initialDesc,
-              picBiroId: pUser.biroId || primaryBiro.id,
-              picTeamId: pUser.teamId || effectiveTeamId,
-              picUserId: pUser.id,
-              dueDate: new Date(input.date),
-              status: 'PENDING',
-              priority: 'HIGH',
-            },
-          });
-        }
-      }
+      // Catatan: Tugas / deliverables PIC tidak dibuat otomatis di sini.
+      // Pengguna akan memilih dan menentukan tugas untuk masing-masing PIC secara eksplisit melalui Detail Kegiatan.
 
       return {
         meetingNumber: finalMeetingNumber,

@@ -45,6 +45,7 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
 
     const actionItemId = (formData.get('actionItemId') as string)?.trim();
     const meetingId = (formData.get('meetingId') as string)?.trim();
+    const outputType = ((formData.get('outputType') as string) || '').trim();
     const notes = ((formData.get('notes') as string) || '').trim();
     const linkUrl = ((formData.get('linkUrl') as string) || '').trim();
     const linkTitle = ((formData.get('linkTitle') as string) || '').trim();
@@ -139,12 +140,10 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
       }
     }
 
-    // Determine Status & Progress
+    // Determine Status & Progress (Dalam Proses vs Selesai)
     let statusEnum: ActionItemStatus = ActionItemStatus.IN_PROGRESS;
     if (rawStatus === 'COMPLETED' || rawStatus === 'Selesai') {
       statusEnum = ActionItemStatus.COMPLETED;
-    } else if (rawStatus === 'PENDING' || rawStatus === 'Belum Dimulai') {
-      statusEnum = ActionItemStatus.PENDING;
     } else {
       statusEnum = ActionItemStatus.IN_PROGRESS;
     }
@@ -157,11 +156,29 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
       progressNum = 100;
     }
 
-    // Build JSON description
+    // Build JSON description: either LINK or NOTE
+    let finalNotes = '';
+    let finalLinkUrl = '';
+    let finalLinkTitle = '';
+
+    if (outputType === 'LINK') {
+      finalLinkUrl = linkUrl;
+      finalLinkTitle = linkTitle || 'Tautan Hasil Kegiatan';
+      finalNotes = '';
+    } else if (outputType === 'NOTE') {
+      finalNotes = notes;
+      finalLinkUrl = '';
+      finalLinkTitle = '';
+    } else {
+      finalNotes = notes || prevData.notes || '';
+      finalLinkUrl = linkUrl || prevData.linkUrl || '';
+      finalLinkTitle = linkTitle || prevData.linkTitle || (linkUrl ? 'Tautan Hasil Kegiatan' : '');
+    }
+
     const updatedDescriptionObj: PicDeliverableParsedData = {
-      notes: notes || prevData.notes || '',
-      linkUrl: linkUrl || prevData.linkUrl || '',
-      linkTitle: linkTitle || prevData.linkTitle || (linkUrl ? 'Tautan Luaran PIC' : ''),
+      notes: finalNotes,
+      linkUrl: finalLinkUrl,
+      linkTitle: finalLinkTitle,
       fileUrl: uploadedFileUrl,
       fileName: uploadedFileName,
       fileSize: uploadedFileSize,
@@ -225,7 +242,9 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
         userId: validUserId,
         previousStatus: existing.status,
         newStatus: statusEnum,
-        notes: notes || (linkUrl ? `Melampirkan tautan: ${linkUrl}` : 'Pembaruan progres pengerjaan'),
+        notes: outputType === 'LINK'
+          ? (finalLinkUrl ? `Melampirkan tautan hasil: ${finalLinkUrl}` : 'Pembaruan tautan hasil kegiatan')
+          : (finalNotes || 'Pembaruan catatan hasil kegiatan'),
         progress: progressNum,
       },
     });
@@ -424,7 +443,7 @@ export async function createPicDeliverableAction(input: {
         picTeamId: targetTeamId,
         picUserId: picUserId || null,
         dueDate: effectiveDueDate,
-        status: ActionItemStatus.PENDING,
+        status: ActionItemStatus.IN_PROGRESS,
         priority: priority || ActionItemPriority.HIGH,
       },
       include: {
@@ -530,7 +549,7 @@ export async function initializeMeetingPicDeliverablesAction(meetingId: string):
             picTeamId: part.user.teamId || meeting.primaryTeamId,
             picUserId: part.user.id,
             dueDate: meeting.date,
-            status: ActionItemStatus.PENDING,
+            status: ActionItemStatus.IN_PROGRESS,
             priority: ActionItemPriority.HIGH,
           },
         });
@@ -550,6 +569,29 @@ export async function initializeMeetingPicDeliverablesAction(meetingId: string):
     return {
       success: false,
       error: error?.message || 'Gagal menginisialisasi penugasan PIC.',
+    };
+  }
+}
+
+/**
+ * Server Action: Hapus penugasan tugas PIC
+ */
+export async function deletePicDeliverableAction(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { deleteActionItemAction } = await import('@/app/actions/action-item-actions');
+    const res = await deleteActionItemAction(id);
+    return {
+      success: res.success,
+      error: res.error,
+    };
+  } catch (err: any) {
+    console.error('Error deleting PIC deliverable:', err);
+    return {
+      success: false,
+      error: err?.message || 'Gagal menghapus penugasan PIC.',
     };
   }
 }

@@ -1018,9 +1018,6 @@ export function MeetingTable({
                             <span className="text-slate-600 text-[12px] font-medium group-hover/link:text-[#1E6B7B] group-hover/link:underline transition-colors mt-1">
                               {meeting.date}
                             </span>
-                            <span className="text-[11px] text-slate-400">
-                              {meeting.time}
-                            </span>
                           </Link>
                         );
                       })()}
