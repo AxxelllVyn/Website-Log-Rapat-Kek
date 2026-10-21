@@ -519,6 +519,7 @@ export function ActionItemList({
                       const parsed = parsePicDeliverableDescription(item.description);
                       const rawNotes = parsed.notes || item.description || '';
                       const allUrls = Array.from(new Set([
+                        ...(parsed.links ? parsed.links.map((l) => l.url) : []),
                         ...(parsed.linkUrl ? [parsed.linkUrl] : []),
                         ...(parsed.fileUrl ? [parsed.fileUrl] : []),
                         ...extractAllLinks(rawNotes),

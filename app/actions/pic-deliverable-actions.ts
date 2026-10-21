@@ -140,20 +140,46 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
       }
     }
 
-    // Determine Status & Progress (Dalam Proses vs Selesai)
+    // Determine Status & Progress (Belum Dimulai, Dalam Proses, Selesai)
     let statusEnum: ActionItemStatus = ActionItemStatus.IN_PROGRESS;
     if (rawStatus === 'COMPLETED' || rawStatus === 'Selesai') {
       statusEnum = ActionItemStatus.COMPLETED;
+    } else if (rawStatus === 'PENDING' || rawStatus === 'Belum Dimulai' || rawStatus === 'BELUM_DIMULAI') {
+      statusEnum = ActionItemStatus.PENDING;
     } else {
       statusEnum = ActionItemStatus.IN_PROGRESS;
     }
 
     let progressNum = parseInt(rawProgress || '0', 10);
     if (isNaN(progressNum)) {
-      progressNum = statusEnum === ActionItemStatus.COMPLETED ? 100 : 50;
+      progressNum = statusEnum === ActionItemStatus.COMPLETED ? 100 : statusEnum === ActionItemStatus.PENDING ? 0 : 50;
     }
     if (statusEnum === ActionItemStatus.COMPLETED && progressNum < 100) {
       progressNum = 100;
+    }
+    if (statusEnum === ActionItemStatus.PENDING) {
+      progressNum = 0;
+    }
+
+    // Parse multiple links if provided as linksJson
+    const linksJsonRaw = (formData.get('linksJson') as string)?.trim();
+    let parsedLinks: Array<{ url: string; title?: string }> = [];
+    if (linksJsonRaw) {
+      try {
+        const rawArr = JSON.parse(linksJsonRaw);
+        if (Array.isArray(rawArr)) {
+          parsedLinks = rawArr
+            .filter((l: any) => l && typeof l.url === 'string' && l.url.trim().length > 0)
+            .map((l: any) => ({
+              url: l.url.trim(),
+              title: typeof l.title === 'string' ? l.title.trim() : '',
+            }));
+        }
+      } catch {}
+    }
+
+    if (parsedLinks.length === 0 && linkUrl) {
+      parsedLinks = [{ url: linkUrl, title: linkTitle || 'Tautan Hasil Kegiatan' }];
     }
 
     // Build JSON description: either LINK or NOTE
@@ -162,23 +188,28 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
     let finalLinkTitle = '';
 
     if (outputType === 'LINK') {
-      finalLinkUrl = linkUrl;
-      finalLinkTitle = linkTitle || 'Tautan Hasil Kegiatan';
+      finalLinkUrl = parsedLinks[0]?.url || linkUrl;
+      finalLinkTitle = parsedLinks[0]?.title || linkTitle || 'Tautan Hasil Kegiatan';
       finalNotes = '';
     } else if (outputType === 'NOTE') {
       finalNotes = notes;
       finalLinkUrl = '';
       finalLinkTitle = '';
+      parsedLinks = [];
     } else {
       finalNotes = notes || prevData.notes || '';
-      finalLinkUrl = linkUrl || prevData.linkUrl || '';
-      finalLinkTitle = linkTitle || prevData.linkTitle || (linkUrl ? 'Tautan Hasil Kegiatan' : '');
+      finalLinkUrl = parsedLinks[0]?.url || linkUrl || prevData.linkUrl || '';
+      finalLinkTitle = parsedLinks[0]?.title || linkTitle || prevData.linkTitle || (linkUrl ? 'Tautan Hasil Kegiatan' : '');
+      if (parsedLinks.length === 0 && prevData.links && prevData.links.length > 0) {
+        parsedLinks = prevData.links;
+      }
     }
 
     const updatedDescriptionObj: PicDeliverableParsedData = {
       notes: finalNotes,
       linkUrl: finalLinkUrl,
       linkTitle: finalLinkTitle,
+      links: parsedLinks,
       fileUrl: uploadedFileUrl,
       fileName: uploadedFileName,
       fileSize: uploadedFileSize,
@@ -243,39 +274,50 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
         previousStatus: existing.status,
         newStatus: statusEnum,
         notes: outputType === 'LINK'
-          ? (finalLinkUrl ? `Melampirkan tautan hasil: ${finalLinkUrl}` : 'Pembaruan tautan hasil kegiatan')
+          ? (parsedLinks.length > 1
+              ? `Melampirkan ${parsedLinks.length} tautan hasil kegiatan: ${parsedLinks.map((l) => l.url).join(', ')}`
+              : finalLinkUrl
+              ? `Melampirkan tautan hasil: ${finalLinkUrl}`
+              : 'Pembaruan tautan hasil kegiatan')
           : (finalNotes || 'Pembaruan catatan hasil kegiatan'),
         progress: progressNum,
       },
     });
 
     // Sync to Meeting record if requested or if it's a press release / drive link
-    if (syncToMeeting && linkUrl) {
-      const isDrive = linkUrl.includes('drive.google.com');
+    if (syncToMeeting && (parsedLinks.length > 0 || linkUrl)) {
+      const linksToSync = parsedLinks.length > 0 ? parsedLinks : [{ url: linkUrl, title: linkTitle }];
 
-      // 1. Store as a MeetingAttachment so it appears in the meeting's documents
-      try {
-        const existingAttachment = await prisma.meetingAttachment.findFirst({
-          where: {
-            meetingId: effectiveMeetingId,
-            fileUrl: linkUrl,
-          },
-        });
+      for (const itemLink of linksToSync) {
+        if (!itemLink.url) continue;
+        const isDrive = itemLink.url.includes('drive.google.com');
 
-        if (!existingAttachment) {
-          await prisma.meetingAttachment.create({
-            data: {
+        // 1. Store as a MeetingAttachment so it appears in the meeting's documents
+        try {
+          const existingAttachment = await prisma.meetingAttachment.findFirst({
+            where: {
               meetingId: effectiveMeetingId,
-              fileName: linkTitle || (isDrive ? 'Google Drive Luaran PIC' : (existing.title || 'Tautan Luaran PIC')),
-              fileUrl: linkUrl,
-              fileType: 'link',
-              uploadedBy: currentUser.name || 'PIC',
-              category: isDrive ? 'DRIVE' : 'MATERIAL',
+              fileUrl: itemLink.url,
             },
           });
+
+          if (!existingAttachment) {
+            await prisma.meetingAttachment.create({
+              data: {
+                meetingId: effectiveMeetingId,
+                fileName:
+                  itemLink.title ||
+                  (isDrive ? 'Google Drive Luaran PIC' : existing.title || 'Tautan Luaran PIC'),
+                fileUrl: itemLink.url,
+                fileType: 'link',
+                uploadedBy: currentUser.name || 'PIC',
+                category: isDrive ? 'DRIVE' : 'MATERIAL',
+              },
+            });
+          }
+        } catch (attachErr) {
+          console.warn('Could not create meeting attachment for link:', attachErr);
         }
-      } catch (attachErr) {
-        console.warn('Could not create meeting attachment for link:', attachErr);
       }
 
       // 2. Also attach physical file if uploaded
@@ -309,9 +351,14 @@ export async function submitPicProgressAction(formData: FormData): Promise<{
       try {
         const meetingUpdatePayload: Record<string, any> = {};
 
-        if (!existing.meeting.materialDocUrl) {
-          meetingUpdatePayload.materialDocUrl = linkUrl;
-          meetingUpdatePayload.materialDocName = linkTitle || (isDrive ? 'Google Drive Luaran PIC' : (existing.title || 'Tautan Luaran PIC'));
+        const effectiveUrl = finalLinkUrl || linkUrl;
+        if (!existing.meeting.materialDocUrl && effectiveUrl) {
+          const isDriveUrl = effectiveUrl.includes('drive.google.com');
+          meetingUpdatePayload.materialDocUrl = effectiveUrl;
+          meetingUpdatePayload.materialDocName =
+            finalLinkTitle ||
+            linkTitle ||
+            (isDriveUrl ? 'Google Drive Luaran PIC' : existing.title || 'Tautan Luaran PIC');
         }
 
         if (existing.meeting.progressStatus === 'Belum Dimulai' || existing.meeting.progressStatus === 'Start') {

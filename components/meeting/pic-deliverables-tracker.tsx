@@ -5,6 +5,7 @@ import {
   FileCheck,
   CheckCircle2,
   Clock,
+  PlayCircle,
   AlertCircle,
   Link2,
   ExternalLink,
@@ -207,7 +208,8 @@ export function PicDeliverablesTracker({
               );
               const latestLog = item.logs?.[0];
               const isCompleted = item.status === 'COMPLETED';
-              const isInProgress = !isCompleted;
+              const isPending = item.status === 'PENDING';
+              const isInProgress = !isCompleted && !isPending;
 
               const isPicOwner =
                 currentUserId && item.picUserId && currentUserId === item.picUserId;
@@ -226,6 +228,8 @@ export function PicDeliverablesTracker({
                     "rounded-2xl border transition-all duration-200 bg-white overflow-hidden shadow-xs hover:shadow-md",
                     isCompleted
                       ? "border-emerald-200 border-l-4 border-l-emerald-600"
+                      : isPending
+                      ? "border-slate-200 border-l-4 border-l-slate-400"
                       : "border-amber-200 border-l-4 border-l-amber-500"
                   )}
                 >
@@ -239,6 +243,8 @@ export function PicDeliverablesTracker({
                             "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border",
                             isCompleted
                               ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                              : isPending
+                              ? "bg-slate-100 text-slate-700 border-slate-200"
                               : "bg-amber-50 text-amber-800 border-amber-200"
                           )}
                         >
@@ -293,17 +299,27 @@ export function PicDeliverablesTracker({
                             "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
                             isCompleted
                               ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                              : isPending
+                              ? "bg-slate-100 text-slate-700 border-slate-300"
                               : "bg-amber-50 text-amber-800 border-amber-300"
                           )}
                         >
                           {isCompleted ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Selesai</span>
+                            </>
+                          ) : isPending ? (
+                            <>
+                              <PlayCircle className="w-3.5 h-3.5 text-slate-600" />
+                              <span>Belum Dimulai</span>
+                            </>
                           ) : (
-                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            <>
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Dalam Proses</span>
+                            </>
                           )}
-                          <span>
-                            {isCompleted ? 'Selesai' : 'Dalam Proses'}
-                          </span>
                         </span>
 
                         {canUserUpdate && (
@@ -375,8 +391,29 @@ export function PicDeliverablesTracker({
 
                     {/* Action Links & Files Ribbon */}
                     <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                      {/* CLICKABLE LINK BUTTON */}
-                      {parsed.linkUrl ? (
+                      {/* CLICKABLE LINK BUTTON(S) */}
+                      {parsed.links && parsed.links.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {parsed.links.map((link, lIdx) => (
+                            <a
+                              key={link.url + lIdx}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 hover:from-emerald-700 hover:to-teal-900 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all group cursor-pointer"
+                              title={`Buka Tautan: ${link.url}`}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-emerald-200 group-hover:scale-110 transition-transform shrink-0" />
+                              <span className="truncate max-w-[240px] sm:max-w-[320px]">
+                                {link.title || (parsed.links && parsed.links.length > 1 ? `Tautan #${lIdx + 1}` : 'Buka Tautan Hasil Kegiatan')}
+                              </span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 text-white font-mono uppercase tracking-wider shrink-0">
+                                Buka ↗
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      ) : parsed.linkUrl ? (
                         <a
                           href={parsed.linkUrl}
                           target="_blank"

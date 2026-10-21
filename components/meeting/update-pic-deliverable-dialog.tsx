@@ -10,6 +10,9 @@ import {
   FileText,
   CheckCircle2,
   Clock,
+  PlayCircle,
+  Plus,
+  Trash2,
   Loader2,
 } from 'lucide-react';
 import { toast } from '@/components/providers/toast-provider';
@@ -17,6 +20,7 @@ import { submitPicProgressAction } from '@/app/actions/pic-deliverable-actions';
 import {
   parsePicDeliverableDescription,
   PicDeliverableParsedData,
+  PicDeliverableLink,
 } from '@/lib/pic-deliverables';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +55,11 @@ interface UpdatePicDeliverableDialogProps {
   onSuccess?: () => void;
 }
 
+interface LinkItem {
+  url: string;
+  title: string;
+}
+
 export function UpdatePicDeliverableDialog({
   isOpen,
   onClose,
@@ -60,48 +69,83 @@ export function UpdatePicDeliverableDialog({
 }: UpdatePicDeliverableDialogProps) {
   const router = useRouter();
 
-  const parsed: PicDeliverableParsedData = parsePicDeliverableDescription(
-    deliverable?.description
-  );
+  const getDeliverableStatus = (st?: string | null): 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' => {
+    if (st === 'COMPLETED' || st === 'Selesai') return 'COMPLETED';
+    if (st === 'PENDING' || st === 'Belum Dimulai') return 'PENDING';
+    return 'IN_PROGRESS';
+  };
 
-  const [status, setStatus] = useState<string>(
-    deliverable?.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS'
-  );
-  const [progress, setProgress] = useState<number>(
-    deliverable?.status === 'COMPLETED' ? 100 : 50
-  );
-  const [outputType, setOutputType] = useState<'LINK' | 'NOTE'>(() => {
-    return parsed.linkUrl ? 'LINK' : 'NOTE';
-  });
-  const [notes, setNotes] = useState<string>(parsed.notes || '');
-  const [linkUrl, setLinkUrl] = useState<string>(parsed.linkUrl || '');
+  const [status, setStatus] = useState<'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('IN_PROGRESS');
+  const [progress, setProgress] = useState<number>(50);
+  const [outputType, setOutputType] = useState<'LINK' | 'NOTE'>('NOTE');
+  const [notes, setNotes] = useState<string>('');
+  const [links, setLinks] = useState<LinkItem[]>([{ url: '', title: '' }]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     if (deliverable) {
       const p = parsePicDeliverableDescription(deliverable.description);
-      const isDone = deliverable.status === 'COMPLETED';
-      setStatus(isDone ? 'COMPLETED' : 'IN_PROGRESS');
-      setProgress(isDone ? 100 : 50);
+      const targetStatus = getDeliverableStatus(deliverable.status);
+      setStatus(targetStatus);
+      setProgress(targetStatus === 'COMPLETED' ? 100 : targetStatus === 'PENDING' ? 0 : 50);
       setNotes(p.notes || '');
-      setLinkUrl(p.linkUrl || '');
-      setOutputType(p.linkUrl ? 'LINK' : 'NOTE');
+
+      const initialLinks: LinkItem[] = [];
+      if (p.links && p.links.length > 0) {
+        p.links.forEach((l) => {
+          if (l.url) initialLinks.push({ url: l.url, title: l.title || '' });
+        });
+      } else if (p.linkUrl) {
+        initialLinks.push({ url: p.linkUrl, title: p.linkTitle || '' });
+      }
+
+      if (initialLinks.length === 0) {
+        initialLinks.push({ url: '', title: '' });
+      }
+
+      setLinks(initialLinks);
+      setOutputType(initialLinks.some((l) => l.url.trim().length > 0) ? 'LINK' : 'NOTE');
     }
   }, [deliverable]);
 
   if (!isOpen || !deliverable) return null;
 
-  const handleStatusSelect = (newStatus: 'IN_PROGRESS' | 'COMPLETED') => {
+  const handleStatusSelect = (newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED') => {
     setStatus(newStatus);
-    setProgress(newStatus === 'COMPLETED' ? 100 : 50);
+    if (newStatus === 'COMPLETED') {
+      setProgress(100);
+    } else if (newStatus === 'PENDING') {
+      setProgress(0);
+    } else {
+      setProgress(50);
+    }
+  };
+
+  const handleAddLink = () => {
+    setLinks((prev) => [...prev, { url: '', title: '' }]);
+  };
+
+  const handleRemoveLink = (index: number) => {
+    setLinks((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      return updated.length > 0 ? updated : [{ url: '', title: '' }];
+    });
+  };
+
+  const handleLinkChange = (index: number, field: keyof LinkItem, value: string) => {
+    setLinks((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const validLinks = links.filter((l) => l.url.trim().length > 0);
+
     if (outputType === 'LINK') {
-      if (!linkUrl.trim()) {
-        toast.error('Mohon masukkan tautan / link hasil kegiatan.');
+      if (validLinks.length === 0) {
+        toast.error('Mohon masukkan minimal 1 tautan / link hasil kegiatan.');
         return;
       }
     } else {
@@ -121,13 +165,15 @@ export function UpdatePicDeliverableDialog({
       formData.append('outputType', outputType);
 
       if (outputType === 'LINK') {
-        formData.append('linkUrl', linkUrl.trim());
-        formData.append('linkTitle', 'Tautan Hasil Kegiatan');
+        formData.append('linkUrl', validLinks[0].url.trim());
+        formData.append('linkTitle', validLinks[0].title.trim() || 'Tautan Hasil Kegiatan');
+        formData.append('linksJson', JSON.stringify(validLinks));
         formData.append('notes', '');
       } else {
         formData.append('notes', notes.trim());
         formData.append('linkUrl', '');
         formData.append('linkTitle', '');
+        formData.append('linksJson', '[]');
       }
 
       formData.append('syncToMeeting', 'true');
@@ -189,7 +235,7 @@ export function UpdatePicDeliverableDialog({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Status Tugas (Dalam Proses & Selesai) */}
+          {/* Status Tugas (Belum Dimulai, Dalam Proses, Selesai) */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -200,6 +246,8 @@ export function UpdatePicDeliverableDialog({
                   "text-xs font-bold px-2.5 py-0.5 rounded-full border transition-colors inline-flex items-center gap-1",
                   status === 'COMPLETED'
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : status === 'PENDING'
+                    ? "bg-slate-100 text-slate-700 border-slate-300"
                     : "bg-amber-50 text-amber-700 border-amber-200"
                 )}
               >
@@ -207,6 +255,11 @@ export function UpdatePicDeliverableDialog({
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Selesai</span>
+                  </>
+                ) : status === 'PENDING' ? (
+                  <>
+                    <PlayCircle className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Belum Dimulai</span>
                   </>
                 ) : (
                   <>
@@ -217,32 +270,45 @@ export function UpdatePicDeliverableDialog({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleStatusSelect('PENDING')}
+                className={cn(
+                  "py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                  status === 'PENDING'
+                    ? "bg-slate-700 text-white border-slate-700 shadow-xs ring-2 ring-slate-200"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                )}
+              >
+                <PlayCircle className="w-4 h-4 shrink-0" />
+                <span className="truncate">Belum Dimulai</span>
+              </button>
               <button
                 type="button"
                 onClick={() => handleStatusSelect('IN_PROGRESS')}
                 className={cn(
-                  "py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
-                  status !== 'COMPLETED'
+                  "py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                  status === 'IN_PROGRESS'
                     ? "bg-amber-600 text-white border-amber-600 shadow-xs ring-2 ring-amber-200"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                 )}
               >
-                <Clock className="w-4 h-4" />
-                <span>Dalam Proses</span>
+                <Clock className="w-4 h-4 shrink-0" />
+                <span className="truncate">Dalam Proses</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleStatusSelect('COMPLETED')}
                 className={cn(
-                  "py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
+                  "py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer flex items-center justify-center gap-1.5",
                   status === 'COMPLETED'
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-200"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                 )}
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Selesai</span>
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span className="truncate">Selesai</span>
               </button>
             </div>
           </div>
@@ -288,36 +354,89 @@ export function UpdatePicDeliverableDialog({
               </button>
             </div>
 
-            {/* Input Tunggal Sesuai Pilihan */}
+            {/* Input Sesuai Pilihan */}
             {outputType === 'LINK' ? (
-              <div className="p-4 rounded-xl bg-teal-50/40 border border-teal-200/70 space-y-2.5 animate-in fade-in-50 duration-150">
-                <label className="text-xs font-bold text-[#175360] flex items-center gap-1.5">
-                  <Link2 className="w-3.5 h-3.5 text-[#1E6B7B]" />
-                  <span>Tautan / Link Hasil Kegiatan</span>
-                </label>
-                <p className="text-[11.5px] text-slate-500">
-                  Masukkan tautan Google Drive, link berita/publikasi, atau dokumen kerja bersama:
+              <div className="p-4 rounded-xl bg-teal-50/40 border border-teal-200/70 space-y-3 animate-in fade-in-50 duration-150">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#175360] flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5 text-[#1E6B7B]" />
+                    <span>Tautan / Link Hasil Kegiatan</span>
+                  </label>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {links.length} Tautan
+                  </span>
+                </div>
+                <p className="text-[11.5px] text-slate-500 leading-relaxed">
+                  Masukkan tautan Google Drive, link berita/publikasi, atau dokumen kerja bersama (bisa menambah lebih dari 1 tautan):
                 </p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="url"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="https://drive.google.com/... atau https://..."
-                    className="flex-1 text-xs font-mono rounded-lg border border-slate-300 bg-white p-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                  {linkUrl && (
-                    <a
-                      href={linkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
-                      title="Uji coba buka tautan"
+
+                <div className="space-y-2.5">
+                  {links.map((linkItem, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-white border border-teal-200/90 shadow-2xs space-y-2"
                     >
-                      <span>Coba Buka</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-[#1E6B7B] flex items-center gap-1.5 text-[11px]">
+                          <span className="w-4 h-4 rounded-full bg-[#1E6B7B]/10 text-[#1E6B7B] inline-flex items-center justify-center font-mono text-[10px]">
+                            {idx + 1}
+                          </span>
+                          <span>Tautan #{idx + 1}</span>
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          {linkItem.url.trim() && (
+                            <a
+                              href={linkItem.url.trim()}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
+                              title="Uji coba buka tautan"
+                            >
+                              <span>Coba Buka</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          {links.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLink(idx)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Hapus tautan ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <input
+                          type="url"
+                          value={linkItem.url}
+                          onChange={(e) => handleLinkChange(idx, 'url', e.target.value)}
+                          placeholder="https://drive.google.com/... atau https://..."
+                          className="w-full text-xs font-mono rounded-lg border border-slate-300 bg-white p-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
+                        />
+                        <input
+                          type="text"
+                          value={linkItem.title}
+                          onChange={(e) => handleLinkChange(idx, 'title', e.target.value)}
+                          placeholder="Keterangan tautan (opsional, contoh: File Paparan / Draft Berita)"
+                          className="w-full text-xs rounded-lg border border-slate-200 bg-slate-50/60 p-2 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] focus:bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={handleAddLink}
+                    className="w-full py-2 px-3 rounded-xl border border-dashed border-[#1E6B7B]/40 hover:border-[#1E6B7B] bg-white hover:bg-teal-50/50 text-[#1E6B7B] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Tambah Tautan Lainnya</span>
+                  </button>
                 </div>
               </div>
             ) : (
