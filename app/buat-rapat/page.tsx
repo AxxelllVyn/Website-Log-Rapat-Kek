@@ -726,9 +726,6 @@ export default function BuatRapatPage() {
                 </p>
               </div>
             </div>
-            <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
-              Poin 4, 5
-            </span>
           </div>
 
           <div className="p-6 sm:p-7 space-y-6">
@@ -871,9 +868,7 @@ export default function BuatRapatPage() {
                 </p>
               </div>
             </div>
-            <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
-              Poin 6
-            </span>
+
           </div>
 
           <div className="p-6 sm:p-7 space-y-4">
