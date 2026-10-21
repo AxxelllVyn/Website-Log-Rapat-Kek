@@ -14,6 +14,10 @@ import {
   ChevronDown,
   Info,
   Sparkles,
+  Paperclip,
+  FileText,
+  UploadCloud,
+  Trash2,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -24,6 +28,7 @@ import {
   previewNextMeetingNumberAction,
 } from '@/app/actions/meeting-actions';
 import { getTeamsAction } from '@/app/actions/team-actions';
+import { uploadInvitationFileAction } from '@/app/actions/meeting-upload-actions';
 import { cn } from '@/lib/utils';
 import { MultiPicSelector, PicOptionUser } from './pic-selector';
 import { JENIS_KEGIATAN_OPTIONS, TIM_OPTIONS } from '@/app/buat-rapat/page';
@@ -107,6 +112,36 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
   // 6. PIC Kegiatan (Multi-PIC)
   const [selectedPicIds, setSelectedPicIds] = useState<string[]>([]);
   const [picName, setPicName] = useState<string>('');
+
+  // 7. Dokumen Lampiran
+  const [uploadedDoc, setUploadedDoc] = useState<{
+    url: string;
+    name: string;
+    size: number;
+  } | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingDoc(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await uploadInvitationFileAction(fd);
+      if (res.success && res.data) {
+        setUploadedDoc(res.data);
+        toast.success(`Dokumen "${res.data.name}" berhasil diunggah.`);
+      } else {
+        toast.error(res.error || 'Gagal mengunggah dokumen');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan sistem saat unggah');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
 
   // Aux
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
@@ -218,6 +253,12 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
               : undefined,
         sourceOrigin: sourceOrigin.trim() || undefined,
         postponeReason: postponeReason.trim() || undefined,
+        invitationDocUrl: uploadedDoc?.url || undefined,
+        invitationDocName: uploadedDoc?.name || undefined,
+        invitationDocSize: uploadedDoc?.size || undefined,
+        categoryDocUrl: uploadedDoc?.url || undefined,
+        categoryDocName: uploadedDoc?.name || undefined,
+        categoryDocSize: uploadedDoc?.size || undefined,
       });
 
       if (res.success && res.data) {
@@ -453,6 +494,63 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
               onClearAll={handleClearAllPics}
               required
             />
+          </div>
+
+          {/* 7. Dokumen Acuan Kegiatan (Surat Undangan / Bahan Paparan / Berkas Acuan) */}
+          <div className="space-y-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-800">
+                7. Dokumen Acuan Kegiatan <span className="text-slate-400 font-normal">(Opsional)</span>:
+              </label>
+              <span className="text-[11px] text-slate-400">PDF, Word, Excel, Gambar</span>
+            </div>
+
+            {uploadedDoc ? (
+              <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#1E6B7B] text-white flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">{uploadedDoc.name}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      {(uploadedDoc.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUploadedDoc(null)}
+                  className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  title="Hapus berkas"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="border-2 border-dashed border-slate-200 hover:border-[#1E6B7B] bg-slate-50/50 hover:bg-teal-50/30 rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.png,.jpg,.jpeg,.txt"
+                  onChange={handleDocUpload}
+                  disabled={isUploadingDoc}
+                  className="hidden"
+                />
+                {isUploadingDoc ? (
+                  <div className="flex items-center gap-2 text-xs text-[#1E6B7B] font-semibold py-1">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Mengunggah berkas...</span>
+                  </div>
+                ) : (
+                  <>
+                    <UploadCloud className="w-5 h-5 text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-600">
+                      Klik untuk unggah Surat Undangan / Bahan Paparan / Berkas Acuan
+                    </span>
+                  </>
+                )}
+              </label>
+            )}
           </div>
 
           {/* Info Output Pasca-Kegiatan */}

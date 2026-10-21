@@ -276,6 +276,56 @@ export function MeetingDetailView({
     setMeetingData(meeting);
   }, [meeting]);
 
+  // Document state (Surat Undangan / Bahan Paparan / Berkas Acuan)
+  const [docUrl, setDocUrl] = useState<string | null>(
+    meeting.categoryDocUrl || meeting.invitationDocUrl || meeting.materialDocUrl || null
+  );
+  const [docName, setDocName] = useState<string | null>(
+    meeting.categoryDocName || meeting.invitationDocName || meeting.materialDocName || null
+  );
+  const [docSize, setDocSize] = useState<number | null>(
+    meeting.categoryDocSize || meeting.invitationDocSize || meeting.materialDocSize || null
+  );
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDocUrl(meeting.categoryDocUrl || meeting.invitationDocUrl || meeting.materialDocUrl || null);
+    setDocName(meeting.categoryDocName || meeting.invitationDocName || meeting.materialDocName || null);
+    setDocSize(meeting.categoryDocSize || meeting.invitationDocSize || meeting.materialDocSize || null);
+  }, [meeting]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingDoc(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const uploadRes = await uploadInvitationFileAction(fd);
+      if (uploadRes.success && uploadRes.data) {
+        const updateRes = await updateMeetingInvitationDocAction(meeting.id, uploadRes.data);
+        if (updateRes.success) {
+          setDocUrl(uploadRes.data.url);
+          setDocName(uploadRes.data.name);
+          setDocSize(uploadRes.data.size);
+          toast.success(`Dokumen "${uploadRes.data.name}" berhasil dilampirkan ke kegiatan!`);
+          router.refresh();
+        } else {
+          toast.error(updateRes.error || 'Gagal menyimpan dokumen');
+        }
+      } else {
+        toast.error(uploadRes.error || 'Gagal mengunggah dokumen');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan sistem saat unggah');
+    } finally {
+      setIsUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // Custom Meeting Number state
   const [currentMeetingNumber, setCurrentMeetingNumber] = useState<string>(meeting.meetingNumber);
   const [isEditingMeetingNumber, setIsEditingMeetingNumber] = useState(false);
@@ -1314,6 +1364,91 @@ export function MeetingDetailView({
           </div>
 
 
+        </div>
+
+        {/* Dokumen Acuan Kegiatan (Surat Undangan / Bahan Paparan / Berkas Acuan) */}
+        <div className="pt-4 border-t border-slate-100 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Paperclip className="w-3.5 h-3.5 text-[#31889C]" />
+              <span>Dokumen Acuan Kegiatan (Surat Undangan / Bahan Paparan / Berkas Acuan)</span>
+            </span>
+            {canEditMeeting && docUrl && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingDoc}
+                className="text-[11.5px] font-bold text-[#31889C] hover:text-[#215865] hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>{isUploadingDoc ? 'Mengunggah...' : 'Ganti Dokumen'}</span>
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.png,.jpg,.jpeg,.txt"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+
+          {docUrl ? (
+            <div className="p-3.5 rounded-xl bg-[#F0F9FA] border border-[#BCE3EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-[#31889C] text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-900 text-[13px] truncate" title={docName || 'Dokumen Acuan Kegiatan'}>
+                      {docName || 'Dokumen Acuan Kegiatan'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-[#BCE3EB] text-[#215865] text-[10.5px] font-bold">
+                      {docSize ? `${(docSize / 1024).toFixed(1)} KB` : 'Berkas Terverifikasi'}
+                    </span>
+                  </div>
+                  <p className="text-[11.5px] text-slate-500 mt-0.5">
+                    Surat Undangan / Bahan Paparan / Berkas Acuan Resmi Kegiatan
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={docUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#31889C] hover:bg-[#266F80] text-white text-[12px] font-bold shadow-xs transition-all cursor-pointer"
+                  title="Buka atau unduh dokumen di tab baru"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka / Unduh Dokumen</span>
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-dashed border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-600">
+              <div className="flex items-center gap-2.5">
+                <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-[12px] text-slate-500">
+                  Belum ada dokumen acuan (Surat Undangan / Bahan Paparan / Berkas Acuan) yang dilampirkan.
+                </span>
+              </div>
+              {canEditMeeting && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingDoc}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-[#31889C] hover:bg-[#F0F9FA] text-[#31889C] text-[12px] font-bold transition-all shadow-2xs cursor-pointer shrink-0"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>{isUploadingDoc ? 'Mengunggah...' : '+ Unggah Dokumen'}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
