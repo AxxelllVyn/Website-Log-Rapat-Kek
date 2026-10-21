@@ -107,42 +107,7 @@ type TabType = 'overview' | 'minutes' | 'actionItems';
 type MinutesSubTab = 'document' | 'materials' | 'history';
 const VALID_TABS: TabType[] = ['overview', 'minutes', 'actionItems'];
 
-const MEETING_WORKFLOW: {
-  key: MeetingStatus;
-  step: number;
-  label: string;
-  sublabel: string;
-  description: string;
-}[] = [
-    {
-      key: 'DRAFT',
-      step: 1,
-      label: 'Draf',
-      sublabel: 'Penyusunan',
-      description: 'Penyusunan naskah risalah awal oleh notulis kegiatan',
-    },
-    {
-      key: 'REVIEW',
-      step: 2,
-      label: 'Review',
-      sublabel: 'Penelaahan',
-      description: 'Pemeriksaan substansi oleh biro terkait / tim perumus',
-    },
-    {
-      key: 'APPROVED',
-      step: 3,
-      label: 'Disetujui',
-      sublabel: 'Validasi',
-      description: 'Substansi risalah telah divalidasi pimpinan kegiatan',
-    },
-    {
-      key: 'FINAL',
-      step: 4,
-      label: 'Final',
-      sublabel: 'Diterbitkan',
-      description: 'Naskah resmi berkekuatan tetap, siap didistribusikan & ditindaklanjuti',
-    },
-  ];
+
 
 const ATTENDANCE_OPTIONS: {
   value: AttendanceStatus;
@@ -623,9 +588,9 @@ export function MeetingDetailView({
   };
 
   const currentProgress = normalizeProgressStatus(
-    progressStatus || (status === 'DRAFT' ? 'Belum Dimulai' : status === 'REVIEW' ? 'Dalam Proses' : 'Selesai')
+    progressStatus || mapStatusToProgress(status)
   );
-  const isBelumDimulai = currentProgress === 'Belum Dimulai' || status === 'DRAFT';
+  const isBelumDimulai = currentProgress === 'Belum Dimulai';
 
   const handleUpdateProgressStatus = async (newProg: 'Belum Dimulai' | 'Dalam Proses' | 'Selesai') => {
     if (normalizeProgressStatus(progressStatus) === newProg || isUpdatingStatus) {
@@ -1161,17 +1126,17 @@ export function MeetingDetailView({
                       {
                         key: 'Dalam Proses' as const,
                         label: 'Dalam Proses',
-                        sublabel: 'Sedang Berlangsung / Draft Risalah',
-                        desc: 'Kegiatan sedang berjalan atau draf risalah sedang disusun.',
-                        color: 'bg-amber-50/70 hover:bg-amber-100 text-amber-900 border-amber-200',
-                        activeColor: 'bg-amber-100 text-amber-950 border-amber-400 ring-2 ring-amber-300/40 shadow-2xs font-bold',
-                        dot: 'bg-amber-500 animate-pulse',
+                        sublabel: 'Sedang Berlangsung / Pelaksanaan & Telaah',
+                        desc: 'Kegiatan sedang berlangsung atau risalah sedang dirumuskan.',
+                        color: 'bg-sky-50/70 hover:bg-sky-100 text-sky-900 border-sky-200',
+                        activeColor: 'bg-sky-100 text-sky-950 border-sky-400 ring-2 ring-sky-300/40 shadow-2xs font-bold',
+                        dot: 'bg-sky-500 animate-pulse',
                       },
                       {
                         key: 'Selesai' as const,
                         label: 'Selesai',
-                        sublabel: 'Risalah Disahkan / Final',
-                        desc: 'Hasil kegiatan final & tindak lanjut siap dimonitor.',
+                        sublabel: 'Kegiatan Rampung & Risalah Sah',
+                        desc: 'Hasil kegiatan disahkan dan tindak lanjut siap dimonitor.',
                         color: 'bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 border-emerald-200',
                         activeColor: 'bg-emerald-100 text-emerald-950 border-emerald-400 ring-2 ring-emerald-300/40 shadow-2xs font-bold',
                         dot: 'bg-emerald-500',
@@ -1591,13 +1556,11 @@ export function MeetingDetailView({
                 </div>
                 <div className="flex items-center justify-between text-[11.5px] text-slate-500 mt-1">
                   <span>
-                    {status === 'FINAL'
+                    {currentProgress === 'Selesai'
                       ? 'Naskah Disahkan'
-                      : status === 'APPROVED'
-                        ? 'Telah Divalidasi'
-                        : status === 'REVIEW'
-                          ? 'Tahap Telaah'
-                          : 'Draf Penyusunan'}
+                      : currentProgress === 'Dalam Proses'
+                        ? 'Dalam Penelaahan'
+                        : 'Persiapan Notula'}
                   </span>
                   <span className="font-semibold text-[#1E6B7B] group-hover:underline flex items-center gap-0.5">
                     Buka <ChevronRight className="w-3 h-3 inline" />

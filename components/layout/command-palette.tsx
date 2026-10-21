@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { MeetingProgressBadge } from '@/components/meeting/meeting-status-badge';
 import { cn } from '@/lib/utils';
 import { Meeting } from '@/lib/types';
 
@@ -302,26 +303,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                           </span>
                           <span className="text-[11px] text-slate-400">•</span>
                           <span className="text-xs text-slate-500 font-medium">{m.date}</span>
-                          {m.status === 'FINAL' && (
-                            <Badge variant="final" dot className="text-[10px] py-0 px-2">
-                              FINAL
-                            </Badge>
-                          )}
-                          {m.status === 'APPROVED' && (
-                            <Badge variant="approved" dot className="text-[10px] py-0 px-2">
-                              APPROVED
-                            </Badge>
-                          )}
-                          {m.status === 'REVIEW' && (
-                            <Badge variant="review" dot className="text-[10px] py-0 px-2">
-                              REVIEW
-                            </Badge>
-                          )}
-                          {m.status === 'DRAFT' && (
-                            <Badge variant="draft" dot className="text-[10px] py-0 px-2">
-                              DRAFT
-                            </Badge>
-                          )}
+                          <MeetingProgressBadge
+                            progressStatus={(m as any).progressStatus}
+                            status={m.status}
+                            size="sm"
+                          />
                         </div>
                         <h4 className="text-sm font-semibold text-slate-900 truncate mt-0.5">
                           {m.title}

@@ -23,6 +23,7 @@ import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { ActivityTrendChart } from '@/components/dashboard/activity-trend-chart';
 import { BureauDistribution } from '@/components/dashboard/bureau-distribution';
 import { MeetingTable } from '@/components/meeting/meeting-table';
+import { normalizeProgressStatus, mapStatusToProgress } from '@/lib/meeting-status';
 
 interface TeamItem {
   id: string;
@@ -218,9 +219,18 @@ export function BiroDashboardClient({
   const displayMetrics: DashboardMetric[] = useMemo(() => {
     const now = new Date();
     const totalMonth = monthMeetings.length;
-    const approvedMonth = monthMeetings.filter((m) => m.status === 'APPROVED' || m.status === 'FINAL').length;
-    const draftMonth = monthMeetings.filter((m) => m.status === 'DRAFT').length;
-    const reviewMonth = monthMeetings.filter((m) => m.status === 'REVIEW').length;
+    const selesaiMonth = monthMeetings.filter((m) => {
+      const p = normalizeProgressStatus((m as any).progressStatus || mapStatusToProgress(m.status));
+      return p === 'Selesai';
+    }).length;
+    const dalamProsesMonth = monthMeetings.filter((m) => {
+      const p = normalizeProgressStatus((m as any).progressStatus || mapStatusToProgress(m.status));
+      return p === 'Dalam Proses';
+    }).length;
+    const belumDimulaiMonth = monthMeetings.filter((m) => {
+      const p = normalizeProgressStatus((m as any).progressStatus || mapStatusToProgress(m.status));
+      return p === 'Belum Dimulai';
+    }).length;
 
     const totalActions = actionItems.length;
     const completedItems = actionItems.filter((a) => a.status === 'COMPLETED').length;
@@ -254,7 +264,7 @@ export function BiroDashboardClient({
         label: `KEGIATAN BULAN ${fullMonthName ? fullMonthName.toUpperCase() : 'BERJALAN'}`,
         value: totalMonth,
         unit: 'Agenda',
-        badgeText: totalMonth > 0 ? `${approvedMonth} Sah` : '0 Agenda',
+        badgeText: totalMonth > 0 ? `${selesaiMonth} Selesai` : '0 Agenda',
         badgeSubtext: `${fullMonthName || 'Biro'} ${selectedYear}`,
         variant: 'default',
         iconName: 'calendar_month',
@@ -271,10 +281,10 @@ export function BiroDashboardClient({
       },
       {
         id: 'perlu-atensi',
-        label: 'PERLU ATENSI (OVERDUE/DRAFT)',
-        value: overdueCount + draftMonth,
-        unit: 'Item',
-        badgeText: overdueCount > 0 ? `${overdueCount} Terlambat` : draftMonth > 0 ? `${draftMonth} Draft` : 'Nihil',
+        label: 'PERLU ATENSI (TERLAMBAT)',
+        value: overdueCount,
+        unit: 'Komitmen',
+        badgeText: overdueCount > 0 ? `${overdueCount} Terlambat` : dalamProsesMonth > 0 ? `${dalamProsesMonth} Dalam Proses` : 'Terkendali',
         badgeSubtext: `${biro.code} ${selectedYear}`,
         variant: overdueCount > 0 ? 'danger' : 'default',
         iconName: 'warning',
@@ -366,11 +376,16 @@ export function BiroDashboardClient({
   }, [biro.teams, initialMeetings]);
 
   const meetingStatusBreakdown = useMemo(() => {
-    return {
-      approved: initialMeetings.filter((m) => m.status === 'APPROVED' || m.status === 'FINAL').length,
-      review: initialMeetings.filter((m) => m.status === 'REVIEW').length,
-      draft: initialMeetings.filter((m) => m.status === 'DRAFT').length,
-    };
+    let selesai = 0;
+    let dalamProses = 0;
+    let belumDimulai = 0;
+    initialMeetings.forEach((m) => {
+      const prog = normalizeProgressStatus((m as any).progressStatus || mapStatusToProgress(m.status));
+      if (prog === 'Selesai') selesai++;
+      else if (prog === 'Dalam Proses') dalamProses++;
+      else belumDimulai++;
+    });
+    return { selesai, dalamProses, belumDimulai };
   }, [initialMeetings]);
 
   return (
@@ -544,7 +559,7 @@ export function BiroDashboardClient({
         />
         <BureauDistribution
           meetings={selectedMonth ? monthMeetings : yearMeetings}
-          onCategoryClick={(categoryKey) => router.push(`/semua-rapat?kategori=${categoryKey}`)}
+          onCategoryClick={(categoryKey: string) => router.push(`/semua-rapat?kategori=${categoryKey}`)}
         />
       </div>
 
