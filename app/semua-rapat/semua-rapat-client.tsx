@@ -88,41 +88,6 @@ function getInitials(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function getMemberRoleBadge(member: TeamMember) {
-  if (member.teamRole === 'PJ_UTAMA' || member.teamRole === 'PIC') {
-    return {
-      label: 'PJ Utama / PIC',
-      bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      icon: '⭐',
-    };
-  }
-  if (member.role === 'ADMIN') {
-    return {
-      label: 'Admin Tim',
-      bg: 'bg-sky-50 text-sky-800 border-sky-200',
-      icon: '🛡️',
-    };
-  }
-  if (member.role === 'SUPER_ADMIN') {
-    return {
-      label: 'Super Admin',
-      bg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-      icon: '👑',
-    };
-  }
-  if (member.role === 'PIMPINAN') {
-    return {
-      label: 'Pimpinan Biro',
-      bg: 'bg-purple-50 text-purple-800 border-purple-200',
-      icon: '🏛️',
-    };
-  }
-  return {
-    label: 'Anggota Tim',
-    bg: 'bg-slate-100 text-slate-700 border-slate-200',
-    icon: '👤',
-  };
-}
 
 function normalizeBiroCode(c?: string | null): string {
   if (!c) return '';
@@ -713,47 +678,6 @@ export function SemuaRapatClient({
     return DEFAULT_TEAMS;
   }, [availableTeams]);
 
-  // Currently selected team object
-  const currentTeamObj = useMemo(() => {
-    if (timParam) {
-      return teamsList.find((t) => t.code.toUpperCase() === timParam.toUpperCase()) || null;
-    }
-    if (effectiveLockedTeamCode) {
-      return teamsList.find((t) => t.code.toUpperCase() === effectiveLockedTeamCode.toUpperCase()) || null;
-    }
-    if (hasMultipleAssignedTeams && effectiveAllowedTeamCodes && effectiveAllowedTeamCodes.length > 0) {
-      return teamsList.find((t) => effectiveAllowedTeamCodes.includes(t.code.toUpperCase())) || null;
-    }
-    return null;
-  }, [timParam, effectiveLockedTeamCode, teamsList, hasMultipleAssignedTeams, effectiveAllowedTeamCodes]);
-
-  // Team dropdown internal navigation
-  const [teamDropdownTab, setTeamDropdownTab] = useState<'TEAMS' | 'MEMBERS'>('TEAMS');
-  const [memberSearchQuery, setMemberSearchQuery] = useState('');
-  const [previewTeamCode, setPreviewTeamCode] = useState<string | null>(null);
-
-  // When previewTeamCode changes or timParam changes, pick which team's members to display
-  const activeMembersTeam = useMemo(() => {
-    if (previewTeamCode) {
-      const found = teamsList.find((t) => t.code.toUpperCase() === previewTeamCode.toUpperCase());
-      if (found) return found;
-    }
-    if (currentTeamObj) return currentTeamObj;
-    return teamsList[0] || null;
-  }, [previewTeamCode, currentTeamObj, teamsList]);
-
-  const displayedMembers = useMemo(() => {
-    if (!activeMembersTeam) return [];
-    if (!memberSearchQuery.trim()) return activeMembersTeam.members;
-    const q = memberSearchQuery.toLowerCase();
-    return activeMembersTeam.members.filter(
-      (m) =>
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        (m.teamRole && m.teamRole.toLowerCase().includes(q)) ||
-        (m.role && m.role.toLowerCase().includes(q))
-    );
-  }, [activeMembersTeam, memberSearchQuery]);
 
   const handleSelectTeam = (val: string) => {
     if (effectiveLockedTeamCode) return;
@@ -982,7 +906,7 @@ export function SemuaRapatClient({
                       ? "bg-slate-100 border-slate-300 text-slate-900"
                       : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                 )}
-                title="Filter Tim Kerja & Lihat Anggota Tim"
+                title="Filter Tim Kerja"
               >
                 <Layers className={cn("w-3.5 h-3.5 shrink-0", timParam ? "text-[#31889C]" : "text-slate-500")} />
                 <span className="truncate max-w-[130px]">{selectedTeamLabel}</span>
@@ -1003,310 +927,94 @@ export function SemuaRapatClient({
               </button>
 
               {openDropdown === 'TIM' && (
-                <div className="absolute left-0 mt-1.5 w-[360px] sm:w-[420px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-0 z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                <div className="absolute left-0 mt-1.5 w-[300px] sm:w-[340px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-0 z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
                   {/* Dropdown Header */}
                   <div className="px-4 py-3 bg-gradient-to-r from-slate-50 via-teal-50/40 to-white border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-[#31889C]/10 border border-[#31889C]/20 text-[#31889C] flex items-center justify-center shrink-0">
-                        <Users className="w-4 h-4" />
+                        <Layers className="w-4 h-4 text-[#31889C]" />
                       </div>
                       <div>
                         <div className="text-[12.5px] font-bold text-slate-900">
-                          {isStaff && !hasMultipleAssignedTeams
-                            ? (currentTeamObj?.name || 'Tim Kerja Anda')
-                            : hasMultipleAssignedTeams
-                              ? 'Tim Kerja Anda'
-                              : 'Tim Kerja & Anggota'}
+                          Filter Tim Kerja
                         </div>
                         <div className="text-[10.5px] text-slate-500">
-                          {isStaff && !hasMultipleAssignedTeams
-                            ? 'Daftar personil & rekan tim Anda'
-                            : hasMultipleAssignedTeams
-                              ? 'Akses & anggota tim yang Anda ikuti'
-                              : 'Kelola filter & pantau personil tim'}
+                          Pilih tim kerja untuk memfilter daftar kegiatan
                         </div>
                       </div>
                     </div>
-                    {currentTeamObj && (
-                      <span className="text-[10.5px] px-2 py-0.5 rounded-full font-bold bg-[#F0F9FA] text-[#164E59] border border-[#31889C]/30 shrink-0">
-                        {currentTeamObj.members.length} Anggota
-                      </span>
-                    )}
                   </div>
 
-                  {/* Tab Selector: Pilih Tim & Anggota */}
-                  <div className="flex items-center border-b border-slate-100 bg-slate-50/70 p-1 gap-1 text-[11.5px] font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setTeamDropdownTab('TEAMS')}
-                      className={cn(
-                        "flex-1 py-1.5 px-3 rounded-lg text-center transition-all cursor-pointer",
-                        teamDropdownTab === 'TEAMS'
-                          ? "bg-white text-slate-900 shadow-2xs font-bold"
-                          : "text-slate-600 hover:text-slate-900"
-                      )}
-                    >
-                      🏢 Pilih Tim ({teamsList.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewTeamCode(timParam || (teamsList[0]?.code ?? null));
-                        setTeamDropdownTab('MEMBERS');
-                      }}
-                      className={cn(
-                        "flex-1 py-1.5 px-3 rounded-lg text-center transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                        teamDropdownTab === 'MEMBERS'
-                          ? "bg-white text-[#164E59] shadow-2xs font-bold"
-                          : "text-slate-600 hover:text-slate-900"
-                      )}
-                    >
-                      <Users className="w-3.5 h-3.5 text-[#31889C]" />
-                      <span>Daftar Anggota {activeMembersTeam ? `(${activeMembersTeam.members.length})` : ''}</span>
-                    </button>
-                  </div>
-
-                  {/* TAB 1: PILIH TIM KERJA */}
-                  {teamDropdownTab === 'TEAMS' && (
-                    <div className="p-2 max-h-[340px] overflow-y-auto divide-y divide-slate-100">
-                      {/* Opsi: Semua Tim */}
-                      <div className="pb-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleSelectTeam('ALL');
-                            setOpenDropdown(null);
-                          }}
-                          className={cn(
-                            "flex items-center justify-between w-full px-3 py-2 rounded-xl text-[12px] text-left transition-colors cursor-pointer",
-                            !timParam ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
-                          )}
-                        >
-                          <span className="flex items-center gap-2.5">
-                            <span className="w-2 h-2 rounded-full bg-slate-400" />
-                            <span>Semua Tim Kerja Biro 3</span>
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
-                              {meetingsList.length} Kegiatan
-                            </span>
-                            {!timParam && <Check className="w-4 h-4 text-[#31889C]" />}
-                          </div>
-                        </button>
-                      </div>
-
-                      {/* Daftar Tim */}
-                      <div className="pt-1.5 space-y-1">
-                        {teamsList.map((t) => {
-                          const isSelected = timParam === t.code.toUpperCase();
-                          const isMyAssignedTeam = effectiveAllowedTeamCodes?.includes(t.code.toUpperCase());
-                          const countForTeam = meetingsList.filter((m) => isMatchTeam(m, t.code)).length;
-                          return (
-                            <div
-                              key={t.code}
-                              className={cn(
-                                "flex items-center justify-between p-1.5 rounded-xl transition-all",
-                                isSelected ? "bg-[#F0F9FA] border border-[#31889C]/30" : "hover:bg-slate-50"
-                              )}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleSelectTeam(t.code);
-                                  setOpenDropdown(null);
-                                }}
-                                className="flex items-center gap-2.5 text-left flex-1 px-1.5 py-1 cursor-pointer"
-                              >
-                                <span className={cn("w-2 h-2 rounded-full shrink-0", isSelected ? "bg-[#31889C]" : "bg-slate-300")} />
-                                <div>
-                                  <div className={cn("text-[12px] flex items-center gap-1.5", isSelected ? "font-bold text-[#164E59]" : "font-medium text-slate-700")}>
-                                    <span>{t.name}</span>
-                                    {isMyAssignedTeam && (
-                                      <span className="text-[9.5px] font-semibold px-1.5 py-0.2 rounded-md bg-teal-100 text-[#164E59]">
-                                        Tim Anda
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[10px] text-slate-400">
-                                    {countForTeam} kegiatan terdaftar
-                                  </div>
-                                </div>
-                              </button>
-
-                              <div className="flex items-center gap-1.5 pr-1">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPreviewTeamCode(t.code);
-                                    setTeamDropdownTab('MEMBERS');
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-semibold bg-white border border-slate-200 text-slate-600 hover:text-[#164E59] hover:border-[#31889C] hover:bg-teal-50/50 transition-all cursor-pointer shadow-2xs"
-                                  title={`Lihat ${t.members.length} anggota di ${t.name}`}
-                                >
-                                  <Users className="w-3 h-3 text-[#31889C]" />
-                                  <span>{t.members.length} Anggota</span>
-                                </button>
-
-                                {isSelected && <Check className="w-4 h-4 text-[#31889C] ml-1" />}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 2: DAFTAR ANGGOTA TIM */}
-                  {teamDropdownTab === 'MEMBERS' && (
-                    <div className="p-3">
-                      {/* Switcher Tim */}
-                      <div className="mb-2.5 flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-1">
-                        <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
-                          Pilih Tim:
+                  {/* Daftar Tim Kerja */}
+                  <div className="p-2 max-h-[340px] overflow-y-auto divide-y divide-slate-100">
+                    {/* Opsi: Semua Tim */}
+                    <div className="pb-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectTeam('ALL');
+                          setOpenDropdown(null);
+                        }}
+                        className={cn(
+                          "flex items-center justify-between w-full px-3 py-2 rounded-xl text-[12px] text-left transition-colors cursor-pointer",
+                          !timParam ? "bg-[#F0F9FA] text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                        )}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-400" />
+                          <span>Semua Tim Kerja Biro 3</span>
                         </span>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {teamsList.map((t) => {
-                            const isViewingThis = activeMembersTeam?.code === t.code;
-                            return (
-                              <button
-                                key={t.code}
-                                type="button"
-                                onClick={() => setPreviewTeamCode(t.code)}
-                                className={cn(
-                                  "text-[10.5px] px-2 py-0.5 rounded-lg font-semibold transition-all cursor-pointer border",
-                                  isViewingThis
-                                    ? "bg-[#31889C] text-white border-[#31889C] shadow-2xs"
-                                    : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                                )}
-                              >
-                                {t.shortName || t.code}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Header Anggota Tim Terpilih */}
-                      <div className="flex items-center justify-between px-1 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                            Anggota {activeMembersTeam?.name} ({displayedMembers.length})
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                            {meetingsList.length} Kegiatan
                           </span>
+                          {!timParam && <Check className="w-4 h-4 text-[#31889C]" />}
                         </div>
-                        {activeMembersTeam && activeMembersTeam.code !== timParam && (
+                      </button>
+                    </div>
+
+                    {/* Daftar Tim */}
+                    <div className="pt-1.5 space-y-1">
+                      {teamsList.map((t) => {
+                        const isSelected = timParam === t.code.toUpperCase();
+                        const isMyAssignedTeam = effectiveAllowedTeamCodes?.includes(t.code.toUpperCase());
+                        const countForTeam = meetingsList.filter((m) => isMatchTeam(m, t.code)).length;
+                        return (
                           <button
+                            key={t.code}
                             type="button"
                             onClick={() => {
-                              handleSelectTeam(activeMembersTeam.code);
+                              handleSelectTeam(t.code);
                               setOpenDropdown(null);
                             }}
-                            className="text-[10.5px] font-bold text-[#31889C] hover:underline cursor-pointer"
+                            className={cn(
+                              "flex items-center justify-between w-full px-3 py-2 rounded-xl transition-all text-left cursor-pointer",
+                              isSelected ? "bg-[#F0F9FA] border border-[#31889C]/30 text-[#164E59] font-bold" : "hover:bg-slate-50 text-slate-700 font-medium"
+                            )}
                           >
-                            Filter Kegiatan Tim Ini
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Search box jika anggota lebih dari 3 */}
-                      {activeMembersTeam && activeMembersTeam.members.length > 3 && (
-                        <div className="relative mb-2">
-                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={memberSearchQuery}
-                            onChange={(e) => setMemberSearchQuery(e.target.value)}
-                            placeholder="Cari nama atau email anggota..."
-                            className="w-full pl-8 pr-3 py-1.5 text-[11.5px] bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#31889C]"
-                          />
-                        </div>
-                      )}
-
-                      {/* Daftar Kartu Anggota Tim */}
-                      {activeMembersTeam ? (
-                        <div className="max-h-[280px] overflow-y-auto space-y-1.5 pr-0.5">
-                          {displayedMembers.length === 0 ? (
-                            <div className="text-center py-6 text-slate-400 text-[11.5px]">
-                              Tidak ada anggota yang cocok dengan pencarian.
-                            </div>
-                          ) : (
-                            displayedMembers.map((m) => {
-                              const isCurrentUser =
-                                m.id === effectiveUserId ||
-                                (effectiveUserEmail && m.email.toLowerCase() === effectiveUserEmail.toLowerCase());
-                              const roleBadge = getMemberRoleBadge(m);
-                              return (
-                                <div
-                                  key={m.id}
-                                  className={cn(
-                                    "flex items-center justify-between p-2 rounded-xl border transition-all",
-                                    isCurrentUser
-                                      ? "bg-teal-50/60 border-teal-300 shadow-2xs ring-1 ring-[#31889C]/20"
-                                      : "bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50/60"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <div
-                                      className={cn(
-                                        "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 shadow-2xs",
-                                        getAvatarColor(m.name)
-                                      )}
-                                    >
-                                      {getInitials(m.name)}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[12px] font-bold text-slate-900 truncate">
-                                          {m.name}
-                                        </span>
-                                        {isCurrentUser && (
-                                          <span className="text-[9.5px] px-1.5 py-0.2 rounded-full bg-[#31889C] text-white font-bold shrink-0">
-                                            Anda
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="text-[10.5px] text-slate-500 truncate flex items-center gap-1">
-                                        <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                                        <span className="truncate">{m.email}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="shrink-0 pl-2">
-                                    <span
-                                      className={cn(
-                                        "inline-flex items-center gap-1 text-[9.5px] px-2 py-0.5 rounded-full font-bold border",
-                                        roleBadge.bg
-                                      )}
-                                    >
-                                      <span>{roleBadge.icon}</span>
-                                      <span>{roleBadge.label}</span>
+                            <div className="flex items-center gap-2.5">
+                              <span className={cn("w-2 h-2 rounded-full shrink-0", isSelected ? "bg-[#31889C]" : "bg-slate-300")} />
+                              <div>
+                                <div className={cn("text-[12px] flex items-center gap-1.5", isSelected ? "font-bold text-[#164E59]" : "font-medium text-slate-700")}>
+                                  <span>{t.name}</span>
+                                  {isMyAssignedTeam && (
+                                    <span className="text-[9.5px] font-semibold px-1.5 py-0.2 rounded-md bg-teal-100 text-[#164E59]">
+                                      Tim Anda
                                     </span>
-                                  </div>
+                                  )}
                                 </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-6 text-slate-400 text-[11.5px]">
-                          Pilih tim kerja terlebih dahulu untuk melihat daftar anggota.
-                        </div>
-                      )}
+                                <div className="text-[10px] text-slate-400">
+                                  {countForTeam} kegiatan terdaftar
+                                </div>
+                              </div>
+                            </div>
 
-                      {/* Footer Info */}
-                      <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between px-1">
-                        <span>Seluruh personil tim memiliki akses kolaborasi pada kegiatan tim.</span>
-                        <button
-                          type="button"
-                          onClick={() => setOpenDropdown(null)}
-                          className="font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
-                        >
-                          Tutup
-                        </button>
-                      </div>
+                            {isSelected && <Check className="w-4 h-4 text-[#31889C] ml-1" />}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1796,9 +1504,6 @@ export function SemuaRapatClient({
         )}
 
       </div>
-
-
-
       {/* Meeting Table */}
       <MeetingTable
         initialMeetings={meetingsList}
