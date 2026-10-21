@@ -685,8 +685,9 @@ export function ActionItemList({
                   </div>
                 </div>
 
-                {/* Details Footer Row */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-[12px]">
+                {/* Details Footer Container */}
+                <div className="space-y-2.5 pt-3 border-t border-slate-100 text-[12px]">
+                  {/* Top Metadata Row: Tim, PIC, Deadline, Selesai */}
                   <div className="flex flex-wrap items-center gap-4 text-slate-600">
                     {/* Tim Penanggung Jawab */}
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -745,18 +746,16 @@ export function ActionItemList({
                     )}
                   </div>
 
-                  {/* Footer Status & Aksi (Tanpa Persentase Capaian) */}
-                  <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  {/* Bottom Action & Latest Note Row */}
+                  <div className="pt-2.5 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     {/* Catatan Terbaru Bersih */}
                     <div className="flex items-center gap-2 min-w-0">
                       {(() => {
                         let noteText = item.latestLogNote || '';
                         noteText = noteText
-                          .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
-                          .replace(/📎 (?:Drive Acuan|Google Drive Acuan):\s*\S+/g, '')
-                          .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
-                          .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
-                          .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*/g, '')
+                          .replace(/📎\s*(?:Dokumen Acuan|Dokumen Terkait|Bukti Pelaksanaan|Drive Acuan|Google Drive Acuan|Drive Bukti|Tautan Google Drive):?[^\n]*/gi, '')
+                          .replace(/📝\s*(?:Catatan Capaian|Catatan Progres):?\s*/gi, '')
+                          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
                           .trim();
 
                         return noteText ? (
