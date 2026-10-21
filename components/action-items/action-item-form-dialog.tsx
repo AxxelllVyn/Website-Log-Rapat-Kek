@@ -233,9 +233,10 @@ export function ActionItemFormDialog({
     (m: any, usersToSearch: any[] = effectiveUsers) => {
       if (!m) return;
 
-      // 1. Sync title automatically to meeting title
-      if (m.title) {
-        setTitle(m.title);
+      // 1. Leave title for user to specify unless already editing
+      // Default to empty so the user writes specific task for the PIC
+      if (!isEditing && !title) {
+        setTitle('');
       }
 
       // 2. Sync team
@@ -341,20 +342,27 @@ export function ActionItemFormDialog({
       setSelectedMeetingId(actionItem.meetingId || meetingId || normalizedCurrentMeeting?.id || '');
       setTitle(actionItem.title || '');
       const rawDesc = actionItem.description || '';
-      const docMatch = rawDesc.match(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/);
+      const docMatch = rawDesc.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
       if (docMatch) {
         setUploadedDoc({ name: docMatch[1], url: docMatch[2] });
       } else {
         setUploadedDoc(null);
       }
-      const foundDrive = extractDriveLink(rawDesc);
-      if (foundDrive) {
-        setDriveLink(foundDrive);
+      const driveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Tautan Google Drive):\s*(\S+)/);
+      if (driveMatch) {
+        setDriveLink(normalizeUrl(driveMatch[1]));
       } else {
-        setDriveLink('');
+        const foundDrive = extractDriveLink(rawDesc);
+        if (foundDrive) {
+          setDriveLink(foundDrive);
+        } else {
+          setDriveLink('');
+        }
       }
       let cleaned = cleanTextWithoutLink(rawDesc);
-      cleaned = cleaned.replace(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
+      cleaned = cleaned.replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
+      cleaned = cleaned.replace(/📎 (?:Drive Acuan|Google Drive Acuan|Drive Bukti|Bukti Pelaksanaan):\s*\[?[^\]\n]+\]?\(?[^\)\n]*\)?/g, '').trim();
+      cleaned = cleaned.replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*[^\n]+/g, '').trim();
       setDescription(cleaned);
 
       setPicBiroId(actionItem.picBiroId || displayTeams[0]?.biroId || '');
@@ -451,14 +459,14 @@ export function ActionItemFormDialog({
     let finalDescription = description.trim();
     if (uploadedDoc) {
       finalDescription = finalDescription
-        ? `${finalDescription}\n\n📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`
-        : `📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`;
+        ? `${finalDescription}\n\n📎 Dokumen Acuan: [${uploadedDoc.name}](${uploadedDoc.url})`
+        : `📎 Dokumen Acuan: [${uploadedDoc.name}](${uploadedDoc.url})`;
     }
     if (driveLink.trim()) {
       const formattedLink = normalizeUrl(driveLink);
       finalDescription = finalDescription
-        ? `${finalDescription}\n\n📎 Tautan Google Drive: ${formattedLink}`
-        : `📎 Tautan Google Drive: ${formattedLink}`;
+        ? `${finalDescription}\n\n📎 Drive Acuan: ${formattedLink}`
+        : `📎 Drive Acuan: ${formattedLink}`;
     }
 
     const finalMeetingId = selectedMeetingId || meetingId;
@@ -496,12 +504,16 @@ export function ActionItemFormDialog({
       (birosList.find((b) => b.code.toUpperCase() === 'IKK')?.id) ||
       '';
 
-    const finalTitle = (
-      title.trim() ||
-      currentM?.title?.trim() ||
-      normalizedCurrentMeeting?.title?.trim() ||
-      'Tindak Lanjut Kegiatan'
-    ).slice(0, 255);
+    if (!title.trim()) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        title: 'Butir tugas tindak lanjut wajib diisi agar PIC memahami apa yang harus dikerjakan.',
+      }));
+      setErrorMessage('Butir tugas tindak lanjut wajib diisi.');
+      return;
+    }
+
+    const finalTitle = title.trim().slice(0, 255);
 
     // Zod client validation
     const rawData = {
@@ -656,23 +668,59 @@ export function ActionItemFormDialog({
               </div>
             )}
 
-            {/* 1. Nama Kegiatan (Otomatis Terhubung Kegiatan) */}
-            <div className="p-3.5 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#215865] uppercase tracking-wider flex items-center gap-1.5">
-                  <span>1. Nama Kegiatan</span>
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs">
-                  <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
-                  <span>Terhubung Otomatis</span>
-                </span>
+            {/* 1. Nama Kegiatan Sumber & 2. Butir Tindak Lanjut Tugas PIC */}
+            <div className="space-y-3">
+              {/* Agenda Kegiatan Sumber */}
+              <div className="p-3 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] font-bold text-[#215865] uppercase tracking-wider flex items-center gap-1.5">
+                    <span>1. Agenda Kegiatan Sumber</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs">
+                    <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
+                    <span>Terhubung Otomatis</span>
+                  </span>
+                </div>
+                <p className="text-[13px] font-semibold text-slate-800 leading-snug break-words">
+                  {currentMeetingObj?.title || activeTitle || '(Sesuai agenda kegiatan yang dipilih)'}
+                </p>
               </div>
-              <p className="text-[13.5px] font-bold text-slate-800 leading-snug break-words">
-                {currentMeetingObj?.title || activeTitle || '(Sesuai agenda kegiatan yang dipilih)'}
-              </p>
-              {fieldErrors.title && (
-                <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.title}</p>
-              )}
+
+              {/* Butir Tugas Tindak Lanjut yang Harus Dikerjakan PIC */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1 text-[13px] flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span>2. Butir Tindak Lanjut / Tugas PIC</span>
+                    <span className="text-red-500">*</span>
+                  </span>
+                  <span className="text-[11px] font-normal text-slate-400">Tugas spesifik yang harus diselesaikan PIC</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (fieldErrors.title) {
+                      setFieldErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.title;
+                        return next;
+                      });
+                    }
+                  }}
+                  placeholder="Contoh: Menyiapkan telaahan staf dan draft revisi nota dinas..."
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-slate-800 text-[13px] font-medium placeholder:text-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] transition-all ${
+                    fieldErrors.title ? 'border-red-400 bg-red-50/20 ring-1 ring-red-400/50' : 'border-slate-200 bg-white'
+                  }`}
+                />
+                {fieldErrors.title ? (
+                  <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.title}</p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Beri nama tugas yang jelas agar PIC pelaksana langsung memahami apa yang perlu dikerjakan.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 2. PIC Pelaksana (Tim Kerja & Pejabat) */}
@@ -686,7 +734,7 @@ export function ActionItemFormDialog({
                       <div className="flex items-center justify-between mb-1">
                         <label className="block font-bold text-slate-800 text-[13px] flex items-center gap-1.5">
                           <Layers className="w-4 h-4 text-[#31889C]" />
-                          <span>2. Tim Penanggung Jawab</span>
+                          <span>3. Tim Penanggung Jawab</span>
                           <span className="text-red-500">*</span>
                         </label>
                         {currentTeam && (
@@ -769,7 +817,7 @@ export function ActionItemFormDialog({
               <label className="block font-bold text-slate-800 mb-1 text-[13px] flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Paperclip className="w-3.5 h-3.5 text-[#31889C]" />
-                  <span>3. Dokumen Terkait <span className="text-slate-400 font-normal text-xs">(Opsional)</span></span>
+                  <span>4. Dokumen Acuan Penugasan <span className="text-slate-400 font-normal text-xs">(Bahan untuk PIC - Opsional)</span></span>
                 </span>
               </label>
               {uploadedDoc ? (
@@ -819,7 +867,7 @@ export function ActionItemFormDialog({
             <div>
               <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5 mb-1">
                 <GoogleDriveIcon className="w-3.5 h-3.5" />
-                <span>4. Link Terkait / Google Drive <span className="text-slate-400 font-normal">(Opsional)</span></span>
+                <span>5. Tautan Google Drive Acuan <span className="text-slate-400 font-normal">(Bahan untuk PIC - Opsional)</span></span>
               </label>
               <div className="relative">
                 <input
@@ -859,7 +907,7 @@ export function ActionItemFormDialog({
             {/* 5. Catatan Tindak Lanjut */}
             <div>
               <label className="block font-bold text-slate-800 mb-1 text-[13px]">
-                5. Catatan Tindak Lanjut <span className="text-slate-400 font-normal">(Opsional)</span>
+                6. Catatan / Arahan Penugasan untuk PIC <span className="text-slate-400 font-normal">(Opsional)</span>
               </label>
               <textarea
                 rows={3}
@@ -893,15 +941,25 @@ export function ActionItemFormDialog({
                 <label className="block font-bold text-slate-800 mb-1 text-[13px]">
                   Status Tindak Lanjut
                 </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
-                >
-                  <option value="PENDING">Belum Mulai</option>
-                  <option value="IN_PROGRESS">Dalam Proses</option>
-                  <option value="COMPLETED">Selesai</option>
-                </select>
+                {isEditing ? (
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
+                  >
+                    <option value="PENDING">Belum Dimulai</option>
+                    <option value="IN_PROGRESS">Dalam Proses</option>
+                    <option value="COMPLETED">Selesai</option>
+                  </select>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/90 text-amber-800 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <div className="text-[11.5px] leading-tight">
+                      <span className="font-bold block">Status Awal: Belum Dimulai</span>
+                      <span className="text-amber-700/80 text-[10.5px]">PIC akan mengupdate progres ke 'Dalam Proses' atau 'Selesai'</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

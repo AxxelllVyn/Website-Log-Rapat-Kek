@@ -927,32 +927,59 @@ export async function addActionItemLogAction(input: AddActionItemLogInput) {
     }
 
     // Merge new evidence links/docs into ActionItem.description without overwriting initial reference documents
-    let updatedDescription = existing.description;
-    const hasNewDoc = notes.includes('📎 Bukti Pelaksanaan:') || notes.includes('📎 Dokumen Terkait:');
-    const hasNewDrive = notes.includes('📎 Tautan Google Drive:');
-    if (hasNewDoc || hasNewDrive) {
-      if (!updatedDescription) {
-        updatedDescription = notes;
-      } else {
-        let baseDesc = updatedDescription;
-        if (hasNewDoc) {
-          // Remove previous Bukti Pelaksanaan only; retain initial reference document
-          baseDesc = baseDesc.replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
-          const docMatch = notes.match(/📎 (?:Bukti Pelaksanaan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
-          if (docMatch) {
-            baseDesc = `${baseDesc}\n\n📎 Bukti Pelaksanaan: [${docMatch[1]}](${docMatch[2]})`;
-          }
-        }
-        if (hasNewDrive) {
-          baseDesc = baseDesc.replace(/📎 Tautan Google Drive:\s*\S+/g, '').trim();
-          const driveMatch = notes.match(/📎 Tautan Google Drive:\s*\S+/);
-          if (driveMatch) {
-            baseDesc = `${baseDesc}\n\n${driveMatch[0]}`;
-          }
-        }
-        updatedDescription = baseDesc.trim();
-      }
+    let updatedDescription = existing.description || '';
+
+    // 1. Preserve initial reference document
+    const refDocMatch = updatedDescription.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+    // 2. Preserve initial drive reference
+    const refDriveMatch = updatedDescription.match(/📎 (?:Drive Acuan|Google Drive Acuan):\s*(\S+)/);
+
+    // 3. Extract supervisor instructions (excluding attachments and previous evidence)
+    let supervisorInstructions = updatedDescription
+      .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+      .replace(/📎 (?:Drive Acuan|Google Drive Acuan):\s*\S+/g, '')
+      .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+      .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
+      .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*[^\n]+/g, '')
+      .trim();
+
+    // 4. Extract new PIC evidence from incoming notes
+    const newDocMatch = notes.match(/📎 (?:Bukti Pelaksanaan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+    const prevDocMatch = updatedDescription.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
+    const activeDocMatch = newDocMatch || prevDocMatch;
+
+    const newDriveMatch = notes.match(/📎 (?:Drive Bukti|Tautan Google Drive):\s*(\S+)/);
+    const prevDriveMatch = updatedDescription.match(/📎 (?:Drive Bukti|Tautan Google Drive):\s*(\S+)/);
+    const activeDriveMatch = newDriveMatch || prevDriveMatch;
+
+    // 5. Extract clean text notes from PIC
+    let cleanPicNotes = notes
+      .replace(/📎 (?:Bukti Pelaksanaan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+      .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
+      .trim();
+
+    // 6. Build clean combined description:
+    const descParts: string[] = [];
+    if (supervisorInstructions) {
+      descParts.push(supervisorInstructions);
     }
+    if (refDocMatch) {
+      descParts.push(`📎 Dokumen Acuan: [${refDocMatch[1]}](${refDocMatch[2]})`);
+    }
+    if (refDriveMatch) {
+      descParts.push(`📎 Drive Acuan: ${refDriveMatch[1]}`);
+    }
+    if (activeDocMatch) {
+      descParts.push(`📎 Bukti Pelaksanaan: [${activeDocMatch[1]}](${activeDocMatch[2]})`);
+    }
+    if (activeDriveMatch && (!refDriveMatch || activeDriveMatch[1] !== refDriveMatch[1])) {
+      descParts.push(`📎 Drive Bukti: ${activeDriveMatch[1]}`);
+    }
+    if (cleanPicNotes && cleanPicNotes !== supervisorInstructions) {
+      descParts.push(`📝 Catatan Capaian: ${cleanPicNotes}`);
+    }
+
+    updatedDescription = descParts.join('\n\n');
 
     // Update the action item
     const updatedItem = await prisma.actionItem.update({

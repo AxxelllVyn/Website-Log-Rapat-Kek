@@ -19,7 +19,6 @@ import {
   Paperclip,
   Check,
   AlertCircle,
-  History,
   FileText,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
@@ -39,7 +38,6 @@ interface ActionItemUpdateProgressDialogProps {
   onClose: () => void;
   onItemUpdated?: (updatedItem: any) => void;
   onSuccess?: (updatedItem: any) => void;
-  onOpenAuditTrail?: (item: ActionItem) => void;
   defaultStatus?: ActionItemStatus;
   defaultProgress?: number;
 }
@@ -50,7 +48,6 @@ export function ActionItemUpdateProgressDialog({
   onClose,
   onItemUpdated,
   onSuccess,
-  onOpenAuditTrail,
   defaultStatus,
   defaultProgress,
 }: ActionItemUpdateProgressDialogProps) {
@@ -61,6 +58,7 @@ export function ActionItemUpdateProgressDialog({
     name: string;
     url: string;
   } | null>(null);
+  const [initialDriveAcuan, setInitialDriveAcuan] = useState<string | null>(null);
   const [initialInstructions, setInitialInstructions] = useState<string>('');
   const [uploadedDoc, setUploadedDoc] = useState<{
     url: string;
@@ -87,7 +85,17 @@ export function ActionItemUpdateProgressDialog({
         setInitialReferenceDoc(null);
       }
 
-      // 2. Bukti Pelaksanaan Hasil PIC (jika sebelumnya sudah pernah upload bukti)
+      // 2. Link Google Drive Acuan Awal dari Atasan (Tampil di bahan acuan, bukan di input bukti PIC)
+      const refDriveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan):\s*(\S+)/);
+      let foundDriveAcuan: string | null = null;
+      if (refDriveMatch) {
+        foundDriveAcuan = normalizeUrl(refDriveMatch[1]);
+        setInitialDriveAcuan(foundDriveAcuan);
+      } else {
+        setInitialDriveAcuan(null);
+      }
+
+      // 3. Bukti Pelaksanaan Hasil PIC (jika sebelumnya sudah pernah upload bukti)
       const evidenceMatch = rawDesc.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
       if (evidenceMatch) {
         setUploadedDoc({ name: evidenceMatch[1], url: evidenceMatch[2] });
@@ -95,18 +103,21 @@ export function ActionItemUpdateProgressDialog({
         setUploadedDoc(null);
       }
 
-      // 3. Catatan Arahan Awal Bersih
+      // 4. Catatan Arahan Awal Bersih
       let cleanDesc = cleanTextWithoutLink(rawDesc);
       cleanDesc = cleanDesc
         .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+        .replace(/📎 (?:Drive Acuan|Google Drive Acuan):\s*\S+/g, '')
         .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+        .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
+        .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*[^\n]+/g, '')
         .trim();
       setInitialInstructions(cleanDesc);
 
-      // 4. Link Drive Bukti
-      const foundDrive = extractDriveLink(rawDesc);
-      if (foundDrive) {
-        setDriveLink(foundDrive);
+      // 5. Link Drive Bukti PIC (Hanya jika berlabel bukti atau bukan link acuan atasan)
+      const driveBuktiMatch = rawDesc.match(/📎 (?:Drive Bukti|Tautan Google Drive):\s*(\S+)/);
+      if (driveBuktiMatch && (!foundDriveAcuan || normalizeUrl(driveBuktiMatch[1]) !== foundDriveAcuan)) {
+        setDriveLink(normalizeUrl(driveBuktiMatch[1]));
       } else {
         setDriveLink('');
       }
@@ -148,26 +159,19 @@ export function ActionItemUpdateProgressDialog({
     setValidationError(null);
 
     const cleanNotes = notes.trim();
-    if (!cleanNotes && status === 'COMPLETED') {
-      setValidationError('Silakan isi ringkasan catatan penyelesaian sebelum menandai Selesai.');
-      return;
-    }
+    const effectiveNotes = cleanNotes || (status === 'COMPLETED' ? 'Pekerjaan telah diselesaikan oleh PIC.' : 'Pembaruan progres pelaksanaan tugas.');
 
     try {
       setIsSubmitting(true);
 
       // Build consolidated log notes & evidence links
-      let fullNotes = cleanNotes;
+      let fullNotes = effectiveNotes;
       if (uploadedDoc) {
-        fullNotes = fullNotes
-          ? `${fullNotes}\n\n📎 Bukti Pelaksanaan: [${uploadedDoc.name}](${uploadedDoc.url})`
-          : `📎 Bukti Pelaksanaan: [${uploadedDoc.name}](${uploadedDoc.url})`;
+        fullNotes = `${fullNotes}\n\n📎 Bukti Pelaksanaan: [${uploadedDoc.name}](${uploadedDoc.url})`;
       }
       if (driveLink.trim()) {
         const normalized = normalizeUrl(driveLink.trim());
-        fullNotes = fullNotes
-          ? `${fullNotes}\n\n📎 Tautan Google Drive: ${normalized}`
-          : `📎 Tautan Google Drive: ${normalized}`;
+        fullNotes = `${fullNotes}\n\n📎 Drive Bukti: ${normalized}`;
       }
 
       const res = await addActionItemLogAction({
@@ -228,21 +232,6 @@ export function ActionItemUpdateProgressDialog({
           </div>
 
           <div className="flex items-center gap-2">
-            {onOpenAuditTrail && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenAuditTrail(item);
-                }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer border border-slate-200 shadow-2xs"
-                title="Buka Riwayat Log Aktivitas Lengkap"
-              >
-                <History className="w-3.5 h-3.5 text-slate-500" />
-                <span>Riwayat Log</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={onClose}
@@ -298,33 +287,51 @@ export function ActionItemUpdateProgressDialog({
                 </span>
               </div>
 
-              {/* Arahan & Dokumen Acuan Penugasan Awal (Bahan Tugas PIC) */}
-              {(initialReferenceDoc || initialInstructions) && (
-                <div className="mt-2 pt-2 border-t border-[#BCE3EB]/60 bg-white/80 p-2.5 rounded-lg space-y-1.5 text-xs">
-                  <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1 uppercase tracking-wider">
-                    <FileText className="w-3.5 h-3.5 text-[#31889C]" />
-                    <span>Arahan &amp; Dokumen Acuan Penugasan:</span>
-                  </span>
+              {/* Arahan & Dokumen Acuan Penugasan Awal (Bahan Tugas PIC dari Atasan) */}
+              {(initialReferenceDoc || initialInstructions || initialDriveAcuan) && (
+                <div className="mt-2.5 pt-2.5 border-t border-[#BCE3EB]/80 bg-white/90 p-3 rounded-xl space-y-2 text-xs border border-slate-200/90 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#215865] flex items-center gap-1.5 uppercase tracking-wider">
+                      <FileText className="w-3.5 h-3.5 text-[#31889C]" />
+                      <span>Arahan &amp; Dokumen Acuan dari Atasan:</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-[#1E6B7B] bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
+                      Bahan Tugas PIC
+                    </span>
+                  </div>
                   {initialInstructions && (
-                    <p className="text-slate-600 text-[11.5px] italic leading-relaxed">
+                    <p className="text-slate-700 text-[12px] bg-slate-50 p-2.5 rounded-lg border border-slate-200/70 leading-relaxed font-normal">
                       "{initialInstructions}"
                     </p>
                   )}
-                  {initialReferenceDoc && (
-                    <div className="pt-0.5">
+                  <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                    {initialReferenceDoc && (
                       <a
                         href={initialReferenceDoc.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F0F9FA] hover:bg-[#E0F2F5] text-[#215865] border border-[#BCE3EB] text-[11px] font-bold transition-colors shadow-2xs"
-                        title="Buka berkas acuan penugasan"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F0F9FA] hover:bg-[#E0F2F5] text-[#215865] border border-[#BCE3EB] text-[11.5px] font-bold transition-colors shadow-2xs"
+                        title="Buka berkas acuan penugasan dari atasan"
                       >
-                        <Paperclip className="w-3 h-3 text-[#31889C]" />
+                        <Paperclip className="w-3.5 h-3.5 text-[#31889C]" />
                         <span>Dokumen Acuan: {initialReferenceDoc.name}</span>
                         <ExternalLink className="w-3 h-3 text-[#31889C]" />
                       </a>
-                    </div>
-                  )}
+                    )}
+                    {initialDriveAcuan && (
+                      <a
+                        href={initialDriveAcuan}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[11.5px] font-bold transition-colors shadow-2xs"
+                        title="Buka folder/tautan Google Drive bahan acuan atasan"
+                      >
+                        <GoogleDriveIcon className="w-3.5 h-3.5" />
+                        <span>Google Drive Acuan Atasan</span>
+                        <ExternalLink className="w-3 h-3 text-amber-600" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
