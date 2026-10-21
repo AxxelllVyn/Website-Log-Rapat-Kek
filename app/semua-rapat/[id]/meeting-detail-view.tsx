@@ -196,18 +196,27 @@ export function MeetingDetailView({
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const currentTeamCode = session?.user?.teamCode;
-  const currentTeamId = session?.user?.teamId;
 
-  // Cek kepemilikan tim kegiatan: Staf hanya dapat mengelola kegiatan timnya sendiri
+  // Cek kepemilikan tim kegiatan: Staf dan pengguna tim lain hanya memiliki akses lihat saja (read-only)
+  const isSuperAdmin = userRole === 'SUPER_ADMIN';
+  const userAssignedList = (session?.user as any)?.assignedTeams || [];
+  const userTeamCodes = [
+    ...(session?.user?.teamCode ? [session.user.teamCode.toUpperCase()] : []),
+    ...userAssignedList.map((t: any) => (t.code || '').toUpperCase()),
+  ].filter(Boolean);
+  const userTeamIds = [
+    ...(session?.user?.teamId ? [session.user.teamId] : []),
+    ...userAssignedList.map((t: any) => t.id || ''),
+  ].filter(Boolean);
+
   const isMyTeam =
-    !currentTeamCode ||
-    meeting.primaryTeam?.code?.toUpperCase() === currentTeamCode.toUpperCase() ||
-    meeting.primaryTeamId === currentTeamId ||
-    meeting.meetingNumber?.toUpperCase().startsWith(`${currentTeamCode.toUpperCase()}-`);
+    isSuperAdmin ||
+    (userTeamCodes.length > 0 &&
+      (userTeamCodes.includes((meeting.primaryTeam?.code || '').toUpperCase()) ||
+        userTeamCodes.some((tc) => meeting.meetingNumber?.toUpperCase().startsWith(`${tc}-`)))) ||
+    (userTeamIds.length > 0 && userTeamIds.includes(meeting.primaryTeamId || ''));
 
-  const isCrossTeamStaff = userRole === 'STAFF' && !isMyTeam;
-  const isEffectiveReadOnly = Boolean(isReadOnly || isCrossTeamStaff);
+  const isEffectiveReadOnly = Boolean(isReadOnly || !isMyTeam);
 
   const canEditMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF');
   const canDeleteMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');

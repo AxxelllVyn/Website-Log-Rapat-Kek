@@ -51,10 +51,12 @@ export async function uploadMeetingAttachmentAction(formData: FormData): Promise
     }
 
     if (currentUser.role === 'STAFF') {
-      const isSameTeam =
-        !currentUser.teamId ||
-        !meeting.primaryTeamId ||
-        meeting.primaryTeamId === currentUser.teamId;
+      const userAssignedList = currentUser.assignedTeams || [];
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...userAssignedList.map((t: any) => t.id).filter(Boolean),
+      ];
+      const isSameTeam = Boolean(meeting.primaryTeamId && userTeamIds.includes(meeting.primaryTeamId));
       if (!isSameTeam) {
         return {
           success: false,
@@ -272,10 +274,12 @@ export async function deleteMeetingAttachmentAction(
     }
 
     if (currentUser.role === 'STAFF') {
-      const isSameTeam =
-        !currentUser.teamId ||
-        !meeting.primaryTeamId ||
-        meeting.primaryTeamId === currentUser.teamId;
+      const userAssignedList = currentUser.assignedTeams || [];
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...userAssignedList.map((t: any) => t.id).filter(Boolean),
+      ];
+      const isSameTeam = Boolean(meeting.primaryTeamId && userTeamIds.includes(meeting.primaryTeamId));
       if (!isSameTeam) {
         return {
           success: false,

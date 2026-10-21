@@ -66,15 +66,30 @@ export default async function MeetingDetailPage({ params, searchParams }: Meetin
     }
   }
 
-  // Team Access Control: Staf dapat melihat kegiatan tim lain dalam mode hanya lihat (read-only)
-  const isOtherTeam =
-    currentUser?.role === 'STAFF' &&
-    currentUser?.teamCode &&
-    !(
-      meeting.primaryTeam?.code?.toUpperCase() === currentUser.teamCode.toUpperCase() ||
-      meeting.primaryTeamId === currentUser.teamId ||
-      meeting.meetingNumber?.toUpperCase().startsWith(`${currentUser.teamCode.toUpperCase()}-`)
-    );
+  // Team Access Control: Pengguna tim lain hanya dapat melihat (read-only)
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  const userAssignedList = currentUser?.assignedTeams || [];
+  const userTeamCodes = Array.from(
+    new Set([
+      ...(currentUser?.teamCode ? [currentUser.teamCode.toUpperCase()] : []),
+      ...userAssignedList.map((t: any) => (t.code || '').toUpperCase()),
+    ])
+  ).filter(Boolean);
+  const userTeamIds = Array.from(
+    new Set([
+      ...(currentUser?.teamId ? [currentUser.teamId] : []),
+      ...userAssignedList.map((t: any) => t.id || ''),
+    ])
+  ).filter(Boolean);
+
+  const isUserTeam =
+    isSuperAdmin ||
+    (userTeamCodes.length > 0 &&
+      (userTeamCodes.includes((meeting.primaryTeam?.code || '').toUpperCase()) ||
+        userTeamCodes.some((tc) => meeting.meetingNumber?.toUpperCase().startsWith(`${tc}-`)))) ||
+    (userTeamIds.length > 0 && userTeamIds.includes(meeting.primaryTeamId || ''));
+
+  const isReadOnly = !isUserTeam;
 
   return (
     <MeetingDetailView
@@ -82,7 +97,7 @@ export default async function MeetingDetailPage({ params, searchParams }: Meetin
       availableBiros={biros}
       availableUsers={users}
       initialTab={resolvedSearchParams.tab}
-      isReadOnly={Boolean(isOtherTeam)}
+      isReadOnly={Boolean(isReadOnly)}
     />
   );
 }

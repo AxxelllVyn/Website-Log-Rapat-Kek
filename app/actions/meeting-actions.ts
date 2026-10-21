@@ -508,7 +508,12 @@ export async function updateMeetingStatusAction(
         };
       }
 
-      if (currentUser.teamId && existing.primaryTeamId && existing.primaryTeamId !== currentUser.teamId) {
+      const userAssignedList = currentUser.assignedTeams || [];
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...userAssignedList.map((t: any) => t.id).filter(Boolean),
+      ];
+      if (existing.primaryTeamId && userTeamIds.length > 0 && !userTeamIds.includes(existing.primaryTeamId)) {
         return {
           success: false,
           error: 'Anda tidak memiliki hak akses untuk mengubah status kegiatan milik tim kerja lain.',
@@ -719,10 +724,12 @@ export async function updateMeetingOutputAction(input: UpdateMeetingOutputInput)
     }
 
     if (currentUser.role === 'STAFF') {
-      const isSameTeam =
-        !currentUser.teamId ||
-        !existing.primaryTeamId ||
-        existing.primaryTeamId === currentUser.teamId;
+      const userAssignedList = currentUser.assignedTeams || [];
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...userAssignedList.map((t: any) => t.id).filter(Boolean),
+      ];
+      const isSameTeam = Boolean(existing.primaryTeamId && userTeamIds.includes(existing.primaryTeamId));
       if (!isSameTeam) {
         return {
           success: false,
@@ -892,10 +899,12 @@ export async function updateMeetingCategoryAction(
     }
 
     if (currentUser.role === 'STAFF') {
-      const isSameTeam =
-        !currentUser.teamId ||
-        !existingMeeting.primaryTeamId ||
-        existingMeeting.primaryTeamId === currentUser.teamId;
+      const userAssignedList = currentUser.assignedTeams || [];
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...userAssignedList.map((t: any) => t.id).filter(Boolean),
+      ];
+      const isSameTeam = Boolean(existingMeeting.primaryTeamId && userTeamIds.includes(existingMeeting.primaryTeamId));
       if (!isSameTeam) {
         return {
           success: false,
@@ -1206,10 +1215,12 @@ export async function deleteMeetingAction(meetingId: string) {
     }
 
     if (currentUser.role === 'STAFF') {
-      const isSameTeam =
-        !currentUser.teamId ||
-        !meeting.primaryTeamId ||
-        meeting.primaryTeamId === currentUser.teamId;
+      const userAssignedList = currentUser.assignedTeams || [];
+      const userTeamIds = [
+        ...(currentUser.teamId ? [currentUser.teamId] : []),
+        ...userAssignedList.map((t: any) => t.id).filter(Boolean),
+      ];
+      const isSameTeam = Boolean(meeting.primaryTeamId && userTeamIds.includes(meeting.primaryTeamId));
       if (!isSameTeam) {
         return {
           success: false,

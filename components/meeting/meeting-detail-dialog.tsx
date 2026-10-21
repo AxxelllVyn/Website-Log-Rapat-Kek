@@ -56,15 +56,25 @@ export function MeetingDetailDialog({
   const currentTeamCode = session?.user?.teamCode;
   const currentTeamId = session?.user?.teamId;
 
-  // Cek kepemilikan tim rapat: staf hanya dapat mengedit/menghapus rapat miliknya sendiri
-  const isMyTeam =
-    !currentTeamCode ||
-    meeting?.primaryTeamCode?.toUpperCase() === currentTeamCode.toUpperCase() ||
-    meeting?.primaryTeamId === currentTeamId ||
-    meeting?.code?.toUpperCase().startsWith(`${currentTeamCode.toUpperCase()}-`);
+  // Cek kepemilikan tim rapat: periksa seluruh kode dan ID tim yang dimiliki pengguna
+  const userAssignedList = (session?.user as any)?.assignedTeams || [];
+  const userTeamCodes = [
+    ...(session?.user?.teamCode ? [session.user.teamCode.toUpperCase()] : []),
+    ...userAssignedList.map((t: any) => (t.code || '').toUpperCase()),
+  ].filter(Boolean);
+  const userTeamIds = [
+    ...(session?.user?.teamId ? [session.user.teamId] : []),
+    ...userAssignedList.map((t: any) => t.id || ''),
+  ].filter(Boolean);
 
-  const isCrossTeamStaff = userRole === 'STAFF' && !isMyTeam;
-  const isEffectiveReadOnly = isCrossTeamStaff;
+  const isMyTeam =
+    userRole === 'SUPER_ADMIN' ||
+    (userTeamCodes.length > 0 &&
+      (userTeamCodes.includes((meeting?.primaryTeamCode || '').toUpperCase()) ||
+        userTeamCodes.some((tc) => meeting?.code?.toUpperCase().startsWith(`${tc}-`)))) ||
+    (userTeamIds.length > 0 && userTeamIds.includes(meeting?.primaryTeamId || ''));
+
+  const isEffectiveReadOnly = !isMyTeam;
 
   const canDeleteMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
   const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';

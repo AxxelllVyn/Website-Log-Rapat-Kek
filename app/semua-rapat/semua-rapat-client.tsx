@@ -249,10 +249,13 @@ export function SemuaRapatClient({
   }, [meetingsList]);
 
   const isMatchTeam = (m: Meeting, code: string) => {
-    const c = code.toUpperCase();
+    const c = code.toUpperCase().trim();
     if (c === 'ALL' || c === 'IKK' || c === 'BIRO-IKK') return true;
     if (m.primaryTeamCode?.toUpperCase() === c) return true;
+    if (m.primaryTeamId?.toUpperCase() === c) return true;
     if (m.primaryTeamId?.toUpperCase().includes(c)) return true;
+    if (m.code?.toUpperCase().startsWith(`${c}-`)) return true;
+    if (m.primaryTeamName && m.primaryTeamName.toUpperCase().includes(c)) return true;
     if (c === 'INV' && (m.primaryTeamName?.toLowerCase().includes('investasi') || m.primaryTeamCode === 'TIM-001' || m.primaryTeamId === 'TIM-001')) return true;
     if (c === 'KS' && (m.primaryTeamName?.toLowerCase().includes('kerja sama') || m.primaryTeamName?.toLowerCase().includes('kerjasama') || m.primaryTeamCode === 'TIM-003' || m.primaryTeamId === 'TIM-003')) return true;
     if (c === 'KOM' && (m.primaryTeamName?.toLowerCase().includes('komunikasi') || m.primaryTeamCode === 'TIM-002' || m.primaryTeamId === 'TIM-002')) return true;
@@ -725,9 +728,7 @@ export function SemuaRapatClient({
   }, [timParam, effectiveLockedTeamCode, teamsList, hasMultipleAssignedTeams, effectiveAllowedTeamCodes]);
 
   // Team dropdown internal navigation
-  const [teamDropdownTab, setTeamDropdownTab] = useState<'TEAMS' | 'MEMBERS'>(
-    isStaff && !hasMultipleAssignedTeams ? 'MEMBERS' : 'TEAMS'
-  );
+  const [teamDropdownTab, setTeamDropdownTab] = useState<'TEAMS' | 'MEMBERS'>('TEAMS');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [previewTeamCode, setPreviewTeamCode] = useState<string | null>(null);
 
@@ -972,9 +973,6 @@ export function SemuaRapatClient({
                 type="button"
                 onClick={() => {
                   setOpenDropdown(openDropdown === 'TIM' ? null : 'TIM');
-                  if (isStaff && !hasMultipleAssignedTeams) {
-                    setTeamDropdownTab('MEMBERS');
-                  }
                 }}
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all cursor-pointer border select-none",
@@ -1036,42 +1034,40 @@ export function SemuaRapatClient({
                     )}
                   </div>
 
-                  {/* Tab Selector (Untuk Pimpinan, Admin, & Staf yang masuk banyak tim) */}
-                  {(!isStaff || hasMultipleAssignedTeams) && (
-                    <div className="flex items-center border-b border-slate-100 bg-slate-50/70 p-1 gap-1 text-[11.5px] font-semibold">
-                      <button
-                        type="button"
-                        onClick={() => setTeamDropdownTab('TEAMS')}
-                        className={cn(
-                          "flex-1 py-1.5 px-3 rounded-lg text-center transition-all cursor-pointer",
-                          teamDropdownTab === 'TEAMS'
-                            ? "bg-white text-slate-900 shadow-2xs font-bold"
-                            : "text-slate-600 hover:text-slate-900"
-                        )}
-                      >
-                        🏢 {hasMultipleAssignedTeams ? `Pilih Tim Anda (${effectiveAllowedTeamCodes?.length})` : `Pilih Tim (${teamsList.length})`}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewTeamCode(timParam || (teamsList[0]?.code ?? null));
-                          setTeamDropdownTab('MEMBERS');
-                        }}
-                        className={cn(
-                          "flex-1 py-1.5 px-3 rounded-lg text-center transition-all cursor-pointer flex items-center justify-center gap-1.5",
-                          teamDropdownTab === 'MEMBERS'
-                            ? "bg-white text-[#164E59] shadow-2xs font-bold"
-                            : "text-slate-600 hover:text-slate-900"
-                        )}
-                      >
-                        <Users className="w-3.5 h-3.5 text-[#31889C]" />
-                        <span>Daftar Anggota {activeMembersTeam ? `(${activeMembersTeam.members.length})` : ''}</span>
-                      </button>
-                    </div>
-                  )}
+                  {/* Tab Selector: Pilih Tim & Anggota */}
+                  <div className="flex items-center border-b border-slate-100 bg-slate-50/70 p-1 gap-1 text-[11.5px] font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setTeamDropdownTab('TEAMS')}
+                      className={cn(
+                        "flex-1 py-1.5 px-3 rounded-lg text-center transition-all cursor-pointer",
+                        teamDropdownTab === 'TEAMS'
+                          ? "bg-white text-slate-900 shadow-2xs font-bold"
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      🏢 Pilih Tim ({teamsList.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewTeamCode(timParam || (teamsList[0]?.code ?? null));
+                        setTeamDropdownTab('MEMBERS');
+                      }}
+                      className={cn(
+                        "flex-1 py-1.5 px-3 rounded-lg text-center transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                        teamDropdownTab === 'MEMBERS'
+                          ? "bg-white text-[#164E59] shadow-2xs font-bold"
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <Users className="w-3.5 h-3.5 text-[#31889C]" />
+                      <span>Daftar Anggota {activeMembersTeam ? `(${activeMembersTeam.members.length})` : ''}</span>
+                    </button>
+                  </div>
 
                   {/* TAB 1: PILIH TIM KERJA */}
-                  {(!isStaff || hasMultipleAssignedTeams) && teamDropdownTab === 'TEAMS' && (
+                  {teamDropdownTab === 'TEAMS' && (
                     <div className="p-2 max-h-[340px] overflow-y-auto divide-y divide-slate-100">
                       {/* Opsi: Semua Tim */}
                       <div className="pb-1.5">
@@ -1088,13 +1084,11 @@ export function SemuaRapatClient({
                         >
                           <span className="flex items-center gap-2.5">
                             <span className="w-2 h-2 rounded-full bg-slate-400" />
-                            <span>{hasMultipleAssignedTeams ? 'Semua Tim Saya' : 'Semua Tim Kerja Biro 3'}</span>
+                            <span>Semua Tim Kerja Biro 3</span>
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
-                              {hasMultipleAssignedTeams && effectiveAllowedTeamCodes
-                                ? meetingsList.filter((m) => effectiveAllowedTeamCodes.some((c) => isMatchTeam(m, c))).length
-                                : meetingsList.length} Kegiatan
+                              {meetingsList.length} Kegiatan
                             </span>
                             {!timParam && <Check className="w-4 h-4 text-[#31889C]" />}
                           </div>
@@ -1103,11 +1097,9 @@ export function SemuaRapatClient({
 
                       {/* Daftar Tim */}
                       <div className="pt-1.5 space-y-1">
-                        {(isStaff && effectiveAllowedTeamCodes
-                          ? teamsList.filter((t) => effectiveAllowedTeamCodes.includes(t.code.toUpperCase()))
-                          : teamsList
-                        ).map((t) => {
+                        {teamsList.map((t) => {
                           const isSelected = timParam === t.code.toUpperCase();
+                          const isMyAssignedTeam = effectiveAllowedTeamCodes?.includes(t.code.toUpperCase());
                           const countForTeam = meetingsList.filter((m) => isMatchTeam(m, t.code)).length;
                           return (
                             <div
@@ -1127,8 +1119,13 @@ export function SemuaRapatClient({
                               >
                                 <span className={cn("w-2 h-2 rounded-full shrink-0", isSelected ? "bg-[#31889C]" : "bg-slate-300")} />
                                 <div>
-                                  <div className={cn("text-[12px]", isSelected ? "font-bold text-[#164E59]" : "font-medium text-slate-700")}>
-                                    {t.name}
+                                  <div className={cn("text-[12px] flex items-center gap-1.5", isSelected ? "font-bold text-[#164E59]" : "font-medium text-slate-700")}>
+                                    <span>{t.name}</span>
+                                    {isMyAssignedTeam && (
+                                      <span className="text-[9.5px] font-semibold px-1.5 py-0.2 rounded-md bg-teal-100 text-[#164E59]">
+                                        Tim Anda
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-[10px] text-slate-400">
                                     {countForTeam} kegiatan terdaftar
@@ -1160,40 +1157,35 @@ export function SemuaRapatClient({
                     </div>
                   )}
 
-                  {/* TAB 2: DAFTAR ANGGOTA TIM (Tampil Otomatis untuk Staf Single Tim & Tab Anggota untuk Admin/Multi-Tim) */}
-                  {((isStaff && !hasMultipleAssignedTeams) || teamDropdownTab === 'MEMBERS') && (
+                  {/* TAB 2: DAFTAR ANGGOTA TIM */}
+                  {teamDropdownTab === 'MEMBERS' && (
                     <div className="p-3">
-                      {/* Switcher Tim jika Admin / Pimpinan / Multi-team Staf melihat anggota tim lain */}
-                      {(!isStaff || hasMultipleAssignedTeams) && (
-                        <div className="mb-2.5 flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-1">
-                          <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
-                            {hasMultipleAssignedTeams ? 'Pilih Tim Anda:' : 'Pilih Tim:'}
-                          </span>
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {(isStaff && effectiveAllowedTeamCodes
-                              ? teamsList.filter((t) => effectiveAllowedTeamCodes.includes(t.code.toUpperCase()))
-                              : teamsList
-                            ).map((t) => {
-                              const isViewingThis = activeMembersTeam?.code === t.code;
-                              return (
-                                <button
-                                  key={t.code}
-                                  type="button"
-                                  onClick={() => setPreviewTeamCode(t.code)}
-                                  className={cn(
-                                    "text-[10.5px] px-2 py-0.5 rounded-lg font-semibold transition-all cursor-pointer border",
-                                    isViewingThis
-                                      ? "bg-[#31889C] text-white border-[#31889C] shadow-2xs"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                                  )}
-                                >
-                                  {t.shortName || t.code}
-                                </button>
-                              );
-                            })}
-                          </div>
+                      {/* Switcher Tim */}
+                      <div className="mb-2.5 flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-1">
+                        <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
+                          Pilih Tim:
+                        </span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {teamsList.map((t) => {
+                            const isViewingThis = activeMembersTeam?.code === t.code;
+                            return (
+                              <button
+                                key={t.code}
+                                type="button"
+                                onClick={() => setPreviewTeamCode(t.code)}
+                                className={cn(
+                                  "text-[10.5px] px-2 py-0.5 rounded-lg font-semibold transition-all cursor-pointer border",
+                                  isViewingThis
+                                    ? "bg-[#31889C] text-white border-[#31889C] shadow-2xs"
+                                    : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                )}
+                              >
+                                {t.shortName || t.code}
+                              </button>
+                            );
+                          })}
                         </div>
-                      )}
+                      </div>
 
                       {/* Header Anggota Tim Terpilih */}
                       <div className="flex items-center justify-between px-1 mb-2">
@@ -1202,7 +1194,7 @@ export function SemuaRapatClient({
                             Anggota {activeMembersTeam?.name} ({displayedMembers.length})
                           </span>
                         </div>
-                        {activeMembersTeam && activeMembersTeam.code !== timParam && (!isStaff || hasMultipleAssignedTeams) && (
+                        {activeMembersTeam && activeMembersTeam.code !== timParam && (
                           <button
                             type="button"
                             onClick={() => {
