@@ -183,14 +183,8 @@ export function SemuaRapatClient({
 
   const hasMultipleAssignedTeams = isStaff && (effectiveAllowedTeamCodes?.length ?? 0) > 1;
 
-  // Only lock if user is strictly bound to a single team and does not have multiple teams
-  const effectiveLockedTeamCode = hasMultipleAssignedTeams
-    ? undefined
-    : lockedTeamCode || (isStaff && session?.user?.teamCode && (effectiveAllowedTeamCodes?.length ?? 0) <= 1 ? session.user.teamCode : undefined);
-
-  const effectiveLockedTeamName = hasMultipleAssignedTeams
-    ? undefined
-    : lockedTeamName || (isStaff && session?.user?.teamName && (effectiveAllowedTeamCodes?.length ?? 0) <= 1 ? session.user.teamName : undefined);
+  const effectiveLockedTeamCode = lockedTeamCode;
+  const effectiveLockedTeamName = lockedTeamName;
 
   const birosList = availableBiros && availableBiros.length > 0 ? availableBiros : BIRO_LIST;
 
@@ -267,19 +261,16 @@ export function SemuaRapatClient({
     return false;
   };
 
-  // Meetings filtered by the selected Tim (Investasi, Kerja Sama, Komunikasi)
+  // Meetings filtered by the selected Tim (Investasi, Kerja Sama, Komunikasi, dll)
   const teamFilteredMeetings = useMemo(() => {
     if (effectiveLockedTeamCode) {
       return meetingsList.filter((m) => isMatchTeam(m, effectiveLockedTeamCode));
     }
     if (!timParam) {
-      if (isStaff && effectiveAllowedTeamCodes && effectiveAllowedTeamCodes.length > 0) {
-        return meetingsList.filter((m) => effectiveAllowedTeamCodes.some((code) => isMatchTeam(m, code)));
-      }
       return meetingsList;
     }
     return meetingsList.filter((m) => isMatchTeam(m, timParam));
-  }, [meetingsList, timParam, effectiveLockedTeamCode, isStaff, effectiveAllowedTeamCodes]);
+  }, [meetingsList, timParam, effectiveLockedTeamCode]);
 
   // Meetings filtered by Tim AND Date/Month/Day/Year AND Search Filter AND Category
   const fullyFilteredMeetings = useMemo(() => {

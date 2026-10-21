@@ -143,13 +143,8 @@ export function DashboardClient({
     setMeetingsList(initialMeetings.filter((m) => !deletedIds.has(m.id)));
   }, [initialMeetings, deletedIds]);
 
-  // Koleksi rapat yang relevan: untuk staf hanya ambil rapat milik tim mereka
-  const relevantMeetings = useMemo(() => {
-    if (isStaff && effectiveTeamCode) {
-      return meetingsList.filter((m) => isMatchTeam(m, effectiveTeamCode));
-    }
-    return meetingsList;
-  }, [meetingsList, isStaff, effectiveTeamCode]);
+  // Koleksi rapat yang relevan: seluruh kegiatan dapat dilihat oleh semua staf dan tim kerja
+  const relevantMeetings = meetingsList;
 
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -476,13 +471,11 @@ function computeDonutMetrics(
         onScheduleMeeting={() => router.push('/buat-rapat')}
       />
 
-      {/* 3. Executive 3 Tim Kerja KEK (Investasi, Kerja Sama, Komunikasi) - Hanya Super Admin, Admin, Pimpinan (bukan Staf) */}
-      {!isStaff && (
-        <TeamWorkloadGrid
-          teams={sanitizedTeamWorkload}
-          onTeamClick={handleOpenTeamModal}
-        />
-      )}
+      {/* 3. Executive Tim Kerja KEK (Investasi, Kerja Sama, Komunikasi, dll) - Tampil untuk Semua Tim Kerja */}
+      <TeamWorkloadGrid
+        teams={sanitizedTeamWorkload}
+        onTeamClick={handleOpenTeamModal}
+      />
 
       {/* 4. Analytics Grid (Monthly Trend + Status Donut + Tim Distribution) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

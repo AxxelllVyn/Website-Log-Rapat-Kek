@@ -76,6 +76,7 @@ export function Sidebar({
 
   const rapatSubItems = [
     { name: 'Arsip Kegiatan', href: '/semua-rapat' },
+    { name: 'Matriks Tindak Lanjut', href: '/tindak-lanjut' },
     ...(isSuperAdmin || isAdmin || userRole === 'STAFF'
       ? [{ name: '+ Catat Kegiatan Baru', href: '/buat-rapat' }]
       : []),
@@ -285,14 +286,8 @@ export function Sidebar({
                           }
                         }
 
-                        return allTeams.filter((tim) => {
-                          if (userRole === 'STAFF') {
-                            if (userAssignedCodes.length > 0) {
-                              return userAssignedCodes.includes(tim.code.toUpperCase());
-                            }
-                          }
-                          return true;
-                        });
+                        // Seluruh tim kerja dapat dilihat oleh semua pengguna
+                        return allTeams;
                       })().map((tim) => (
                         <Link
                           key={tim.code}
