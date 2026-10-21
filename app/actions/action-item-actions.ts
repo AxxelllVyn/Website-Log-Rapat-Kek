@@ -926,9 +926,9 @@ export async function addActionItemLogAction(input: AddActionItemLogInput) {
       completedAt = null;
     }
 
-    // Merge new evidence links/docs into ActionItem.description if present
+    // Merge new evidence links/docs into ActionItem.description without overwriting initial reference documents
     let updatedDescription = existing.description;
-    const hasNewDoc = notes.includes('📎 Dokumen Terkait:');
+    const hasNewDoc = notes.includes('📎 Bukti Pelaksanaan:') || notes.includes('📎 Dokumen Terkait:');
     const hasNewDrive = notes.includes('📎 Tautan Google Drive:');
     if (hasNewDoc || hasNewDrive) {
       if (!updatedDescription) {
@@ -936,10 +936,11 @@ export async function addActionItemLogAction(input: AddActionItemLogInput) {
       } else {
         let baseDesc = updatedDescription;
         if (hasNewDoc) {
-          baseDesc = baseDesc.replace(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
-          const docMatch = notes.match(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/);
+          // Remove previous Bukti Pelaksanaan only; retain initial reference document
+          baseDesc = baseDesc.replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
+          const docMatch = notes.match(/📎 (?:Bukti Pelaksanaan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
           if (docMatch) {
-            baseDesc = `${baseDesc}\n\n${docMatch[0]}`;
+            baseDesc = `${baseDesc}\n\n📎 Bukti Pelaksanaan: [${docMatch[1]}](${docMatch[2]})`;
           }
         }
         if (hasNewDrive) {

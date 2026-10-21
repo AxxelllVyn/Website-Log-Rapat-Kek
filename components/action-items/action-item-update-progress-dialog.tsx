@@ -20,6 +20,7 @@ import {
   Check,
   AlertCircle,
   History,
+  FileText,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
 import {
@@ -56,6 +57,11 @@ export function ActionItemUpdateProgressDialog({
   const [status, setStatus] = useState<ActionItemStatus>('PENDING');
   const [notes, setNotes] = useState('');
   const [driveLink, setDriveLink] = useState('');
+  const [initialReferenceDoc, setInitialReferenceDoc] = useState<{
+    name: string;
+    url: string;
+  } | null>(null);
+  const [initialInstructions, setInitialInstructions] = useState<string>('');
   const [uploadedDoc, setUploadedDoc] = useState<{
     url: string;
     name: string;
@@ -71,15 +77,33 @@ export function ActionItemUpdateProgressDialog({
       setStatus(defaultStatus || item.status || 'PENDING');
       setNotes('');
 
-      // Pre-populate existing drive link and doc if present in description
       const rawDesc = item.description || '';
-      const docMatch = rawDesc.match(/📎 Dokumen Terkait:\s*\[([^\]]+)\]\(([^)]+)\)/);
-      if (docMatch) {
-        setUploadedDoc({ name: docMatch[1], url: docMatch[2] });
+
+      // 1. Dokumen Acuan Penugasan Awal (Tidak akan ditimpa)
+      const refMatch = rawDesc.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+      if (refMatch) {
+        setInitialReferenceDoc({ name: refMatch[1], url: refMatch[2] });
+      } else {
+        setInitialReferenceDoc(null);
+      }
+
+      // 2. Bukti Pelaksanaan Hasil PIC (jika sebelumnya sudah pernah upload bukti)
+      const evidenceMatch = rawDesc.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
+      if (evidenceMatch) {
+        setUploadedDoc({ name: evidenceMatch[1], url: evidenceMatch[2] });
       } else {
         setUploadedDoc(null);
       }
 
+      // 3. Catatan Arahan Awal Bersih
+      let cleanDesc = cleanTextWithoutLink(rawDesc);
+      cleanDesc = cleanDesc
+        .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+        .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+        .trim();
+      setInitialInstructions(cleanDesc);
+
+      // 4. Link Drive Bukti
       const foundDrive = extractDriveLink(rawDesc);
       if (foundDrive) {
         setDriveLink(foundDrive);
@@ -136,8 +160,8 @@ export function ActionItemUpdateProgressDialog({
       let fullNotes = cleanNotes;
       if (uploadedDoc) {
         fullNotes = fullNotes
-          ? `${fullNotes}\n\n📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`
-          : `📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`;
+          ? `${fullNotes}\n\n📎 Bukti Pelaksanaan: [${uploadedDoc.name}](${uploadedDoc.url})`
+          : `📎 Bukti Pelaksanaan: [${uploadedDoc.name}](${uploadedDoc.url})`;
       }
       if (driveLink.trim()) {
         const normalized = normalizeUrl(driveLink.trim());
@@ -273,6 +297,36 @@ export function ActionItemUpdateProgressDialog({
                   Tenggat: {new Date(item.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
+
+              {/* Arahan & Dokumen Acuan Penugasan Awal (Bahan Tugas PIC) */}
+              {(initialReferenceDoc || initialInstructions) && (
+                <div className="mt-2 pt-2 border-t border-[#BCE3EB]/60 bg-white/80 p-2.5 rounded-lg space-y-1.5 text-xs">
+                  <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1 uppercase tracking-wider">
+                    <FileText className="w-3.5 h-3.5 text-[#31889C]" />
+                    <span>Arahan &amp; Dokumen Acuan Penugasan:</span>
+                  </span>
+                  {initialInstructions && (
+                    <p className="text-slate-600 text-[11.5px] italic leading-relaxed">
+                      "{initialInstructions}"
+                    </p>
+                  )}
+                  {initialReferenceDoc && (
+                    <div className="pt-0.5">
+                      <a
+                        href={initialReferenceDoc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F0F9FA] hover:bg-[#E0F2F5] text-[#215865] border border-[#BCE3EB] text-[11px] font-bold transition-colors shadow-2xs"
+                        title="Buka berkas acuan penugasan"
+                      >
+                        <Paperclip className="w-3 h-3 text-[#31889C]" />
+                        <span>Dokumen Acuan: {initialReferenceDoc.name}</span>
+                        <ExternalLink className="w-3 h-3 text-[#31889C]" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 1. Status Tindak Lanjut: 3 Elegant Interactive Cards */}
@@ -403,11 +457,16 @@ export function ActionItemUpdateProgressDialog({
               <div className="flex items-center justify-between">
                 <label className="font-bold text-slate-800 text-[13px] flex items-center gap-1.5">
                   <Paperclip className="w-4 h-4 text-[#31889C]" />
-                  <span>3. Bukti Tindak Lanjut</span>
+                  <span>3. Bukti Pelaksanaan Hasil PIC</span>
                   <span className="text-slate-400 font-normal text-xs">(Opsional)</span>
                 </label>
-                <span className="text-[11px] text-slate-400">Berkas / Google Drive</span>
+                <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                  Tidak Menimpa Berkas Acuan
+                </span>
               </div>
+              <p className="text-[11.5px] text-slate-500">
+                Unggah file hasil kerja PIC atau masukkan tautan Google Drive sebagai bukti pengerjaan (dokumen acuan penugasan awal tetap aman tersimpan).
+              </p>
 
               {/* Unggah Dokumen Bukti */}
               <div>

@@ -21,6 +21,8 @@ import {
   Filter,
   X,
   Layers,
+  Paperclip,
+  ExternalLink,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
@@ -515,13 +517,20 @@ export function ActionItemList({
                     {(() => {
                       const parsed = parsePicDeliverableDescription(item.description);
                       const rawNotes = parsed.notes || item.description || '';
+                      const refDocMatch = rawNotes.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+                      const evidenceDocMatch = rawNotes.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
+
                       const allUrls = Array.from(new Set([
                         ...(parsed.links ? parsed.links.map((l) => l.url) : []),
                         ...(parsed.linkUrl ? [parsed.linkUrl] : []),
                         ...(parsed.fileUrl ? [parsed.fileUrl] : []),
                         ...extractAllLinks(rawNotes),
                       ]));
-                      const cleanDesc = cleanTextWithoutLink(rawNotes);
+                      let cleanDesc = cleanTextWithoutLink(rawNotes);
+                      cleanDesc = cleanDesc
+                        .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+                        .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+                        .trim();
 
                       return (
                         <div className="space-y-1.5 pt-0.5">
@@ -530,18 +539,42 @@ export function ActionItemList({
                               <RenderTextWithLinks text={cleanDesc} />
                             </p>
                           ) : null}
-                          {allUrls.length > 0 ? (
-                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                              {allUrls.map((url, idx) => (
-                                <GoogleDriveLinkCard
-                                  key={url + idx}
-                                  url={url}
-                                  label={allUrls.length > 1 ? `Buka Link Luaran ${idx + 1}` : (parsed.linkTitle || 'Buka Link Bukti Luaran')}
-                                  variant="badge"
-                                />
-                              ))}
-                            </div>
-                          ) : null}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            {refDocMatch && (
+                              <a
+                                href={refDocMatch[2]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors shadow-2xs"
+                                title={`Dokumen Acuan Penugasan: ${refDocMatch[1]}`}
+                              >
+                                <Paperclip className="w-3 h-3 text-[#31889C]" />
+                                <span className="truncate max-w-[150px]">Acuan: {refDocMatch[1]}</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                              </a>
+                            )}
+                            {evidenceDocMatch && (
+                              <a
+                                href={evidenceDocMatch[2]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors shadow-2xs"
+                                title={`Bukti Hasil Pelaksanaan: ${evidenceDocMatch[1]}`}
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span className="truncate max-w-[150px]">Bukti: {evidenceDocMatch[1]}</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-emerald-600" />
+                              </a>
+                            )}
+                            {allUrls.map((url, idx) => (
+                              <GoogleDriveLinkCard
+                                key={url + idx}
+                                url={url}
+                                label={allUrls.length > 1 ? `Buka Link Luaran ${idx + 1}` : (parsed.linkTitle || 'Buka Link Bukti Luaran')}
+                                variant="badge"
+                              />
+                            ))}
+                          </div>
                         </div>
                       );
                     })()}

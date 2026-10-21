@@ -29,6 +29,7 @@ import {
   X,
   MoreVertical,
   Download,
+  Paperclip,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
@@ -1116,11 +1117,18 @@ export function ActionItemMatrixView({
                               // fallback
                             }
                           }
+                          const refDocMatch = rawDesc.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+                          const evidenceDocMatch = rawDesc.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
+
                           const allUrls = extractAllLinks(rawDesc);
                           if (explicitLink && !allUrls.includes(explicitLink)) {
                             allUrls.unshift(explicitLink);
                           }
-                          const cleanDesc = allUrls.length > 0 ? cleanTextWithoutLink(rawDesc) : rawDesc;
+                          let cleanDesc = cleanTextWithoutLink(rawDesc);
+                          cleanDesc = cleanDesc
+                            .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+                            .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+                            .trim();
 
                           return (
                             <div className="space-y-1 mt-0.5">
@@ -1129,8 +1137,34 @@ export function ActionItemMatrixView({
                                   <RenderTextWithLinks text={cleanDesc} />
                                 </p>
                               ) : null}
-                              {(allUrls.length > 0 || explicitFile) ? (
+                              {(allUrls.length > 0 || explicitFile || refDocMatch || evidenceDocMatch) ? (
                                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                  {refDocMatch && (
+                                    <a
+                                      href={refDocMatch[2]}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors shadow-2xs"
+                                      title={`Dokumen Acuan Penugasan: ${refDocMatch[1]}`}
+                                    >
+                                      <Paperclip className="w-3 h-3 text-[#31889C]" />
+                                      <span className="truncate max-w-[120px]">Acuan: {refDocMatch[1]}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                                    </a>
+                                  )}
+                                  {evidenceDocMatch && (
+                                    <a
+                                      href={evidenceDocMatch[2]}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors shadow-2xs"
+                                      title={`Bukti Pelaksanaan PIC: ${evidenceDocMatch[1]}`}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      <span className="truncate max-w-[120px]">Bukti: {evidenceDocMatch[1]}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-emerald-600" />
+                                    </a>
+                                  )}
                                   {allUrls.map((url, idx) => (
                                     <GoogleDriveLinkCard
                                       key={url + idx}
