@@ -68,6 +68,20 @@ export async function upsertMeetingMinutesAction(input: MeetingMinutesInput) {
       };
     }
 
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !meeting.primaryTeamId ||
+        meeting.primaryTeamId === currentUser.teamId;
+
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat mengelola notula/nota dinas untuk kegiatan tim kerja Anda sendiri.',
+        };
+      }
+    }
+
     // Merge docType and notaDinas into conclusion JSON payload if provided
     let finalConclusion = conclusion;
     if (docType || notaDinas) {

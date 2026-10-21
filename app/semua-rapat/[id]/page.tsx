@@ -66,18 +66,15 @@ export default async function MeetingDetailPage({ params, searchParams }: Meetin
     }
   }
 
-  // Team Access Control: Staff can only view meetings of their own work team
-  if (currentUser?.role === 'STAFF' && currentUser?.teamCode) {
-    const userTeam = currentUser.teamCode.toUpperCase();
-    const isSameTeam =
-      meeting.primaryTeam?.code?.toUpperCase() === userTeam ||
+  // Team Access Control: Staf dapat melihat kegiatan tim lain dalam mode hanya lihat (read-only)
+  const isOtherTeam =
+    currentUser?.role === 'STAFF' &&
+    currentUser?.teamCode &&
+    !(
+      meeting.primaryTeam?.code?.toUpperCase() === currentUser.teamCode.toUpperCase() ||
       meeting.primaryTeamId === currentUser.teamId ||
-      meeting.meetingNumber?.toUpperCase().startsWith(`${userTeam}-`);
-
-    if (!isSameTeam) {
-      redirect('/semua-rapat?denied=true');
-    }
-  }
+      meeting.meetingNumber?.toUpperCase().startsWith(`${currentUser.teamCode.toUpperCase()}-`)
+    );
 
   return (
     <MeetingDetailView
@@ -85,6 +82,7 @@ export default async function MeetingDetailPage({ params, searchParams }: Meetin
       availableBiros={biros}
       availableUsers={users}
       initialTab={resolvedSearchParams.tab}
+      isReadOnly={Boolean(isOtherTeam)}
     />
   );
 }

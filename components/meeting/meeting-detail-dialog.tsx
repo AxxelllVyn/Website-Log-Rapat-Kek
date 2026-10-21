@@ -53,15 +53,28 @@ export function MeetingDetailDialog({
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN' || userRole === 'STAFF';
+  const currentTeamCode = session?.user?.teamCode;
+  const currentTeamId = session?.user?.teamId;
+
+  // Cek kepemilikan tim rapat: staf hanya dapat mengedit/menghapus rapat miliknya sendiri
+  const isMyTeam =
+    !currentTeamCode ||
+    meeting?.primaryTeamCode?.toUpperCase() === currentTeamCode.toUpperCase() ||
+    meeting?.primaryTeamId === currentTeamId ||
+    meeting?.code?.toUpperCase().startsWith(`${currentTeamCode.toUpperCase()}-`);
+
+  const isCrossTeamStaff = userRole === 'STAFF' && !isMyTeam;
+  const isEffectiveReadOnly = isCrossTeamStaff;
+
+  const canDeleteMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroCode &&
       meeting?.biroCode &&
       session.user.biroCode.toUpperCase() === meeting.biroCode.toUpperCase());
-  const canChangeStatus = isPrivileged;
-  const canApprove = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
+  const canChangeStatus = !isEffectiveReadOnly && (isPrivileged || (userRole === 'STAFF' && isMyTeam));
+  const canApprove = !isEffectiveReadOnly && isPrivileged;
 
   const [activeTab, setActiveTab] = useState<'info' | 'minutes' | 'actionItems'>('info');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -384,6 +397,12 @@ export function MeetingDetailDialog({
               </span>
             )}
 
+            {isEffectiveReadOnly && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200">
+                <span>Hanya Lihat</span>
+              </span>
+            )}
+
             <Link
               href={`/semua-rapat/${meeting.id}`}
               onClick={onClose}
@@ -694,7 +713,12 @@ export function MeetingDetailDialog({
           {/* TAB 2: NOTULEN & HASIL KEGIATAN */}
           {activeTab === 'minutes' && (
             <div className="pt-1">
-              <MeetingMinutesSection meetingId={meeting.id} meeting={meeting} />
+              <MeetingMinutesSection
+                meetingId={meeting.id}
+                meeting={meeting}
+                canEdit={!isEffectiveReadOnly}
+                readOnly={isEffectiveReadOnly}
+              />
             </div>
           )}
 
@@ -710,6 +734,7 @@ export function MeetingDetailDialog({
                   initialItems={actionItems}
                   availableBiros={availableBiros}
                   availableUsers={availableUsers}
+                  readOnly={isEffectiveReadOnly}
                 />
               )}
             </div>

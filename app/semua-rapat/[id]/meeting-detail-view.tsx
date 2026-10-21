@@ -100,6 +100,7 @@ interface MeetingDetailViewProps {
   availableBiros?: any[];
   availableUsers?: any[];
   initialTab?: string;
+  isReadOnly?: boolean;
 }
 
 type TabType = 'overview' | 'minutes' | 'actionItems';
@@ -190,22 +191,38 @@ export function MeetingDetailView({
   availableBiros = [],
   availableUsers = [],
   initialTab,
+  isReadOnly = false,
 }: MeetingDetailViewProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canEditMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
+  const currentTeamCode = session?.user?.teamCode;
+  const currentTeamId = session?.user?.teamId;
+
+  // Cek kepemilikan tim kegiatan: Staf hanya dapat mengelola kegiatan timnya sendiri
+  const isMyTeam =
+    !currentTeamCode ||
+    meeting.primaryTeam?.code?.toUpperCase() === currentTeamCode.toUpperCase() ||
+    meeting.primaryTeamId === currentTeamId ||
+    meeting.meetingNumber?.toUpperCase().startsWith(`${currentTeamCode.toUpperCase()}-`);
+
+  const isCrossTeamStaff = userRole === 'STAFF' && !isMyTeam;
+  const isEffectiveReadOnly = Boolean(isReadOnly || isCrossTeamStaff);
+
+  const canEditMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF');
+  const canDeleteMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
   const canManageParticipants =
-    userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'PIMPINAN';
-  const canEditMinutes = canManageParticipants;
+    !isEffectiveReadOnly &&
+    (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF' || userRole === 'PIMPINAN');
+  const canEditMinutes = !isEffectiveReadOnly && canManageParticipants;
   const canCreateActionItem =
-    userRole === 'SUPER_ADMIN' ||
-    userRole === 'ADMIN' ||
-    userRole === 'STAFF';
+    !isEffectiveReadOnly &&
+    (userRole === 'SUPER_ADMIN' ||
+      userRole === 'ADMIN' ||
+      userRole === 'STAFF');
 
   // Biro ownership check for status updates & staff permissions
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN' || userRole === 'STAFF';
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroId && session.user.biroId === meeting.primaryBiroId) ||
@@ -213,8 +230,8 @@ export function MeetingDetailView({
       meeting.primaryBiro?.code &&
       session.user.biroCode.toUpperCase() === meeting.primaryBiro.code.toUpperCase());
 
-  const canChangeStatus = isPrivileged;
-  const canApprove = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
+  const canChangeStatus = !isEffectiveReadOnly && (isPrivileged || (userRole === 'STAFF' && isMyTeam));
+  const canApprove = !isEffectiveReadOnly && isPrivileged;
 
   const initialResolvedTab: TabType = initialTab === 'history'
     ? 'minutes'
@@ -929,7 +946,7 @@ export function MeetingDetailView({
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Tombol Mulai Kegiatan (Otomatis ubah status ke Dalam Proses) */}
-          {currentProgress === 'Belum Dimulai' && (
+          {currentProgress === 'Belum Dimulai' && !isEffectiveReadOnly && (
             <button
               type="button"
               disabled={isUpdatingStatus}
@@ -966,7 +983,7 @@ export function MeetingDetailView({
 
           {/* Status Selesai / Disetujui Badge */}
           {currentProgress === 'Selesai' && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[12px] font-bold shadow-2xs">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[12px] font-bold shadow-2xs">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>Hasil Kegiatan Disetujui (Selesai)</span>
             </div>
@@ -978,7 +995,7 @@ export function MeetingDetailView({
               type="button"
               disabled={isDeleting}
               onClick={handleDelete}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-[12px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-[12px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
               title="Hapus Kegiatan dari Database"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -987,6 +1004,28 @@ export function MeetingDetailView({
           )}
         </div>
       </div>
+
+      {/* Banner Mode Lihat Saja (Tim Kerja Lain) */}
+      {isEffectiveReadOnly && (
+        <div className="bg-sky-50/90 border border-sky-200 rounded-2xl px-5 py-3.5 flex items-center justify-between gap-3 text-sky-950 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold shrink-0">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-sky-900">
+                Mode Pratinjau (Lihat Saja)
+              </p>
+              <p className="text-[12px] text-sky-700">
+                Anda dapat melihat seluruh rincian kegiatan, notula, materi, dan tindak lanjut milik {meeting.primaryTeam?.name || 'tim kerja lain'} tanpa hak untuk mengubah atau menghapus.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11.5px] font-bold px-3 py-1 bg-white border border-sky-200 rounded-lg text-sky-700 shadow-2xs shrink-0">
+            Hanya Lihat
+          </span>
+        </div>
+      )}
 
       {/* Main Header Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
@@ -1911,6 +1950,8 @@ export function MeetingDetailView({
               isApproved={currentProgress === 'Selesai'}
               canApprove={canApprove}
               isApproving={isUpdatingStatus}
+              canEdit={canEditMinutes}
+              readOnly={isEffectiveReadOnly}
             />
           )}
 
@@ -1919,6 +1960,8 @@ export function MeetingDetailView({
               meetingId={meeting.id}
               meetingTitle={meeting.title}
               initialAttachments={meeting.attachments || []}
+              canManage={!isEffectiveReadOnly}
+              readOnly={isEffectiveReadOnly}
             />
           )}
 
@@ -1937,6 +1980,7 @@ export function MeetingDetailView({
             initialItems={meeting.actionItems || []}
             availableBiros={availableBiros}
             availableUsers={availableUsers}
+            readOnly={isEffectiveReadOnly}
           />
         </div>
       )}

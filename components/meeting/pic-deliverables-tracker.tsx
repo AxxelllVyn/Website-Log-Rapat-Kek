@@ -137,7 +137,7 @@ export function PicDeliverablesTracker({
         </div>
 
         <div className="flex items-center gap-2.5 self-start md:self-auto shrink-0 flex-wrap">
-          {totalCount === 0 && participants.length > 0 && (
+          {totalCount === 0 && participants.length > 0 && canEdit && (
             <button
               type="button"
               onClick={handleInitialize}
@@ -277,7 +277,7 @@ export function PicDeliverablesTracker({
                 currentUserRole === 'SUPER_ADMIN' ||
                 currentUserRole === 'ADMIN' ||
                 currentUserRole === 'PIMPINAN';
-              const canUserUpdate = isPicOwner || isPrivileged || canEdit;
+              const canUserUpdate = (isPicOwner || isPrivileged) && canEdit;
 
               const isLogExpanded = !!expandedLogs[item.id];
 

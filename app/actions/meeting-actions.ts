@@ -507,6 +507,13 @@ export async function updateMeetingStatusAction(
           error: 'Anda hanya dapat memperbarui status rapat biro Anda sendiri.',
         };
       }
+
+      if (currentUser.teamId && existing.primaryTeamId && existing.primaryTeamId !== currentUser.teamId) {
+        return {
+          success: false,
+          error: 'Anda tidak memiliki hak akses untuk mengubah status kegiatan milik tim kerja lain.',
+        };
+      }
     }
 
     // Determine target MeetingStatus and target progressStatus ('Belum Dimulai' | 'Dalam Proses' | 'Selesai')
@@ -700,7 +707,7 @@ export interface UpdateMeetingOutputInput {
  */
 export async function updateMeetingOutputAction(input: UpdateMeetingOutputInput) {
   try {
-    await requireAuth();
+    const currentUser = await requireAuth();
 
     const existing = await prisma.meeting.findUnique({
       where: { id: input.meetingId },
@@ -709,6 +716,19 @@ export async function updateMeetingOutputAction(input: UpdateMeetingOutputInput)
 
     if (!existing) {
       return { success: false, error: 'Kegiatan tidak ditemukan.' };
+    }
+
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !existing.primaryTeamId ||
+        existing.primaryTeamId === currentUser.teamId;
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat mengisi hasil kegiatan untuk tim kerja Anda sendiri.',
+        };
+      }
     }
 
     const updateData: any = {};
@@ -781,6 +801,19 @@ export async function updateMeetingNumberAction(meetingId: string, newMeetingNum
         success: false,
         error: 'Anda hanya dapat memperbarui nomor rapat biro Anda sendiri.',
       };
+    }
+
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !existingMeeting.primaryTeamId ||
+        existingMeeting.primaryTeamId === currentUser.teamId;
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat memperbarui nomor surat kegiatan tim kerja Anda sendiri.',
+        };
+      }
     }
 
     const trimmed = newMeetingNumber.trim();
@@ -856,6 +889,19 @@ export async function updateMeetingCategoryAction(
         success: false,
         error: 'Anda hanya dapat memperbarui kategori rapat biro Anda sendiri.',
       };
+    }
+
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !existingMeeting.primaryTeamId ||
+        existingMeeting.primaryTeamId === currentUser.teamId;
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat memperbarui kategori kegiatan tim kerja Anda sendiri.',
+        };
+      }
     }
 
     const resolvedCategory = data.category || data.documentCategory || 'UNDANGAN_INTERNAL';
@@ -1157,6 +1203,19 @@ export async function deleteMeetingAction(meetingId: string) {
         success: false,
         error: 'Anda hanya dapat menghapus rapat milik biro Anda sendiri.',
       };
+    }
+
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !meeting.primaryTeamId ||
+        meeting.primaryTeamId === currentUser.teamId;
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda tidak memiliki hak akses untuk menghapus kegiatan milik tim kerja lain.',
+        };
+      }
     }
 
     // 1. Explicitly delete child relations for maximum reliability across database drivers

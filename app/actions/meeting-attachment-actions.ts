@@ -42,6 +42,27 @@ export async function uploadMeetingAttachmentAction(formData: FormData): Promise
       return { success: false, error: 'ID Rapat tidak ditemukan.' };
     }
 
+    const meeting = await prisma.meeting.findUnique({
+      where: { id: meetingId },
+      select: { primaryTeamId: true, primaryBiroId: true },
+    });
+    if (!meeting) {
+      return { success: false, error: 'Kegiatan tidak ditemukan.' };
+    }
+
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !meeting.primaryTeamId ||
+        meeting.primaryTeamId === currentUser.teamId;
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda hanya dapat mengunggah berkas untuk kegiatan tim kerja Anda sendiri.',
+        };
+      }
+    }
+
     if (!file) {
       return { success: false, error: 'Tidak ada berkas yang dipilih.' };
     }
@@ -240,6 +261,27 @@ export async function deleteMeetingAttachmentAction(
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return { success: false, error: 'Sesi tidak valid. Silakan login terlebih dahulu.' };
+    }
+
+    const meeting = await prisma.meeting.findUnique({
+      where: { id: meetingId },
+      select: { primaryTeamId: true, primaryBiroId: true },
+    });
+    if (!meeting) {
+      return { success: false, error: 'Kegiatan tidak ditemukan.' };
+    }
+
+    if (currentUser.role === 'STAFF') {
+      const isSameTeam =
+        !currentUser.teamId ||
+        !meeting.primaryTeamId ||
+        meeting.primaryTeamId === currentUser.teamId;
+      if (!isSameTeam) {
+        return {
+          success: false,
+          error: 'Anda tidak memiliki hak akses untuk menghapus berkas kegiatan milik tim kerja lain.',
+        };
+      }
     }
 
     if (attachmentId === 'INVITATION_DOC') {
