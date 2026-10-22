@@ -967,31 +967,15 @@ export function MeetingDetailView({
         </Link>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Status Jadwal Otomatis / Opsi Mulai Lebih Awal */}
+          {/* Status Jadwal Otomatis */}
           {currentProgress === 'Belum Dimulai' && !isEffectiveReadOnly && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-[12px] font-semibold"
-                title="Kegiatan akan otomatis dimulai saat tanggal pelaksanaan tiba tanpa perlu aktivasi manual"
-              >
-                <Clock className="w-3.5 h-3.5 text-sky-600" />
-                <span>Otomatis Mulai {formattedDate}</span>
-              </span>
-              <button
-                type="button"
-                disabled={isUpdatingStatus}
-                onClick={handleStartMeeting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#31889C] text-slate-700 hover:text-white border border-slate-200 text-[12px] font-medium transition-all shadow-2xs cursor-pointer disabled:opacity-50"
-                title="Mulai Lebih Awal (jika kegiatan dimajukan)"
-              >
-                {isUpdatingStatus ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                )}
-                <span>Mulai Sekarang</span>
-              </button>
-            </div>
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-[12px] font-semibold shadow-2xs"
+              title="Kegiatan akan otomatis dimulai saat tanggal pelaksanaan tiba tanpa perlu aktivasi manual"
+            >
+              <Clock className="w-3.5 h-3.5 text-sky-600" />
+              <span>Otomatis Mulai {formattedDate}</span>
+            </span>
           )}
 
           {/* Tombol Setujui Hasil Kegiatan (Admin & Pimpinan: Otomatis ubah status ke Selesai) */}

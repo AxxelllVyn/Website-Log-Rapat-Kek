@@ -1157,31 +1157,13 @@ export function MeetingTable({
                               : meeting.date;
 
                             return (
-                              <div className="flex items-center gap-1.5 justify-end">
-                                <span
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200/80 text-[11px] font-semibold whitespace-nowrap shrink-0 shadow-2xs"
-                                  title={`Kegiatan terjadwal otomatis mulai pada tanggal pelaksanaan (${meeting.date}) tanpa perlu aktivasi manual.`}
-                                >
-                                  <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                                  <span>Otomatis Mulai {formattedSchedule}</span>
-                                </span>
-                                {canUpdateStatus && (
-                                  <button
-                                    type="button"
-                                    disabled={isUpdatingThis}
-                                    onClick={() => handleStartMeeting(meeting)}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-[#31889C] text-slate-600 hover:text-white border border-slate-200 text-[10.5px] font-medium cursor-pointer transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
-                                    title="Mulai Lebih Awal (jika kegiatan dimajukan)"
-                                  >
-                                    {isUpdatingThis ? (
-                                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                                    ) : (
-                                      <Play className="w-2.5 h-2.5 fill-current" />
-                                    )}
-                                    <span>Mulai Sekarang</span>
-                                  </button>
-                                )}
-                              </div>
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200/80 text-[11px] font-semibold whitespace-nowrap shrink-0 shadow-2xs"
+                                title={`Kegiatan terjadwal otomatis mulai pada tanggal pelaksanaan (${meeting.date}) tanpa perlu aktivasi manual.`}
+                              >
+                                <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                <span>Otomatis Mulai {formattedSchedule}</span>
+                              </span>
                             );
                           }
 

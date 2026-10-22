@@ -363,33 +363,15 @@ export function MeetingDetailDialog({
               </button>
             )}
 
-            {/* Quick Action: Status Terjadwal / Mulai Kegiatan */}
+            {/* Quick Action: Status Terjadwal */}
             {isBelumDimulai && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-semibold"
-                  title="Kegiatan otomatis mulai saat tanggal pelaksanaan tiba"
-                >
-                  <Clock className="w-3 h-3 text-sky-600 shrink-0" />
-                  <span>Otomatis Mulai {meeting?.date}</span>
-                </span>
-                {canChangeStatus && (
-                  <button
-                    type="button"
-                    disabled={isUpdatingStatus}
-                    onClick={handleStartMeeting}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-700 bg-slate-100 hover:bg-[#31889C] hover:text-white border border-slate-200 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
-                    title="Mulai Lebih Awal (jika kegiatan dimajukan)"
-                  >
-                    {isUpdatingStatus ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Play className="w-3 h-3 fill-current" />
-                    )}
-                    <span>Mulai Sekarang</span>
-                  </button>
-                )}
-              </div>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-semibold"
+                title="Kegiatan otomatis mulai saat tanggal pelaksanaan tiba tanpa perlu aktivasi manual"
+              >
+                <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span>Otomatis Mulai {meeting?.date}</span>
+              </span>
             )}
 
             {currentProg === 'Dalam Proses' && canApprove && (
