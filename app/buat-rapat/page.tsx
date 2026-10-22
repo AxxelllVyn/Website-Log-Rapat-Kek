@@ -63,8 +63,6 @@ interface AvailableUser {
   }>;
 }
 
-<<<<<<< HEAD
-=======
 export const KATEGORI_KEGIATAN_OPTIONS = [
   { value: 'NASKAH_MASUK', label: 'Naskah Masuk', desc: 'Surat dinas atau naskah masuk dari kementerian/lembaga/pihak eksternal' },
   { value: 'DISPOSISI_SEKJEN', label: 'Disposisi Sekjen', desc: 'Arahan dan disposisi resmi Sekretaris Jenderal Dewan Nasional KEK' },
@@ -72,7 +70,6 @@ export const KATEGORI_KEGIATAN_OPTIONS = [
   { value: 'KEGIATAN_INTERNAL', label: 'Kegiatan Internal', desc: 'Rapat koordinasi internal, pembahasan teknis, atau agenda tim kerja' },
   { value: 'LAPORAN_RUTIN', label: 'Laporan Rutin', desc: 'Laporan berkala atau rekapitulasi capaian mingguan/bulanan' },
 ];
->>>>>>> Kepin
 
 export const KATEGORI_LABEL_MAP: Record<string, string> = {
   NASKAH_MASUK: 'Naskah Masuk',
@@ -186,18 +183,12 @@ export default function BuatRapatPage() {
   // 3. Tanggal Pelaksanaan Kegiatan
   const [date, setDate] = useState(todayStr);
 
-<<<<<<< HEAD
-  // 4. Kategori Kegiatan
-  const [kategoriRapat, setKategoriRapat] = useState<string>('KEGIATAN_INTERNAL');
-  const [kategoriKomentar, setKategoriKomentar] = useState<string>('');
-
-  // 5. PIC Kegiatan
-=======
   // 4. Kategori Kegiatan (5 Opsi Ringkas Sesuai Usulan Mentor)
   const [kategoriRapat, setKategoriRapat] = useState<string>('KEGIATAN_INTERNAL');
+  const [kategoriKomentar, setKategoriKomentar] = useState<string>('');
   const [sourceOrigin, setSourceOrigin] = useState<string>('');
 
-  // 5. Dokumen Lampiran (Poin 5 & 6 Digabung Jadi Dokumen)
+  // Dokumen Lampiran File Upload
   const [uploadedDoc, setUploadedDoc] = useState<{
     url: string;
     name: string;
@@ -205,8 +196,7 @@ export default function BuatRapatPage() {
   } | null>(null);
   const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
 
-  // 6. PIC Kegiatan (Bisa lebih dari 1 orang langsung)
->>>>>>> Kepin
+  // 5. PIC Kegiatan (Bisa lebih dari 1 orang langsung)
   const [selectedPicIds, setSelectedPicIds] = useState<string[]>([]);
   const [picName, setPicName] = useState<string>('');
 
@@ -400,10 +390,7 @@ export default function BuatRapatPage() {
         return;
       }
 
-<<<<<<< HEAD
-=======
       const finalJenisKegiatan = KATEGORI_LABEL_MAP[kategoriRapat] || kategoriRapat;
->>>>>>> Kepin
 
       // Submit
       const res = await createMeetingAction({
@@ -414,30 +401,33 @@ export default function BuatRapatPage() {
         startTime: '09:00',
         endTime: '12:00',
         location: 'Biro 3 / Luar Kantor',
-        meetingKind: undefined,
+        meetingKind: finalJenisKegiatan,
         picName: picName.trim() || undefined,
         participantUserIds: selectedPicIds.length > 0 ? selectedPicIds : undefined,
         chairpersonId: selectedPicIds[0] || undefined,
         progressStatus: 'Belum Dimulai',
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
-<<<<<<< HEAD
-        sourceOrigin: kategoriKomentar.trim() || undefined,
-=======
         documentSubCategory:
           kategoriRapat === 'DISPOSISI_SEKJEN'
             ? 'DISPOSISI_SEKJEN'
             : kategoriRapat === 'DISPOSISI_KARO'
               ? 'DISPOSISI_KARO'
               : undefined,
-        sourceOrigin: sourceOrigin.trim() || undefined,
-        invitationDocUrl: uploadedDoc?.url || undefined,
-        invitationDocName: uploadedDoc?.name || undefined,
+        sourceOrigin: (kategoriKomentar.trim() || sourceOrigin.trim()) || undefined,
+        invitationDocUrl: uploadedDoc?.url || (dokumenLink.trim() || undefined),
+        invitationDocName: uploadedDoc?.name || (dokumenNama.trim() || undefined),
         invitationDocSize: uploadedDoc?.size || undefined,
-        categoryDocUrl: uploadedDoc?.url || undefined,
-        categoryDocName: uploadedDoc?.name || undefined,
+        categoryDocUrl: uploadedDoc?.url || (dokumenLink.trim() || undefined),
+        categoryDocName: uploadedDoc?.name || (dokumenNama.trim() || undefined),
         categoryDocSize: uploadedDoc?.size || undefined,
->>>>>>> Kepin
+        actionPlan: tlNamaKegiatan.trim() || undefined,
+        driveLink: tlLink.trim() || (dokumenLink.trim() || undefined),
+        notes: [
+          tlPic.trim() ? `PIC Tindak Lanjut: ${tlPic.trim()}` : '',
+          tlDokumen.trim() ? `Dokumen TL: ${tlDokumen.trim()}` : '',
+          tlCatatan.trim() ? `Catatan: ${tlCatatan.trim()}` : '',
+        ].filter(Boolean).join('\n') || undefined,
         previousMeetingId: previousMeetingId || undefined,
       });
 
@@ -747,7 +737,6 @@ export default function BuatRapatPage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-900">
-<<<<<<< HEAD
                   Bagian II: Kategori, PIC &amp; Dokumen
                 </h2>
                 <p className="text-xs text-slate-500">
@@ -761,21 +750,7 @@ export default function BuatRapatPage() {
           </div>
 
           <div className="p-6 sm:p-7 space-y-6">
-
-            {/* 4. Kategori Kegiatan */}
-=======
-                  Bagian II: Kategori Kegiatan &amp; Dokumen Lampiran
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Klasifikasi dasar naskah administrasi dan lampiran dokumen kegiatan Biro 3
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-7 space-y-6">
             {/* 4. Kategori Kegiatan (Ringkas 5 Opsi Sesuai Usulan Mentor) */}
->>>>>>> Kepin
             <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3.5">
               <div className="flex items-center justify-between">
                 <label htmlFor="kategori-naskah-select" className="font-bold text-slate-800 flex items-center gap-2 text-sm cursor-pointer">
@@ -783,15 +758,10 @@ export default function BuatRapatPage() {
                   <span>Kategori Kegiatan</span>
                   <span className="text-red-500">*</span>
                 </label>
-<<<<<<< HEAD
-                <span className="text-xs text-slate-400">Pilih salah satu kategori</span>
-              </div>
-=======
                 <span className="text-xs text-slate-400">Pilih salah satu dari 5 kategori ringkas</span>
               </div>
 
               {/* Field Dropdown Kategori Ringkas */}
->>>>>>> Kepin
               <div className="relative">
                 <select
                   id="kategori-naskah-select"
@@ -799,19 +769,11 @@ export default function BuatRapatPage() {
                   onChange={(e) => setKategoriRapat(e.target.value)}
                   className="w-full px-4 pr-10 h-[46px] rounded-xl border border-slate-300 bg-white text-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/25 focus:border-[#1E6B7B] shadow-2xs cursor-pointer appearance-none transition-all hover:border-slate-400"
                 >
-<<<<<<< HEAD
-                  <option value="NASKAH_MASUK">Naskah Masuk</option>
-                  <option value="DISPOSISI_SEKJEN">Disposisi Sekjen</option>
-                  <option value="DISPOSISI_KARO">Disposisi Karo</option>
-                  <option value="KEGIATAN_INTERNAL">Kegiatan Internal</option>
-                  <option value="LAPORAN_RUTIN">Laporan Rutin</option>
-=======
                   {KATEGORI_KEGIATAN_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label} — {opt.desc}
                     </option>
                   ))}
->>>>>>> Kepin
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -830,7 +792,6 @@ export default function BuatRapatPage() {
               </div>
             </div>
 
-<<<<<<< HEAD
             {/* 5. PIC Pelaksana */}
             <div className="space-y-2">
               <label className="font-bold text-slate-800 flex items-center gap-2 text-sm">
@@ -849,67 +810,11 @@ export default function BuatRapatPage() {
               />
             </div>
 
-            {/* 6. Dokumen Terkait */}
+            {/* 6. Dokumen Lampiran & Tautan Kegiatan */}
             <div className="space-y-3">
-              <label className="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">6</span>
-                <span>Dokumen Terkait (Opsional)</span>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-600">Nama Dokumen</label>
-                  <input
-                    type="text"
-                    value={dokumenNama}
-                    onChange={(e) => setDokumenNama(e.target.value)}
-                    placeholder="Contoh: Notulen Rapat Koordinasi KEK..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-600">Link Dokumen</label>
-                  <input
-                    type="url"
-                    value={dokumenLink}
-                    onChange={(e) => setDokumenLink(e.target.value)}
-                    placeholder="https://drive.google.com/..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-              </div>
-            </div>
-
-=======
-              {/* Optional source origin for Naskah Masuk / Disposisi */}
-              {(kategoriRapat === 'NASKAH_MASUK' || kategoriRapat === 'DISPOSISI_SEKJEN' || kategoriRapat === 'DISPOSISI_KARO') && (
-                <div className="mt-3 animate-in fade-in space-y-1.5 pt-2 border-t border-slate-200/80">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    {kategoriRapat === 'NASKAH_MASUK'
-                      ? 'Asal Naskah Masuk / Instansi Pengirim (Opsional):'
-                      : kategoriRapat === 'DISPOSISI_SEKJEN'
-                        ? 'Nomor Agenda / Catatan Disposisi Sekjen (Opsional):'
-                        : 'Nomor / Catatan Disposisi Karo (Opsional):'}
-                  </label>
-                  <input
-                    type="text"
-                    value={sourceOrigin}
-                    onChange={(e) => setSourceOrigin(e.target.value)}
-                    placeholder={
-                      kategoriRapat === 'NASKAH_MASUK'
-                        ? 'Contoh: Kemenko Perekonomian / BUPP KEK Batam...'
-                        : 'Contoh: No. Agenda 184 / Arahan Disposisi...'
-                    }
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* 5. Dokumen Lampiran (Poin 5 & 6 Digabung Jadi Satu "Dokumen") */}
-            <div>
-              <label className="font-bold text-slate-800 mb-2 flex items-center justify-between text-sm">
+              <label className="font-bold text-slate-800 flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">5</span>
+                  <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">6</span>
                   <span>Dokumen (Surat Undangan / Bahan Paparan / Berkas Acuan)</span>
                 </span>
                 <span className="text-xs text-slate-400 font-normal">Opsional</span>
@@ -966,11 +871,30 @@ export default function BuatRapatPage() {
                   </div>
                 </div>
               )}
-              <p className="text-xs text-slate-400 mt-1.5">
-                Surat undangan dan bahan paparan digabung menjadi satu lampiran dokumen kegiatan.
-              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-600">Nama Dokumen Tambahan</label>
+                  <input
+                    type="text"
+                    value={dokumenNama}
+                    onChange={(e) => setDokumenNama(e.target.value)}
+                    placeholder="Contoh: Notulen Rapat Koordinasi KEK..."
+                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-600">Link Google Drive / Referensi</label>
+                  <input
+                    type="url"
+                    value={dokumenLink}
+                    onChange={(e) => setDokumenLink(e.target.value)}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
+                  />
+                </div>
+              </div>
             </div>
->>>>>>> Kepin
           </div>
         </div>
 
@@ -992,13 +916,9 @@ export default function BuatRapatPage() {
                 </p>
               </div>
             </div>
-<<<<<<< HEAD
             <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
               Opsional
             </span>
-=======
-
->>>>>>> Kepin
           </div>
 
           <div className="p-6 sm:p-7 space-y-5">
