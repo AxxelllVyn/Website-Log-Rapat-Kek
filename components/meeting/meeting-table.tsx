@@ -456,6 +456,15 @@ export function MeetingTable({
         tagClass: 'bg-purple-600 text-white',
       };
     }
+    if (upperCode.startsWith('HKM-') || upperTeam === 'HKM' || nameLower.includes('hukum')) {
+      return {
+        teamName: 'Tim Hukum',
+        code: 'HKM',
+        badgeClass: 'bg-violet-50 text-violet-800 border-violet-200/90',
+        pillClass: 'bg-violet-50 text-violet-800 border-violet-200 group-hover/link:border-violet-400 group-hover/link:bg-violet-100/60',
+        tagClass: 'bg-violet-600 text-white',
+      };
+    }
     if (upperCode.startsWith('POKJA-') || upperTeam === 'POKJA' || nameLower.includes('pokja')) {
       return {
         teamName: 'Pokja',

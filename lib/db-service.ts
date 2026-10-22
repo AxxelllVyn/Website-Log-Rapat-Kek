@@ -911,7 +911,7 @@ export async function getDashboardStats() {
         });
       }
 
-      // 5 Tim Kerja Biro 3 (Investasi, Kerja Sama, Komunikasi, Sistem Informasi, Pokja) & Dynamic Teams
+      // 5 Tim Kerja Biro 3 (Investasi, Kerja Sama, Komunikasi, Sistem Informasi, Hukum) & Dynamic Teams
       const rawTeamUsers = await prisma.$queryRaw<
         Array<{ id: string; nama: string; email: string; peran: string; id_tim: string | null }>
       >`SELECT id_pengguna as id, nama_lengkap as nama, email, peran, id_tim FROM pengguna WHERE status_aktif = true`;
@@ -925,7 +925,7 @@ export async function getDashboardStats() {
         // Fallback if table not queried
       }
 
-      const CANONICAL_TEAM_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA'];
+      const CANONICAL_TEAM_CODES = ['INV', 'KS', 'KOM', 'SI', 'HKM'];
 
       const fetchedTeams = await prisma.biroTeam.findMany({
         where: {

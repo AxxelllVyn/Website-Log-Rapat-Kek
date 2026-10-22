@@ -643,20 +643,17 @@ export function SemuaRapatClient({
       ],
     },
     {
-      id: 'pokja',
-      code: 'POKJA',
-      name: 'Pokja (Kelompok Kerja)',
-      shortName: 'Pokja',
-      members: [
-        { id: '13', name: 'Siti Rahmawati, M.Sc (Staff Pokja)', email: 'staf.pokja@kek.go.id', role: 'STAFF', teamRole: 'PJ_UTAMA', isActive: true },
-        { id: '14', name: 'Staff Pokja', email: 'staff.pokja@kek.go.id', role: 'STAFF', teamRole: 'ANGGOTA', isActive: true },
-      ],
+      id: 'hkm',
+      code: 'HKM',
+      name: 'Tim Hukum',
+      shortName: 'Hukum',
+      members: [],
     },
   ];
 
   const teamsList: TeamWithMembers[] = useMemo(() => {
     if (availableTeams && availableTeams.length > 0) {
-      const priorityOrder = ['INV', 'KS', 'KOM', 'SI', 'POKJA'];
+      const priorityOrder = ['INV', 'KS', 'KOM', 'SI', 'HKM'];
       const filtered = availableTeams.filter((t) => t.code.toUpperCase() !== 'AKSEL' || t.members.length > 0);
       return [...filtered].sort((a, b) => {
         const idxA = priorityOrder.indexOf(a.code.toUpperCase());
@@ -796,7 +793,7 @@ export function SemuaRapatClient({
               ? `Arsip lengkap kegiatan, agenda, hasil kerja, dan status pekerjaan khusus ${effectiveLockedTeamName?.startsWith('Tim ') ? effectiveLockedTeamName : `Tim ${effectiveLockedTeamName || effectiveLockedTeamCode}`}.`
               : lockedBiroCode
                 ? `Arsip lengkap kegiatan, agenda, hasil kerja, dan status pekerjaan ${currentUserBiroName || `Biro ${lockedBiroCode}`}.`
-                : 'Sistem monitoring terpadu seluruh kegiatan, hasil kerja, dan status pekerjaan 5 tim kerja Biro 3 (Investasi, Kerja Sama, Komunikasi, Sistem Informasi, Pokja).'}
+                : 'Sistem monitoring terpadu seluruh kegiatan, hasil kerja, dan status pekerjaan 5 tim kerja Biro 3 (Investasi, Kerja Sama, Komunikasi, Sistem Informasi, Hukum).'}
           </p>
         </div>
 

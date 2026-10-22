@@ -111,11 +111,11 @@ export const TIM_OPTIONS = [
     description: 'Pengembangan sistem informasi, tata kelola data digital, dan integrasi TI KEK',
   },
   {
-    id: '1d87548c-6e7f-4ce5-bb4e-1cb5e27e42bd',
-    code: 'POKJA',
-    name: 'Pokja (Kelompok Kerja)',
-    shortName: 'Pokja',
-    description: 'Kelompok kerja lintas sektor, task force akselerasi, dan koordinasi terfokus',
+    id: 'f49c43a1-7256-436c-a1bf-68e7f3201732',
+    code: 'HKM',
+    name: 'Tim Hukum',
+    shortName: 'Hukum',
+    description: 'Bantuan hukum, telaah regulasi, advokasi, dan perumusan peraturan perundang-undangan Kawasan Ekonomi Khusus',
   },
 ];
 

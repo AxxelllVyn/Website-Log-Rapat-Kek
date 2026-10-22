@@ -111,7 +111,7 @@ export function DashboardClient({
     };
   }, [initialTeamWorkload]);
 
-  const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA', 'UMUM'];
+  const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'HKM', 'UMUM'];
   const sanitizedTeamWorkload = useMemo(() => {
     if (!teamWorkload || teamWorkload.length === 0) return [];
     return [...teamWorkload].sort((a, b) => {

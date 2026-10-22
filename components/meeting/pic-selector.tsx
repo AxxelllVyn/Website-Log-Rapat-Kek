@@ -56,10 +56,10 @@ export const TEAM_TABS = [
   { key: 'KS', label: 'Tim Kerja Sama' },
   { key: 'KOM', label: 'Tim Komunikasi' },
   { key: 'SI', label: 'Tim Sistem Informasi' },
-  { key: 'POKJA', label: 'Pokja' },
+  { key: 'HKM', label: 'Tim Hukum' },
 ];
 
-export function resolveTeamCode(team?: { id?: string; code?: string; name?: string } | null): 'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA' | null {
+export function resolveTeamCode(team?: { id?: string; code?: string; name?: string } | null): 'INV' | 'KS' | 'KOM' | 'SI' | 'HKM' | 'POKJA' | null {
   if (!team) return null;
   const tc = (team.code || '').toUpperCase();
   const tid = team.id || '';
@@ -69,12 +69,13 @@ export function resolveTeamCode(team?: { id?: string; code?: string; name?: stri
   if (tc === 'KS' || tid === 'TIM-003' || tname.includes('kerja sama') || tname.includes('kerjasama')) return 'KS';
   if (tc === 'KOM' || tid === 'TIM-002' || tname.includes('komunikasi')) return 'KOM';
   if (tc === 'SI' || tid === 'TIM-004' || tname.includes('sistem informasi') || tname.includes('si')) return 'SI';
+  if (tc === 'HKM' || tname.includes('hukum')) return 'HKM';
   if (tc === 'POKJA' || tid === 'TIM-005' || tname.includes('pokja')) return 'POKJA';
   return null;
 }
 
-export function getUserTeamCodes(u: PicOptionUser): Array<'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA'> {
-  const codes = new Set<'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA'>();
+export function getUserTeamCodes(u: PicOptionUser): Array<'INV' | 'KS' | 'KOM' | 'SI' | 'HKM' | 'POKJA'> {
+  const codes = new Set<'INV' | 'KS' | 'KOM' | 'SI' | 'HKM' | 'POKJA'>();
   const primary = resolveTeamCode(u.team);
   if (primary) codes.add(primary);
 
@@ -87,7 +88,7 @@ export function getUserTeamCodes(u: PicOptionUser): Array<'INV' | 'KS' | 'KOM' |
   return Array.from(codes);
 }
 
-export function getUserTeamCode(u: PicOptionUser): 'INV' | 'KS' | 'KOM' | 'SI' | 'POKJA' | null {
+export function getUserTeamCode(u: PicOptionUser): 'INV' | 'KS' | 'KOM' | 'SI' | 'HKM' | 'POKJA' | null {
   const all = getUserTeamCodes(u);
   return all.length > 0 ? all[0] : null;
 }
@@ -120,6 +121,13 @@ export const TEAM_STYLE: Record<string, { bg: string; text: string; border: stri
     border: 'border-purple-200',
     avatarBg: 'bg-purple-100 text-purple-800',
     label: 'Tim Sistem Informasi',
+  },
+  HKM: {
+    bg: 'bg-violet-50',
+    text: 'text-violet-700',
+    border: 'border-violet-200',
+    avatarBg: 'bg-violet-100 text-violet-800',
+    label: 'Tim Hukum',
   },
   POKJA: {
     bg: 'bg-indigo-50',
@@ -179,7 +187,7 @@ export function PicSelector({
 
   // Counts per team
   const teamCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0, SI: 0, POKJA: 0 };
+    const counts: Record<string, number> = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0, SI: 0, HKM: 0 };
     availableUsers.forEach((u) => {
       const codes = getUserTeamCodes(u);
       codes.forEach((code) => {
@@ -577,7 +585,7 @@ export function MultiPicSelector({
   }, [availableUsers, selectedUserIds]);
 
   const teamCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0, SI: 0, POKJA: 0 };
+    const counts: Record<string, number> = { ALL: availableUsers.length, INV: 0, KS: 0, KOM: 0, SI: 0, HKM: 0 };
     availableUsers.forEach((u) => {
       const codes = getUserTeamCodes(u);
       codes.forEach((code) => {

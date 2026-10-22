@@ -59,13 +59,15 @@ export function Sidebar({
       .then((data) => {
         if (isMounted && Array.isArray(data)) {
           setDbTeams(
-            data.map((t: any) => ({
-              code: String(t.code || '').toUpperCase(),
-              name:
-                t.name?.startsWith('Tim ') || t.name?.startsWith('Pokja')
-                  ? t.name
-                  : `Tim ${t.name}`,
-            }))
+            data
+              .filter((t: any) => String(t.code || '').toUpperCase() !== 'POKJA')
+              .map((t: any) => ({
+                code: String(t.code || '').toUpperCase(),
+                name:
+                  t.name?.startsWith('Tim ')
+                    ? t.name
+                    : `Tim ${t.name}`,
+              }))
           );
         }
       })
@@ -287,7 +289,7 @@ export function Sidebar({
                           { code: 'KS', name: 'Tim Kerja Sama', href: '/semua-rapat?tim=KS' },
                           { code: 'KOM', name: 'Tim Komunikasi', href: '/semua-rapat?tim=KOM' },
                           { code: 'SI', name: 'Tim Sistem Informasi', href: '/semua-rapat?tim=SI' },
-                          { code: 'POKJA', name: 'Pokja', href: '/semua-rapat?tim=POKJA' },
+                          { code: 'HKM', name: 'Tim Hukum', href: '/semua-rapat?tim=HKM' },
                         ];
 
                         const userAssigned = (session?.user as any)?.assignedTeams || [];
@@ -309,14 +311,14 @@ export function Sidebar({
                           if (u.code && !allTeams.some((t) => t.code.toUpperCase() === u.code.toUpperCase())) {
                             allTeams.push({
                               code: u.code,
-                              name: u.name?.startsWith('Tim ') || u.name?.startsWith('Pokja') ? u.name : `Tim ${u.name}`,
+                              name: u.name?.startsWith('Tim ') ? u.name : `Tim ${u.name}`,
                               href: `/semua-rapat?tim=${u.code}`,
                             });
                           }
                         }
 
-                        // Seluruh tim kerja dapat dilihat oleh semua pengguna
-                        return allTeams;
+                        // Seluruh tim kerja dapat dilihat oleh semua pengguna (mengecualikan Pokja)
+                        return allTeams.filter((t) => t.code.toUpperCase() !== 'POKJA');
                       })().map((tim) => (
                         <Link
                           key={tim.code}

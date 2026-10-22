@@ -14,6 +14,7 @@ import {
   Search,
   Cpu,
   ShieldAlert,
+  Scale,
 } from 'lucide-react';
 import { TeamWorkloadMetric } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -24,7 +25,7 @@ interface TeamWorkloadGridProps {
 }
 
 // Urutan tim kanonikal Biro 3, namun tetap menampilkan tim dinamis lainnya jika ada
-const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA', 'UMUM'];
+const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'HKM', 'UMUM'];
 
 export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +73,8 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
         return <Radio className="w-5 h-5 text-[#D97706]" />;
       case 'SI':
         return <Cpu className="w-5 h-5 text-[#6366F1]" />;
+      case 'HKM':
+        return <Scale className="w-5 h-5 text-[#8B5CF6]" />;
       default:
         return <Layers className="w-5 h-5 text-[#1E6B7B]" />;
     }
@@ -114,6 +117,15 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
           badgeBg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
           accentText: 'text-indigo-700',
           lightBg: 'bg-indigo-50/60',
+        };
+      case 'HKM':
+        return {
+          gradient: 'from-purple-500/10 via-purple-500/5 to-transparent',
+          borderHover: 'hover:border-purple-500',
+          cardGlow: 'hover:shadow-[0_8px_25px_rgb(139,92,246,0.12)]',
+          badgeBg: 'bg-purple-50 text-purple-800 border-purple-200',
+          accentText: 'text-purple-700',
+          lightBg: 'bg-purple-50/60',
         };
       default:
         return {
