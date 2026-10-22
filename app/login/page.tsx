@@ -66,7 +66,6 @@ function LoginForm() {
     { label: 'Staf SI', email: 'staf.si@kek.go.id', icon: '💻', desc: 'Tim Sistem Informasi' },
     { label: 'Staf Investasi', email: 'staf.investasi@kek.go.id', icon: '📈', desc: 'Tim Investasi' },
     { label: 'Staf Komunikasi', email: 'staf.komunikasi@kek.go.id', icon: '📢', desc: 'Tim Komunikasi' },
-    { label: 'Staf Pokja', email: 'staf.pokja@kek.go.id', icon: '👥', desc: 'Gugus Tugas Pokja' },
     { label: 'Admin IKK', email: 'admin@kek.go.id', icon: '⚙️', desc: 'Pengelola Biro 3' },
   ];
 
