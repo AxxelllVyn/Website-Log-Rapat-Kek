@@ -141,7 +141,7 @@ export function SemuaRapatClient({
     return undefined;
   }, [allowedTeamCodes, sessionAssignedCodes]);
 
-  const hasMultipleAssignedTeams = isStaff && (effectiveAllowedTeamCodes?.length ?? 0) > 1;
+  const hasMultipleAssignedTeams = (effectiveAllowedTeamCodes?.length ?? 0) > 1;
 
   const effectiveLockedTeamCode = lockedTeamCode;
   const effectiveLockedTeamName = lockedTeamName;

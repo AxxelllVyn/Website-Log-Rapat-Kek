@@ -171,7 +171,9 @@ export async function createUserAction(input: CreateUserInput) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const effectiveTeamIds = parsed.data.teamIds || (teamId ? [teamId] : []);
-    const primaryTeamId = effectiveTeamIds.length > 0 ? effectiveTeamIds[0] : (teamId || null);
+    const primaryTeamId = (teamId && effectiveTeamIds.includes(teamId))
+      ? teamId
+      : (effectiveTeamIds.length > 0 ? effectiveTeamIds[0] : (teamId || null));
 
     const nextUserId = await getNextUserId();
     const newUser = await prisma.user.create({
@@ -362,7 +364,9 @@ export async function updateUserAction(input: UpdateUserInput) {
 
     if (parsed.data.teamIds !== undefined) {
       const effectiveTeamIds = parsed.data.teamIds;
-      updateData.teamId = effectiveTeamIds.length > 0 ? effectiveTeamIds[0] : null;
+      updateData.teamId = (teamId && effectiveTeamIds.includes(teamId))
+        ? teamId
+        : (effectiveTeamIds.length > 0 ? effectiveTeamIds[0] : null);
 
       await prisma.userTeam.deleteMany({
         where: { userId: id },

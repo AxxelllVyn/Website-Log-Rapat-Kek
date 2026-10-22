@@ -199,7 +199,7 @@ export function UserManagementView({
       ? user.userTeams.map((ut) => ut.team.id)
       : [matchedTeam?.id || user.teamId || defaultTeamId];
     setFormTeamIds(userTeamIds);
-    setFormTeamId(userTeamIds[0] || defaultTeamId);
+    setFormTeamId(user.teamId && userTeamIds.includes(user.teamId) ? user.teamId : (userTeamIds[0] || defaultTeamId));
     setFormIsActive(user.isActive);
     setFormError(null);
     setIsDialogOpen(true);
@@ -220,8 +220,8 @@ export function UserManagementView({
 
     const targetTeamIds = isScopedAdmin
       ? (myTeam?.id ? [myTeam.id] : formTeamIds)
-      : (formRole === 'STAFF' ? formTeamIds : [formTeamId]);
-    const primaryTeamId = targetTeamIds[0] || formTeamId;
+      : formTeamIds;
+    const primaryTeamId = (formTeamIds.includes(formTeamId) ? formTeamId : targetTeamIds[0]) || formTeamId;
     const selectedTeamObj = teamsList.find((t) => t.id === primaryTeamId);
     const resolvedBiroId = selectedTeamObj?.biroId || 'BIRO-IKK';
 
@@ -948,7 +948,7 @@ export function UserManagementView({
                       Penugasan Tim Kerja <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[11px] text-[#31889C] font-semibold">
-                      {formRole === 'STAFF' ? 'Staf dapat ditugaskan ke lebih dari 1 tim' : 'Pilih tim penugasan utama'}
+                      Dapat memilih lebih dari 1 tim kerja
                     </span>
                   </div>
 
@@ -959,16 +959,17 @@ export function UserManagementView({
                         Terkunci Sesuai Tim
                       </span>
                     </div>
-                  ) : formRole === 'STAFF' ? (
-                    <div className="space-y-2 p-3 rounded-xl border border-slate-200 bg-slate-50/70">
+                  ) : (
+                    <div className="space-y-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/70">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {teamsList.filter((t) => t.isActive !== false).map((t) => {
                           const isChecked = formTeamIds.includes(t.id);
+                          const isPrimary = isChecked && (formTeamId === t.id);
                           return (
                             <label
                               key={t.id}
                               className={cn(
-                                "flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition-all select-none",
+                                "flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition-all select-none relative",
                                 isChecked
                                   ? "bg-[#E8F5F7] border-[#31889C] text-[#1E6B7B] shadow-2xs font-bold"
                                   : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
@@ -980,44 +981,68 @@ export function UserManagementView({
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setFormTeamIds((prev) => [...prev, t.id]);
-                                    if (!formTeamId) setFormTeamId(t.id);
+                                    if (!formTeamId || !formTeamIds.length) {
+                                      setFormTeamId(t.id);
+                                    }
                                   } else {
                                     if (formTeamIds.length > 1) {
-                                      setFormTeamIds((prev) => prev.filter((id) => id !== t.id));
+                                      const nextIds = formTeamIds.filter((id) => id !== t.id);
+                                      setFormTeamIds(nextIds);
+                                      if (formTeamId === t.id) {
+                                        setFormTeamId(nextIds[0]);
+                                      }
                                     } else {
-                                      toast.warning('Staf harus terdaftar minimal pada 1 tim kerja.');
+                                      toast.warning('Pengguna harus terdaftar minimal pada 1 tim kerja.');
                                     }
                                   }
                                 }}
-                                className="w-4 h-4 rounded text-[#31889C] focus:ring-[#31889C] cursor-pointer"
+                                className="w-4 h-4 rounded text-[#31889C] focus:ring-[#31889C] cursor-pointer shrink-0"
                               />
-                              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-800 font-bold">
+                              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-800 font-bold shrink-0">
                                 {t.code}
                               </span>
-                              <span className="truncate">{t.name}</span>
+                              <span className="truncate flex-1">{t.name}</span>
+                              {isPrimary && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#31889C] text-white font-bold shrink-0">
+                                  Utama
+                                </span>
+                              )}
                             </label>
                           );
                         })}
                       </div>
+
+                      {/* Pilihan Tim Kerja Utama bila lebih dari 1 tim dipilih */}
+                      {formTeamIds.length > 1 && (
+                        <div className="pt-2.5 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/70 p-2.5 rounded-lg">
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 block">
+                              Tim Penugasan Utama (Primary):
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              Identitas tim utama untuk penomoran notulensi &amp; profil.
+                            </span>
+                          </div>
+                          <select
+                            value={formTeamId}
+                            onChange={(e) => setFormTeamId(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-bold text-[#1E6B7B] text-xs focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] cursor-pointer"
+                          >
+                            {teamsList
+                              .filter((t) => formTeamIds.includes(t.id))
+                              .map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.code} — {t.name}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+
                       <p className="text-[11px] text-slate-500 pt-0.5">
                         Centang satu atau beberapa tim kerja sekaligus. Penomoran dan akses notulensi akan tersedia untuk semua tim yang dipilih.
                       </p>
                     </div>
-                  ) : (
-                    <select
-                      value={formTeamId}
-                      onChange={(e) => {
-                        setFormTeamId(e.target.value);
-                        setFormTeamIds([e.target.value]);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
-                    >
-                      {teamsList.filter((t) => t.isActive !== false).map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.code} — {t.name}
-                        </option>
-                      ))}
-                    </select>
                   )}
                 </div>
               </div>
