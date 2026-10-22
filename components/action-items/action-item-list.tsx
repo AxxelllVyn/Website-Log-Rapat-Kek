@@ -517,7 +517,7 @@ export function ActionItemList({
                       const parsed = parsePicDeliverableDescription(item.description);
                       const rawNotes = parsed.notes || item.description || '';
                       const refDocMatch = rawNotes.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
-                      const refDriveMatch = rawNotes.match(/📎 (?:Drive Acuan|Google Drive Acuan):\s*(\S+)/);
+                      const refDriveMatch = rawNotes.match(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*(\S+)/);
                       const evidenceDocMatch = rawNotes.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
                       const evidenceDriveMatch = rawNotes.match(/📎 (?:Drive Bukti|Tautan Google Drive):\s*(\S+)/);
 
@@ -534,7 +534,7 @@ export function ActionItemList({
                       let cleanDesc = cleanTextWithoutLink(rawNotes);
                       cleanDesc = cleanDesc
                         .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
-                        .replace(/📎 (?:Drive Acuan|Google Drive Acuan):\s*\S+/g, '')
+                        .replace(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*\S+/g, '')
                         .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
                         .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
                         .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*/g, '')
@@ -584,7 +584,7 @@ export function ActionItemList({
                                       title="Buka Folder Google Drive Bahan Acuan Atasan"
                                     >
                                       <GoogleDriveIcon className="w-3.5 h-3.5" />
-                                      <span>Google Drive Acuan</span>
+                                      <span>Link Terkait</span>
                                       <ExternalLink className="w-2.5 h-2.5 text-amber-600" />
                                     </a>
                                   )}

@@ -1101,7 +1101,7 @@ export function ActionItemMatrixView({
                             }
                           }
                           const refDocMatch = rawDesc.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
-                          const refDriveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan):\s*(\S+)/);
+                          const refDriveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*(\S+)/);
                           const evidenceDocMatch = rawDesc.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
                           const evidenceDriveMatch = rawDesc.match(/📎 (?:Drive Bukti|Tautan Google Drive):\s*(\S+)/);
 
@@ -1117,7 +1117,7 @@ export function ActionItemMatrixView({
                           let cleanDesc = cleanTextWithoutLink(rawDesc);
                           cleanDesc = cleanDesc
                             .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
-                            .replace(/📎 (?:Drive Acuan|Google Drive Acuan):\s*\S+/g, '')
+                            .replace(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*\S+/g, '')
                             .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
                             .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
                             .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*/g, '')
@@ -1159,7 +1159,7 @@ export function ActionItemMatrixView({
                                       title="Google Drive Materi Acuan dari Atasan"
                                     >
                                       <GoogleDriveIcon className="w-3 h-3" />
-                                      <span>Drive Acuan</span>
+                                      <span>Link Terkait</span>
                                       <ExternalLink className="w-2.5 h-2.5 text-amber-600" />
                                     </a>
                                   )}

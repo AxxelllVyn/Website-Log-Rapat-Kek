@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, AlertCircle, Save, ExternalLink, Layers, Calendar, Lock, CheckCircle2, UploadCloud, Paperclip, FileCheck, Trash2, Loader2 } from 'lucide-react';
+import { X, AlertCircle, Save, ExternalLink, Layers, Calendar, Lock, CheckCircle2, UploadCloud, Paperclip, FileCheck, Trash2, Loader2, User } from 'lucide-react';
 import {
   actionItemSchema,
   ActionItemInput,
@@ -233,10 +233,9 @@ export function ActionItemFormDialog({
     (m: any, usersToSearch: any[] = effectiveUsers) => {
       if (!m) return;
 
-      // 1. Leave title for user to specify unless already editing
-      // Default to empty so the user writes specific task for the PIC
-      if (!isEditing && !title) {
-        setTitle('');
+      // 1. Sinkronisasi nama kegiatan otomatis
+      if (!isEditing) {
+        setTitle(m.title || '');
       }
 
       // 2. Sync team
@@ -348,7 +347,7 @@ export function ActionItemFormDialog({
       } else {
         setUploadedDoc(null);
       }
-      const driveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Tautan Google Drive):\s*(\S+)/);
+      const driveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Tautan Google Drive|Link Terkait):\s*(\S+)/);
       if (driveMatch) {
         setDriveLink(normalizeUrl(driveMatch[1]));
       } else {
@@ -361,7 +360,7 @@ export function ActionItemFormDialog({
       }
       let cleaned = cleanTextWithoutLink(rawDesc);
       cleaned = cleaned.replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
-      cleaned = cleaned.replace(/📎 (?:Drive Acuan|Google Drive Acuan|Drive Bukti|Bukti Pelaksanaan):\s*\[?[^\]\n]+\]?\(?[^\)\n]*\)?/g, '').trim();
+      cleaned = cleaned.replace(/📎 (?:Drive Acuan|Google Drive Acuan|Drive Bukti|Bukti Pelaksanaan|Link Terkait):\s*\[?[^\]\n]+\]?\(?[^\)\n]*\)?/g, '').trim();
       cleaned = cleaned.replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*[^\n]+/g, '').trim();
       setDescription(cleaned);
 
@@ -459,39 +458,48 @@ export function ActionItemFormDialog({
     let finalDescription = description.trim();
     if (uploadedDoc) {
       finalDescription = finalDescription
-        ? `${finalDescription}\n\n📎 Dokumen Acuan: [${uploadedDoc.name}](${uploadedDoc.url})`
-        : `📎 Dokumen Acuan: [${uploadedDoc.name}](${uploadedDoc.url})`;
+        ? `${finalDescription}\n\n📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`
+        : `📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`;
     }
     if (driveLink.trim()) {
       const formattedLink = normalizeUrl(driveLink);
       finalDescription = finalDescription
-        ? `${finalDescription}\n\n📎 Drive Acuan: ${formattedLink}`
-        : `📎 Drive Acuan: ${formattedLink}`;
+        ? `${finalDescription}\n\n📎 Link Terkait: ${formattedLink}`
+        : `📎 Link Terkait: ${formattedLink}`;
     }
 
-    const finalMeetingId = selectedMeetingId || meetingId;
+    const finalMeetingId = selectedMeetingId || meetingId || normalizedCurrentMeeting?.id;
     if (!finalMeetingId) {
       setFieldErrors((prev) => ({
         ...prev,
-        meetingId: 'Silakan pilih kegiatan yang terkoneksi dengan tindak lanjut ini.',
+        meetingId: 'Silakan pilih kegiatan yang relevan dengan tindak lanjut ini.',
       }));
-      setErrorMessage('Kegiatan terkait wajib dipilih.');
+      setErrorMessage('Nama kegiatan wajib dipilih.');
       return;
     }
 
-    const finalPicTeamId = picTeamId && picTeamId.trim() !== '' ? picTeamId.trim() : '';
-    if (!finalPicTeamId) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        picTeamId: 'Tim penanggung jawab wajib dipilih.',
-      }));
-      setErrorMessage('Tim penanggung jawab wajib dipilih.');
-      return;
+    const currentM = findMeetingById(finalMeetingId) || normalizedCurrentMeeting;
+    const selectedUser = effectiveUsers.find((u) => u.id === picUserId);
+
+    // Auto resolve team & biro (tidak lagi wajib diisi manual di form oleh pengguna)
+    let finalPicTeamId =
+      picTeamId ||
+      selectedUser?.teamId ||
+      (currentM as any)?.primaryTeamId ||
+      (currentM as any)?.primaryTeam?.id ||
+      '';
+
+    if (!finalPicTeamId && effectiveLockedTeamCode) {
+      finalPicTeamId =
+        displayTeams.find((t) => t.code.toUpperCase() === effectiveLockedTeamCode.toUpperCase())?.id || '';
+    }
+    if (!finalPicTeamId && displayTeams.length > 0) {
+      finalPicTeamId = displayTeams[0].id;
     }
 
-    const currentM = findMeetingById(finalMeetingId);
     const selectedTeamObj = displayTeams.find((t) => t.id === finalPicTeamId || t.code === finalPicTeamId);
     const finalPicBiroId =
+      selectedUser?.biroId ||
       selectedTeamObj?.biroId ||
       picBiroId ||
       (currentM as any)?.primaryBiroId ||
@@ -504,16 +512,19 @@ export function ActionItemFormDialog({
       (birosList.find((b) => b.code.toUpperCase() === 'IKK')?.id) ||
       '';
 
-    if (!title.trim()) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        title: 'Butir tugas tindak lanjut wajib diisi agar PIC memahami apa yang harus dikerjakan.',
-      }));
-      setErrorMessage('Butir tugas tindak lanjut wajib diisi.');
-      return;
-    }
+    const finalTitle = (
+      title.trim() ||
+      currentMeetingObj?.title ||
+      (currentM as any)?.title ||
+      activeTitle ||
+      'Tindak Lanjut Kegiatan'
+    ).slice(0, 255);
 
-    const finalTitle = title.trim().slice(0, 255);
+    let finalDueDate = dueDate;
+    if (!finalDueDate) {
+      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      finalDueDate = nextWeek.toISOString().split('T')[0];
+    }
 
     // Zod client validation
     const rawData = {
@@ -523,7 +534,7 @@ export function ActionItemFormDialog({
       picBiroId: finalPicBiroId,
       picTeamId: finalPicTeamId,
       picUserId: picUserId && picUserId.trim() !== '' ? picUserId : null,
-      dueDate,
+      dueDate: finalDueDate,
       priority,
       status,
     };
@@ -582,7 +593,7 @@ export function ActionItemFormDialog({
               {isEditing ? 'Perbarui Matriks' : 'Matriks Tindak Lanjut'}
             </span>
             <h2 className="text-[18px] font-bold text-slate-900">
-              {isEditing ? 'Ubah Butir Tindak Lanjut' : 'Tambah Tindak Lanjut Kegiatan'}
+              {isEditing ? 'Ubah Tindak Lanjut Kegiatan' : 'Tambah Tindak Lanjut Kegiatan'}
             </h2>
           </div>
 
@@ -605,219 +616,129 @@ export function ActionItemFormDialog({
               </div>
             )}
 
-            {/* Kegiatan Terkait / Agenda Sumber (Hanya jika belum terhubung dengan kegiatan) */}
-            {!isMeetingLocked && (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
-                    <Layers className="w-4 h-4 text-[#31889C]" />
-                    <span>Kegiatan Terkait / Agenda Sumber</span>
-                    <span className="text-red-500">*</span>
-                  </label>
-                  {(() => {
-                    const targetMId = selectedMeetingId || meetingId || normalizedCurrentMeeting?.id;
-                    const currM = effectiveMeetings.find(
-                      (m) =>
-                        m.id === targetMId ||
-                        (m.meetingNumber && m.meetingNumber.toUpperCase() === targetMId?.toUpperCase())
-                    ) || normalizedCurrentMeeting;
-                    return currM ? (
-                      <span className="text-[11px] font-semibold text-[#215865] bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
-                        {currM.meetingNumber}
-                      </span>
-                    ) : null;
-                  })()}
-                </div>
+            {/* 1. Nama Kegiatan */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
+                  <Layers className="w-4 h-4 text-[#31889C]" />
+                  <span>1. Nama Kegiatan</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                {(() => {
+                  const targetMId = selectedMeetingId || meetingId || normalizedCurrentMeeting?.id;
+                  const currM = effectiveMeetings.find(
+                    (m) =>
+                      m.id === targetMId ||
+                      (m.meetingNumber && m.meetingNumber.toUpperCase() === targetMId?.toUpperCase())
+                  ) || normalizedCurrentMeeting;
+                  return currM ? (
+                    <span className="text-[11px] font-semibold text-[#215865] bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
+                      {currM.meetingNumber}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
 
-                <SearchableMeetingSelect
-                  meetings={effectiveMeetings}
-                  selectedMeetingId={selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || ''}
-                  onSelectMeeting={(mId) => {
-                    setSelectedMeetingId(mId);
-                    if (fieldErrors.meetingId) {
-                      setFieldErrors((prev) => {
-                        const next = { ...prev };
-                        delete next.meetingId;
-                        return next;
-                      });
-                    }
-                    if (!isEditing) {
+              {!isMeetingLocked ? (
+                <div>
+                  <SearchableMeetingSelect
+                    meetings={effectiveMeetings}
+                    selectedMeetingId={selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || ''}
+                    onSelectMeeting={(mId) => {
+                      setSelectedMeetingId(mId);
+                      if (fieldErrors.meetingId) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.meetingId;
+                          return next;
+                        });
+                      }
                       const selM = findMeetingById(mId);
                       if (selM) {
+                        setTitle(selM.title);
                         applyMeetingDefaults(selM, effectiveUsers);
                       }
-                    }
-                  }}
-                  userBiroCode={effectiveLockedBiroCode}
-                  userTeamCode={effectiveLockedTeamCode || undefined}
-                  isLocked={false}
-                  disabled={false}
-                  isLoading={isLoadingOptions}
-                  error={fieldErrors.meetingId}
-                />
-                {effectiveLockedTeamCode ? (
-                  <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
-                    <span>Daftar kegiatan disesuaikan khusus untuk agenda penugasan {displayTeams.find((t) => t.code === effectiveLockedTeamCode)?.name || `Tim ${effectiveLockedTeamCode}`}.</span>
+                    }}
+                    userBiroCode={effectiveLockedBiroCode}
+                    userTeamCode={effectiveLockedTeamCode || undefined}
+                    isLocked={false}
+                    disabled={false}
+                    isLoading={isLoadingOptions}
+                    error={fieldErrors.meetingId}
+                  />
+                  {effectiveLockedTeamCode ? (
+                    <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
+                      <span>Daftar kegiatan disesuaikan untuk agenda penugasan {displayTeams.find((t) => t.code === effectiveLockedTeamCode)?.name || `Tim ${effectiveLockedTeamCode}`}.</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] text-slate-400">
+                      Pilih agenda kegiatan yang menjadi sumber tindak lanjut ini.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-semibold text-slate-800 leading-snug break-words flex-1">
+                    {currentMeetingObj?.title || activeTitle || '(Sesuai agenda kegiatan yang dipilih)'}
                   </p>
-                ) : (
-                  <p className="mt-1.5 text-[11px] text-slate-400">
-                    Hubungkan tindak lanjut ini dengan agenda kegiatan yang relevan. Gunakan pencarian instan atau filter biro untuk menemukan kegiatan dengan cepat.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* 1. Nama Kegiatan Sumber & 2. Butir Tindak Lanjut Tugas PIC */}
-            <div className="space-y-3">
-              {/* Agenda Kegiatan Sumber */}
-              <div className="p-3 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10.5px] font-bold text-[#215865] uppercase tracking-wider flex items-center gap-1.5">
-                    <span>1. Agenda Kegiatan Sumber</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs shrink-0">
                     <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
                     <span>Terhubung Otomatis</span>
                   </span>
                 </div>
-                <p className="text-[13px] font-semibold text-slate-800 leading-snug break-words">
-                  {currentMeetingObj?.title || activeTitle || '(Sesuai agenda kegiatan yang dipilih)'}
-                </p>
-              </div>
+              )}
+            </div>
 
-              {/* Butir Tugas Tindak Lanjut yang Harus Dikerjakan PIC */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1 text-[13px] flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>2. Butir Tindak Lanjut / Tugas PIC</span>
-                    <span className="text-red-500">*</span>
+            {/* 2. PIC */}
+            <div>
+              <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between text-[13px]">
+                <span className="flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-[#31889C]" />
+                  <span>2. PIC</span>
+                  <span className="text-slate-400 font-normal text-xs">(Penanggung Jawab Pelaksana - Opsional)</span>
+                </span>
+                {picUserId && (
+                  <span className="inline-flex items-center gap-1 text-[10.5px] text-[#1E6B7B] font-bold bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
+                    <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
+                    <span>PIC Terpilih</span>
                   </span>
-                  <span className="text-[11px] font-normal text-slate-400">Tugas spesifik yang harus diselesaikan PIC</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    if (fieldErrors.title) {
-                      setFieldErrors((prev) => {
-                        const next = { ...prev };
-                        delete next.title;
-                        return next;
-                      });
-                    }
-                  }}
-                  placeholder="Contoh: Menyiapkan telaahan staf dan draft revisi nota dinas..."
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-slate-800 text-[13px] font-medium placeholder:text-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] transition-all ${
-                    fieldErrors.title ? 'border-red-400 bg-red-50/20 ring-1 ring-red-400/50' : 'border-slate-200 bg-white'
-                  }`}
-                />
-                {fieldErrors.title ? (
-                  <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.title}</p>
-                ) : (
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Beri nama tugas yang jelas agar PIC pelaksana langsung memahami apa yang perlu dikerjakan.
-                  </p>
                 )}
-              </div>
-            </div>
-
-            {/* 2. PIC Pelaksana (Tim Kerja & Pejabat) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Tim Penanggung Jawab */}
-              <div>
-                {(() => {
-                  const currentTeam = displayTeams.find((t) => t.id === picTeamId);
-                  return (
-                    <>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block font-bold text-slate-800 text-[13px] flex items-center gap-1.5">
-                          <Layers className="w-4 h-4 text-[#31889C]" />
-                          <span>3. Tim Penanggung Jawab</span>
-                          <span className="text-red-500">*</span>
-                        </label>
-                        {currentTeam && (
-                          <span className="text-[10px] font-bold text-[#215865] bg-[#E8F5F7] px-2 py-0.5 rounded border border-[#BCE3EB]">
-                            {currentTeam.code}
-                          </span>
-                        )}
-                      </div>
-                      <select
-                        value={picTeamId}
-                        disabled={Boolean(effectiveLockedTeamCode)}
-                        onChange={(e) => {
-                          const newTeamId = e.target.value;
-                          setPicTeamId(newTeamId);
-                          const matched = displayTeams.find((t) => t.id === newTeamId);
-                          if (matched?.biroId) {
-                            setPicBiroId(matched.biroId);
-                          }
-                          if (fieldErrors.picTeamId) {
-                            setFieldErrors((prev) => {
-                              const next = { ...prev };
-                              delete next.picTeamId;
-                              return next;
-                            });
-                          }
-                        }}
-                        className={`w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] font-medium text-slate-800 text-[13px] shadow-2xs ${
-                          effectiveLockedTeamCode ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-white cursor-pointer'
-                        }`}
-                      >
-                        <option value="">
-                          {isLoadingOptions ? '-- Memuat Tim Kerja... --' : '-- Pilih Tim Kerja --'}
-                        </option>
-                        {displayTeams.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                      {fieldErrors.picTeamId && (
-                        <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.picTeamId}</p>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-
-              {/* Pejabat / PIC Pelaksana */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between text-[13px]">
-                  <span>Pejabat / PIC Pelaksana <span className="text-slate-400 font-normal">(Opsional)</span></span>
-                  {picUserId && (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] text-[#1E6B7B] font-bold bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
-                      <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
-                      <span>Sesuai Kegiatan</span>
-                    </span>
-                  )}
-                </label>
-                <PicCombobox
-                  value={picUserId}
-                  onChange={(val) => setPicUserId(val)}
-                  users={effectiveUsers}
-                  biros={birosList}
-                  selectedBiroId={
-                    picBiroId ||
-                    displayTeams.find((t) => t.id === picTeamId)?.biroId ||
-                    (effectiveLockedBiroCode
-                      ? birosList.find((b) => b.code.toUpperCase() === effectiveLockedBiroCode.toUpperCase())?.id
-                      : '') ||
-                    'BIRO-IKK'
+              </label>
+              <PicCombobox
+                value={picUserId}
+                onChange={(val) => {
+                  setPicUserId(val);
+                  const u = effectiveUsers.find((x) => x.id === val);
+                  if (u?.teamId) {
+                    setPicTeamId(u.teamId);
                   }
-                  disabled={isLoadingOptions}
-                  placeholder="Pilih Pejabat / PIC Pelaksana..."
-                />
-              </div>
+                  if (u?.biroId) {
+                    setPicBiroId(u.biroId);
+                  }
+                }}
+                users={effectiveUsers}
+                biros={birosList}
+                selectedBiroId={
+                  picBiroId ||
+                  displayTeams.find((t) => t.id === picTeamId)?.biroId ||
+                  (effectiveLockedBiroCode
+                    ? birosList.find((b) => b.code.toUpperCase() === effectiveLockedBiroCode.toUpperCase())?.id
+                    : '') ||
+                  'BIRO-IKK'
+                }
+                disabled={isLoadingOptions}
+                placeholder="Pilih Pejabat / PIC Pelaksana..."
+              />
             </div>
 
-            {/* 3. Dokumen Terkait (Attach File) */}
+            {/* 3. Dokumen terkait */}
             <div>
               <label className="block font-bold text-slate-800 mb-1 text-[13px] flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Paperclip className="w-3.5 h-3.5 text-[#31889C]" />
-                  <span>4. Dokumen Acuan Penugasan <span className="text-slate-400 font-normal text-xs">(Bahan untuk PIC - Opsional)</span></span>
+                  <span>3. Dokumen terkait</span>
+                  <span className="text-slate-400 font-normal text-xs">(Bahan Acuan / Dokumen Pendukung - Opsional)</span>
                 </span>
               </label>
               {uploadedDoc ? (
@@ -857,17 +778,18 @@ export function ActionItemFormDialog({
                     ) : (
                       <UploadCloud className="w-4 h-4 text-[#31889C]" />
                     )}
-                    <span>{isUploadingDoc ? 'Mengunggah Berkas...' : 'Klik atau seret dokumen pendukung di sini (PDF, Word, Excel, Paparan)'}</span>
+                    <span>{isUploadingDoc ? 'Mengunggah Berkas...' : 'Klik atau seret dokumen terkait di sini (PDF, Word, Excel, Paparan)'}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* 4. Link Terkait / Google Drive */}
+            {/* 4. Link terkait */}
             <div>
               <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5 mb-1">
                 <GoogleDriveIcon className="w-3.5 h-3.5" />
-                <span>5. Tautan Google Drive Acuan <span className="text-slate-400 font-normal">(Bahan untuk PIC - Opsional)</span></span>
+                <span>4. Link terkait</span>
+                <span className="text-slate-400 font-normal text-xs">(Google Drive / URL Terkait - Opsional)</span>
               </label>
               <div className="relative">
                 <input
@@ -904,26 +826,27 @@ export function ActionItemFormDialog({
               )}
             </div>
 
-            {/* 5. Catatan Tindak Lanjut */}
+            {/* 5. Catatan */}
             <div>
               <label className="block font-bold text-slate-800 mb-1 text-[13px]">
-                6. Catatan / Arahan Penugasan untuk PIC <span className="text-slate-400 font-normal">(Opsional)</span>
+                5. Catatan <span className="text-slate-400 font-normal text-xs">(Rincian / Arahan Tindak Lanjut - Opsional)</span>
               </label>
               <textarea
                 rows={3}
                 placeholder="Catatan arahan tindak lanjut, koordinasi, atau rincian pekerjaan yang perlu diselesaikan..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] text-slate-800 text-[13px]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] text-slate-800 text-[13px]"
               />
             </div>
 
-            {/* Deadline & Status Tindak Lanjut Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            {/* Tenggat Waktu & Status Tindak Lanjut */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
               {/* Deadline (Required) */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1 text-[13px]">
-                  Tenggat Waktu / Deadline <span className="text-red-500">*</span>
+                <label className="block font-semibold text-slate-700 mb-1 text-[12px] flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Tenggat Waktu / Deadline</span>
                 </label>
                 <input
                   type="date"
@@ -938,7 +861,7 @@ export function ActionItemFormDialog({
 
               {/* Status Tindak Lanjut */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1 text-[13px]">
+                <label className="block font-semibold text-slate-700 mb-1 text-[12px]">
                   Status Tindak Lanjut
                 </label>
                 {isEditing ? (

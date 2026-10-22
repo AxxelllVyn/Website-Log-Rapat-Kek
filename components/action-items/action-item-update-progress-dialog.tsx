@@ -86,7 +86,7 @@ export function ActionItemUpdateProgressDialog({
       }
 
       // 2. Link Google Drive Acuan Awal dari Atasan (Tampil di bahan acuan, bukan di input bukti PIC)
-      const refDriveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan):\s*(\S+)/);
+      const refDriveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*(\S+)/);
       let foundDriveAcuan: string | null = null;
       if (refDriveMatch) {
         foundDriveAcuan = normalizeUrl(refDriveMatch[1]);
@@ -107,7 +107,7 @@ export function ActionItemUpdateProgressDialog({
       let cleanDesc = cleanTextWithoutLink(rawDesc);
       cleanDesc = cleanDesc
         .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
-        .replace(/📎 (?:Drive Acuan|Google Drive Acuan):\s*\S+/g, '')
+        .replace(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*\S+/g, '')
         .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
         .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
         .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*[^\n]+/g, '')
