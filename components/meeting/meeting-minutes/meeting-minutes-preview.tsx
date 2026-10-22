@@ -297,28 +297,11 @@ export function MeetingMinutesPreview({
 
           {/* Right: Actions Group (History Button + Edit Button + Export Group) */}
           <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto justify-end">
-            {canApprove && onApproveClick && (
-              isApproved ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[12px] font-bold shadow-2xs whitespace-nowrap">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Hasil Kegiatan Disetujui</span>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isApproving}
-                  onClick={onApproveClick}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[12px] transition-all shadow-xs cursor-pointer disabled:opacity-50 whitespace-nowrap"
-                  title="Admin Tim & Pimpinan: Setujui hasil kegiatan dan tandai Selesai"
-                >
-                  {isApproving ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-100" />
-                  )}
-                  <span>Setujui Hasil Kegiatan</span>
-                </button>
-              )
+            {isApproved && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[12px] font-bold shadow-2xs whitespace-nowrap">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Hasil Kegiatan Disetujui (Selesai)</span>
+              </span>
             )}
 
             {onViewHistoryClick && (

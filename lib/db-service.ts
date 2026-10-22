@@ -223,7 +223,21 @@ export async function getMeetingByIdFromDb(idOrNumber: string) {
           rawProg === 'draft' ||
           (meeting.status === 'DRAFT' && rawProg !== 'Selesai' && rawProg !== 'Dalam Proses');
 
-        if (isDateArrived && isBelumDimulai) {
+        // Auto-complete check: Jika salah satu PIC sudah menyelesaikan tindak lanjut
+        const hasCompletedActionItem =
+          Array.isArray(meeting.actionItems) &&
+          meeting.actionItems.some((ai: any) => ai.status === 'COMPLETED');
+
+        if (hasCompletedActionItem) {
+          (meeting as any).progressStatus = 'Selesai';
+          meeting.status = 'FINAL';
+          if (meeting.status !== 'FINAL' || (meeting as any).progressStatus !== 'Selesai') {
+            prisma.meeting.update({
+              where: { id: meeting.id },
+              data: { progressStatus: 'Selesai', status: 'FINAL' },
+            }).catch(() => {});
+          }
+        } else if (isDateArrived && isBelumDimulai) {
           (meeting as any).progressStatus = 'Dalam Proses';
           meeting.status = 'REVIEW';
           prisma.meeting.update({
@@ -408,6 +422,44 @@ export async function syncAutoStartedMeetings(): Promise<number> {
   }
 }
 
+/**
+ * Sinkronisasi otomatis status kegiatan menjadi 'Selesai' (FINAL)
+ * ketika setidaknya salah satu PIC sudah menyelesaikan hasil tindak lanjut (status === 'COMPLETED').
+ */
+export async function syncAutoCompletedMeetings(): Promise<number> {
+  try {
+    const meetingsToComplete = await prisma.meeting.findMany({
+      where: {
+        actionItems: {
+          some: { status: 'COMPLETED' },
+        },
+        OR: [
+          { status: { not: 'FINAL' } },
+          { progressStatus: { not: 'Selesai' } },
+          { progressStatus: null },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (meetingsToComplete.length === 0) return 0;
+
+    const ids = meetingsToComplete.map((m) => m.id);
+    const result = await prisma.meeting.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        progressStatus: 'Selesai',
+        status: 'FINAL',
+      },
+    });
+
+    return result.count;
+  } catch (error) {
+    console.error('Error auto-completing meetings with completed action items:', error);
+    return 0;
+  }
+}
+
 export async function getMeetingsFromDb(filters?: {
   biroCode?: string | null;
   status?: MeetingStatus | null;
@@ -419,6 +471,8 @@ export async function getMeetingsFromDb(filters?: {
     return await withDbRetry(async () => {
       // Sinkronkan status kegiatan otomatis sesuai tanggal pelaksanaan yang telah tiba
       await syncAutoStartedMeetings().catch(() => {});
+      // Sinkronkan otomatis kegiatan menjadi Selesai jika salah satu PIC telah menyelesaikan tindak lanjut
+      await syncAutoCompletedMeetings().catch(() => {});
 
       const andConditions: any[] = [];
 
@@ -521,13 +575,21 @@ export async function getMeetingsFromDb(filters?: {
           rawProg === 'draft' ||
           (m.status === 'DRAFT' && rawProg !== 'Selesai' && rawProg !== 'Dalam Proses');
 
-        const effectiveStatus = (isDateArrived && isBelumDimulai)
-          ? ('REVIEW' as MeetingStatus)
-          : (m.status as MeetingStatus);
+        // Otomatis Selesai jika salah satu PIC sudah menyelesaikan tindak lanjut
+        const hasCompletedActionItem = completedItems > 0;
+        const isSelesai = hasCompletedActionItem || m.status === 'FINAL' || rawProg === 'Selesai';
 
-        const effectiveProgress = (isDateArrived && isBelumDimulai)
-          ? 'Dalam Proses'
-          : rawProg;
+        const effectiveStatus = isSelesai
+          ? ('FINAL' as MeetingStatus)
+          : (isDateArrived && isBelumDimulai)
+            ? ('REVIEW' as MeetingStatus)
+            : (m.status as MeetingStatus);
+
+        const effectiveProgress = isSelesai
+          ? 'Selesai'
+          : (isDateArrived && isBelumDimulai)
+            ? 'Dalam Proses'
+            : rawProg;
 
         return {
           id: m.id,
@@ -595,6 +657,7 @@ export async function getDashboardStats() {
   try {
     return await withDbRetry(async () => {
       await syncAutoStartedMeetings().catch(() => {});
+      await syncAutoCompletedMeetings().catch(() => {});
 
       const [totalMeetings, totalUsers, totalBiros, approvedMeetings, reviewMeetings, draftMeetings] =
         await Promise.all([

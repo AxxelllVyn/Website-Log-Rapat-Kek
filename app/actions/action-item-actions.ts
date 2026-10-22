@@ -665,7 +665,18 @@ export async function updateActionItemAction(input: UpdateActionItemInput) {
       },
     });
 
-    // 8. Revalidate
+    // 8. Auto-complete meeting if action item is marked COMPLETED
+    if (status === 'COMPLETED' && meetingId) {
+      await prisma.meeting.update({
+        where: { id: meetingId },
+        data: {
+          progressStatus: 'Selesai',
+          status: 'FINAL',
+        },
+      }).catch((err) => console.error('Error auto-completing meeting on action item update:', err));
+    }
+
+    // 9. Revalidate
     safeRevalidate([
       '/',
       '/semua-rapat',
@@ -748,6 +759,16 @@ export async function updateActionItemStatusAction(input: UpdateActionItemStatus
         meeting: true,
       },
     });
+
+    if (status === 'COMPLETED' && existing.meetingId) {
+      await prisma.meeting.update({
+        where: { id: existing.meetingId },
+        data: {
+          progressStatus: 'Selesai',
+          status: 'FINAL',
+        },
+      }).catch((err) => console.error('Error auto-completing meeting on action item status update:', err));
+    }
 
     safeRevalidate([
       '/',
@@ -995,6 +1016,16 @@ export async function addActionItemLogAction(input: AddActionItemLogInput) {
         meeting: true,
       },
     });
+
+    if (targetStatus === 'COMPLETED' && existing.meetingId) {
+      await prisma.meeting.update({
+        where: { id: existing.meetingId },
+        data: {
+          progressStatus: 'Selesai',
+          status: 'FINAL',
+        },
+      }).catch((err) => console.error('Error auto-completing meeting on action item log:', err));
+    }
 
     // Resolve valid user ID for ActionItemLog to prevent foreign key violation
     let validLogUserId: string | null = null;

@@ -455,9 +455,9 @@ export async function updateMeetingStatusAction(
   explicitProgressStatus?: string | null
 ) {
   try {
-    // Authorization Check: SUPER_ADMIN, ADMIN, PIMPINAN, and STAFF can update status
+    // Authorization Check: Hanya SUPER_ADMIN dan ADMIN yang memiliki aksi mengubah status rapat
     const currentUser = await requireAuth();
-    const allowedRoles: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'PIMPINAN', 'STAFF'];
+    const allowedRoles: UserRole[] = ['SUPER_ADMIN', 'ADMIN'];
     if (!allowedRoles.includes(currentUser.role)) {
       return {
         success: false,
@@ -596,11 +596,11 @@ export async function updateMeetingStatusAction(
 export async function approveMeetingAction(meetingId: string) {
   try {
     const currentUser = await requireAuth();
-    const allowedRoles: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'PIMPINAN'];
+    const allowedRoles: UserRole[] = ['SUPER_ADMIN', 'ADMIN'];
     if (!allowedRoles.includes(currentUser.role)) {
       return {
         success: false,
-        error: 'Forbidden: Hanya Admin Tim dan Pimpinan yang dapat menyetujui hasil rapat.',
+        error: 'Forbidden: Hanya Admin Tim dan Super Admin yang dapat menyetujui hasil kegiatan.',
       };
     }
 

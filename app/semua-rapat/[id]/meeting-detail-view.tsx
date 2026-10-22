@@ -202,8 +202,8 @@ export function MeetingDetailView({
       meeting.primaryBiro?.code &&
       session.user.biroCode.toUpperCase() === meeting.primaryBiro.code.toUpperCase());
 
-  const canChangeStatus = !isEffectiveReadOnly && (isPrivileged || (userRole === 'STAFF' && isMyTeam));
-  const canApprove = !isEffectiveReadOnly && isPrivileged;
+  const canChangeStatus = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
+  const canApprove = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
 
   const initialResolvedTab: TabType = initialTab === 'history'
     ? 'minutes'
@@ -967,34 +967,6 @@ export function MeetingDetailView({
         </Link>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Status Jadwal Otomatis */}
-          {currentProgress === 'Belum Dimulai' && !isEffectiveReadOnly && (
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-[12px] font-semibold shadow-2xs"
-              title="Kegiatan akan otomatis dimulai saat tanggal pelaksanaan tiba tanpa perlu aktivasi manual"
-            >
-              <Clock className="w-3.5 h-3.5 text-sky-600" />
-              <span>Otomatis Mulai {formattedDate}</span>
-            </span>
-          )}
-
-          {/* Tombol Setujui Hasil Kegiatan (Admin & Pimpinan: Otomatis ubah status ke Selesai) */}
-          {currentProgress === 'Dalam Proses' && canApprove && (
-            <button
-              type="button"
-              disabled={isUpdatingStatus}
-              onClick={handleApproveMeeting}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold transition-all shadow-xs cursor-pointer group disabled:opacity-50"
-              title="Admin & Pimpinan: Setujui hasil kegiatan dan tandai Selesai"
-            >
-              {isUpdatingStatus ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-100 group-hover:scale-110 transition-transform" />
-              )}
-              <span>Setujui Hasil Kegiatan</span>
-            </button>
-          )}
 
           {/* Status Selesai / Disetujui Badge */}
           {currentProgress === 'Selesai' && (

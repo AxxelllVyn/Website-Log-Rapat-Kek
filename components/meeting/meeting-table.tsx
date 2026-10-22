@@ -160,9 +160,11 @@ export function MeetingTable({
     return matchCode || matchId;
   };
 
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
-  const canUpdateStatus = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN' || userRole === 'STAFF';
-  const canApprove = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
+  // Aksi hanya untuk SUPER_ADMIN dan ADMIN. Dihilangkan untuk role STAFF dan PIMPINAN.
+  const canPerformAction = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+  const canDeleteMeeting = canPerformAction;
+  const canUpdateStatus = canPerformAction;
+  const canApprove = canPerformAction;
 
   const countBelumDimulai = useMemo(
     () => meetings.filter((m) => normalizeProgressStatus(m.progressStatus || mapStatusToProgress(m.status)) === 'Belum Dimulai').length,
@@ -672,10 +674,10 @@ export function MeetingTable({
     <div className="rounded-2xl bg-white shadow-xs border border-slate-200/90 overflow-hidden flex flex-col">
       {/* Table Card Header (Conditional) */}
       {!hideHeader && (
-        <div className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-[#F8FAFC] border-b border-slate-200">
-          <div>
+        <div className="p-4 sm:p-5 lg:p-6 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-[#F8FAFC] border-b border-slate-200">
+          <div className="min-w-0 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#31889C]"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#31889C] shrink-0"></span>
               <h2 className="font-bold text-[18px] text-slate-900">
                 {onViewAllMeetings ? 'Kegiatan & Aktivitas Biro 3 Terkini' : 'Semua Kegiatan & Aktivitas Biro 3'}
               </h2>
@@ -687,7 +689,7 @@ export function MeetingTable({
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
             {/* Clickable Status Filter Dropdown */}
             <div className="relative shrink-0" ref={statusDropdownRef}>
               <button
@@ -894,7 +896,7 @@ export function MeetingTable({
                 value={effectiveSearch}
                 onChange={(e) => setEffectiveSearch(e.target.value)}
                 placeholder="Cari nomor/agenda..."
-                className="pl-8 pr-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C] shadow-2xs w-full sm:w-auto"
+                className="pl-8 pr-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C] shadow-2xs w-full sm:w-44 md:w-52"
               />
               <Filter className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#31889C] pointer-events-none" />
             </div>
@@ -904,7 +906,7 @@ export function MeetingTable({
               <button
                 type="button"
                 onClick={onViewAllMeetings}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#31889C] text-white hover:bg-[#266F80] transition-all text-[12.5px] font-semibold shadow-xs cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-[#31889C] text-white hover:bg-[#266F80] transition-all text-[12px] sm:text-[12.5px] font-semibold shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
               >
                 <span>Buka Semua Arsip Kegiatan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -923,7 +925,9 @@ export function MeetingTable({
               <th className="py-3 px-3 sm:px-3.5">Nama Kegiatan</th>
               <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap">Tim Pelaksana</th>
               <th className="py-3 px-3 sm:px-3.5 whitespace-nowrap" title="Status Pemantauan Pekerjaan: Belum Dimulai -> Dalam Proses -> Selesai">Status Pekerjaan</th>
-              <th className="py-3 px-3 sm:px-3.5 text-right sticky right-0 bg-[#F8FAFC] z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50 whitespace-nowrap">Aksi</th>
+              {canPerformAction && (
+                <th className="py-3 px-3 sm:px-3.5 text-right sticky right-0 bg-[#F8FAFC] z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50 whitespace-nowrap">Aksi</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 text-[13px]">
@@ -945,15 +949,17 @@ export function MeetingTable({
                   <td className="py-3.5 px-3 sm:px-3.5">
                     <div className="h-5 bg-slate-100 rounded-full w-20"></div>
                   </td>
-                  <td className="py-3.5 px-3 sm:px-3.5 text-right sticky right-0 bg-white z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50">
-                    <div className="h-7 bg-slate-100 rounded-lg w-24 ml-auto"></div>
-                  </td>
+                  {canPerformAction && (
+                    <td className="py-3.5 px-3 sm:px-3.5 text-right sticky right-0 bg-white z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/50">
+                      <div className="h-7 bg-slate-100 rounded-lg w-24 ml-auto"></div>
+                    </td>
+                  )}
                 </tr>
               ))
             ) : filteredMeetings.length === 0 ? (
               // Empty State
               <tr>
-                <td colSpan={5} className="py-12 px-4 text-center">
+                <td colSpan={canPerformAction ? 5 : 4} className="py-12 px-4 text-center">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
                     <div className="w-12 h-12 rounded-full bg-[#F0F9FA] border border-[#BCE3EB] flex items-center justify-center text-[#31889C]">
                       <SearchX className="w-6 h-6" />
@@ -1122,102 +1128,36 @@ export function MeetingTable({
                     </td>
 
 
-                    {/* Aksi */}
-                    <td className="py-3 px-3 sm:px-3.5 align-top text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-[#F0F9FA] z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/40 transition-colors">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Dynamic Quick Action: Mulai Kegiatan / Setujui Hasil Kegiatan */}
-                        {(() => {
-                          const isOwned = isMeetingOwnedByUser(meeting);
-                          const canManageThisMeeting = isOwned;
-
-                          if (!canManageThisMeeting) {
-                            return (
-                              <span
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-medium whitespace-nowrap shrink-0"
-                                title="Kegiatan tim kerja lain (Akses Hanya Lihat)"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-slate-400" />
-                                <span>Lihat Saja</span>
-                              </span>
-                            );
-                          }
-
-                          const curProg = normalizeProgressStatus(
-                            meeting.progressStatus || mapStatusToProgress(meeting.status)
-                          );
-                          const isBelumDimulai = curProg === 'Belum Dimulai';
-                          const isDalamProses = curProg === 'Dalam Proses';
-                          const isSelesai = curProg === 'Selesai';
-                          const isUpdatingThis = updatingStatusId === meeting.id;
-
-                          if (isBelumDimulai) {
-                            const meetingDateObj = meeting.date ? new Date(meeting.date) : null;
-                            const formattedSchedule = meetingDateObj && !isNaN(meetingDateObj.getTime())
-                              ? meetingDateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-                              : meeting.date;
-
-                            return (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200/80 text-[11px] font-semibold whitespace-nowrap shrink-0 shadow-2xs"
-                                title={`Kegiatan terjadwal otomatis mulai pada tanggal pelaksanaan (${meeting.date}) tanpa perlu aktivasi manual.`}
-                              >
-                                <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                                <span>Otomatis Mulai {formattedSchedule}</span>
-                              </span>
-                            );
-                          }
-
-                          if (isDalamProses && canApprove) {
-                            return (
-                              <button
-                                type="button"
-                                disabled={isUpdatingThis}
-                                onClick={() => handleApproveMeeting(meeting)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
-                                title="Admin & Pimpinan: Setujui hasil kegiatan (Otomatis ubah status ke Selesai)"
-                              >
-                                {isUpdatingThis ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="w-3 h-3" />
-                                )}
-                                <span>Setujui Hasil</span>
-                              </button>
-                            );
-                          }
-
-                          if (isSelesai) {
-                            return (
-                              <span
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10.5px] font-bold whitespace-nowrap shrink-0"
-                                title="Kegiatan telah disahkan dan berstatus Selesai"
-                              >
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Selesai</span>
-                              </span>
-                            );
-                          }
-
-                          return null;
-                        })()}
-
-                        {isMeetingOwnedByUser(meeting) && canDeleteMeeting && (
-                          <button
-                            type="button"
-                            disabled={deletingRowId === meeting.id}
-                            onClick={() => handleDeleteSingleMeeting(meeting)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
-                            title={`Hapus Kegiatan ${meeting.code}`}
-                          >
-                            {deletingRowId === meeting.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-red-600" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    {/* Aksi (hanya untuk SUPER_ADMIN dan ADMIN) */}
+                    {canPerformAction && (
+                      <td className="py-3 px-3 sm:px-3.5 align-top text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-[#F0F9FA] z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-200/40 transition-colors">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {!isMeetingOwnedByUser(meeting) ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-medium whitespace-nowrap shrink-0"
+                              title="Kegiatan tim kerja lain (Akses Hanya Lihat)"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Lihat Saja</span>
+                            </span>
+                          ) : canDeleteMeeting ? (
+                            <button
+                              type="button"
+                              disabled={deletingRowId === meeting.id}
+                              onClick={() => handleDeleteSingleMeeting(meeting)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                              title={`Hapus Kegiatan ${meeting.code}`}
+                            >
+                              {deletingRowId === meeting.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })

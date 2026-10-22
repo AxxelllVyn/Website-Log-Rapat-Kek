@@ -81,8 +81,8 @@ export function MeetingDetailDialog({
     (session?.user?.biroCode &&
       meeting?.biroCode &&
       session.user.biroCode.toUpperCase() === meeting.biroCode.toUpperCase());
-  const canChangeStatus = !isEffectiveReadOnly && (isPrivileged || (userRole === 'STAFF' && isMyTeam));
-  const canApprove = !isEffectiveReadOnly && isPrivileged;
+  const canChangeStatus = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
+  const canApprove = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
 
   const [activeTab, setActiveTab] = useState<'info' | 'minutes' | 'actionItems'>('info');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -363,33 +363,6 @@ export function MeetingDetailDialog({
               </button>
             )}
 
-            {/* Quick Action: Status Terjadwal */}
-            {isBelumDimulai && (
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-semibold"
-                title="Kegiatan otomatis mulai saat tanggal pelaksanaan tiba tanpa perlu aktivasi manual"
-              >
-                <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                <span>Otomatis Mulai {meeting?.date}</span>
-              </span>
-            )}
-
-            {currentProg === 'Dalam Proses' && canApprove && (
-              <button
-                type="button"
-                disabled={isUpdatingStatus}
-                onClick={handleApproveMeeting}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
-                title="Admin Tim & Pimpinan: Setujui hasil kegiatan (Otomatis ubah status ke Selesai)"
-              >
-                {isUpdatingStatus ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                )}
-                <span>Setujui Hasil Kegiatan</span>
-              </button>
-            )}
 
             {currentProg === 'Selesai' && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200">
