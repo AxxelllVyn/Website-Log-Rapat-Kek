@@ -7,14 +7,10 @@ import {
   Radio,
   Layers,
   ChevronRight,
-  CheckCircle2,
-  Clock,
   Calendar,
   Users,
   Sparkles,
   ArrowUpRight,
-  LayoutGrid,
-  Table as TableIcon,
   Search,
   Cpu,
   ShieldAlert,
@@ -27,22 +23,17 @@ interface TeamWorkloadGridProps {
   onTeamClick: (team: TeamWorkloadMetric) => void;
 }
 
-type ViewMode = 'grid' | 'table';
-type FilterStatus = 'all' | 'attention' | 'top';
+// Urutan tim kanonikal Biro 3, namun tetap menampilkan tim dinamis lainnya jika ada
+const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA', 'UMUM'];
 
 export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-
-  // Urutan tim kanonikal Biro 3, namun tetap menampilkan tim dinamis lainnya jika ada
-  const CANONICAL_CODES = ['INV', 'KS', 'KOM', 'SI', 'POKJA', 'UMUM'];
 
   const allTeams = useMemo(() => {
     if (!teams || teams.length === 0) return [];
     return [...teams].sort((a, b) => {
-      const idxA = CANONICAL_CODES.indexOf(a.code.toUpperCase());
-      const idxB = CANONICAL_CODES.indexOf(b.code.toUpperCase());
+      const idxA = CANONICAL_CODES.indexOf((a.code || '').toUpperCase());
+      const idxB = CANONICAL_CODES.indexOf((b.code || '').toUpperCase());
       if (idxA !== -1 && idxB !== -1) return idxA - idxB;
       if (idxA !== -1) return -1;
       if (idxB !== -1) return 1;
@@ -53,7 +44,7 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
   // Filter & Search untuk Pimpinan jika jumlah tim banyak
   const filteredTeams = useMemo(() => {
     return allTeams.filter((team) => {
-      // 1. Text Search
+      // Text Search
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         const matchName =
@@ -63,24 +54,16 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
         if (!matchName && !matchCode) return false;
       }
 
-      // 2. Status Filter
-      if (filterStatus === 'attention') {
-        return (team.inProgressJobs || 0) > 0 || (team.pendingJobs || 0) > 0;
-      }
-      if (filterStatus === 'top') {
-        return team.completionRate >= 60;
-      }
-
       return true;
     });
-  }, [allTeams, searchQuery, filterStatus]);
+  }, [allTeams, searchQuery]);
 
   if (!allTeams || allTeams.length === 0) {
     return null;
   }
 
   const getTeamIcon = (code: string) => {
-    switch (code.toUpperCase()) {
+    switch ((code || '').toUpperCase()) {
       case 'INV':
         return <Briefcase className="w-5 h-5 text-[#1E6B7B]" />;
       case 'KS':
@@ -95,7 +78,7 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
   };
 
   const getTeamColors = (code: string) => {
-    switch (code.toUpperCase()) {
+    switch ((code || '').toUpperCase()) {
       case 'INV':
         return {
           gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
@@ -144,10 +127,6 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
     }
   };
 
-  const attentionCount = allTeams.filter(
-    (t) => (t.pendingJobs || 0) + (t.inProgressJobs || 0) > 0 && t.completionRate < 100
-  ).length;
-
   return (
     <section aria-label="Monitoring Beban Kerja Tim" className="w-full space-y-4">
       {/* 1. Header & Controls */}
@@ -170,428 +149,190 @@ export function TeamWorkloadGrid({ teams, onTeamClick }: TeamWorkloadGridProps) 
           </p>
         </div>
 
-        {/* View Switcher & Helper */}
-        <div className="flex items-center gap-2 self-start lg:self-center">
-          <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex items-center shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                viewMode === 'grid'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              )}
-              title="Tampilan Grid Kartu"
-              aria-label="Tampilan Grid Kartu"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Kartu</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                viewMode === 'table'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              )}
-              title="Tampilan Matriks Tabel (Efisien untuk banyak tim)"
-              aria-label="Tampilan Matriks Tabel"
-            >
-              <TableIcon className="w-3.5 h-3.5" />
-              <span>Tabel Eksekutif</span>
-            </button>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
-            <span>💡</span>
-            <span>Klik tim untuk rincian</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Toolbar: Search & Filter Pills (Jika tim banyak) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-0.5">
         {/* Search Input */}
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative w-full sm:w-64 self-start sm:self-center">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama atau kode tim..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/30 focus:border-[#1E6B7B] transition-all"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/30 focus:border-[#1E6B7B] transition-all shadow-2xs"
           />
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          <button
-            type="button"
-            onClick={() => setFilterStatus('all')}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border',
-              filterStatus === 'all'
-                ? 'bg-[#1E6B7B] text-white border-[#1E6B7B] shadow-2xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            )}
-          >
-            Semua ({allTeams.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterStatus('attention')}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border',
-              filterStatus === 'attention'
-                ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'
-            )}
-          >
-            Butuh Atensi ({attentionCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterStatus('top')}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border',
-              filterStatus === 'top'
-                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-50'
-            )}
-          >
-            Progres Tinggi (&ge;60%)
-          </button>
         </div>
       </div>
 
-      {/* 3. Display Content: MODE TABEL EKSEKUTIF */}
-      {viewMode === 'table' && (
-        <div className="w-full bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-slate-500 font-semibold tracking-wider uppercase text-[10.5px]">
-                  <th className="py-3 px-4">Tim Kerja</th>
-                  <th className="py-3 px-3 text-center">Staf</th>
-                  <th className="py-3 px-3 text-center">Kegiatan</th>
-                  <th className="py-3 px-4 text-center">Total Beban</th>
-                  <th className="py-3 px-4 min-w-[180px]">Progres Penyelesaian</th>
-                  <th className="py-3 px-4 text-center">Rincian Status</th>
-                  <th className="py-3 px-4 text-center">Kinerja</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredTeams.map((team) => {
-                  const colors = getTeamColors(team.code);
-                  const total = team.totalJobs || 0;
-                  const completed = team.completedJobs || 0;
-                  const inProgress = team.inProgressJobs || 0;
-                  const pending = team.pendingJobs || 0;
-                  const pCompleted = total > 0 ? Math.round((completed / total) * 100) : 0;
-                  const pInProgress = total > 0 ? Math.round((inProgress / total) * 100) : 0;
-                  const pPending = total > 0 ? Math.max(0, 100 - pCompleted - pInProgress) : 0;
+      {/* Grid Kartu Tim */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredTeams.map((team) => {
+          const colors = getTeamColors(team.code);
+          const total = team.totalJobs || 0;
+          const completed = team.completedJobs || 0;
+          const inProgress = team.inProgressJobs || 0;
+          const pending = team.pendingJobs || 0;
+          const pCompleted = total > 0 ? Math.round((completed / total) * 100) : 0;
+          const pInProgress = total > 0 ? Math.round((inProgress / total) * 100) : 0;
+          const pPending = total > 0 ? Math.max(0, 100 - pCompleted - pInProgress) : 0;
 
-                  return (
-                    <tr
-                      key={team.id}
-                      onClick={() => onTeamClick(team)}
-                      className="hover:bg-[#F0F8FA]/60 transition-colors cursor-pointer group"
-                    >
-                      {/* Tim Info */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-slate-200/80', colors.lightBg)}>
-                            {getTeamIcon(team.code)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className={cn('text-[10px] font-bold px-1.5 py-0.2 rounded-md border', colors.badgeBg)}>
-                                {team.code}
-                              </span>
-                              <span className="font-bold text-slate-900 group-hover:text-[#1E6B7B] transition-colors">
-                                {team.fullName}
-                              </span>
-                            </div>
-                            {team.description && (
-                              <p className="text-[11px] text-slate-400 truncate max-w-xs">{team.description}</p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Anggota Staf */}
-                      <td className="py-3 px-3 text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-[11px]">
-                          <Users className="w-3 h-3 text-slate-400" />
-                          {team.memberCount}
-                        </span>
-                      </td>
-
-                      {/* Jumlah Kegiatan */}
-                      <td className="py-3 px-3 text-center">
-                        <span className="font-bold text-slate-900 text-sm tabular-nums">
-                          {team.meetingCount}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block font-medium">kegiatan</span>
-                      </td>
-
-                      {/* Total Tugas */}
-                      <td className="py-3 px-4 text-center">
-                        <span className="font-extrabold text-slate-800 text-sm tabular-nums">
-                          {team.totalJobs}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block font-medium">item</span>
-                      </td>
-
-                      {/* Progres Bar Visual */}
-                      <td className="py-3 px-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-slate-800 tabular-nums">{team.completionRate}%</span>
-                            <span className="text-slate-400 text-[10px] font-medium">{completed} dari {total} tuntas</span>
-                          </div>
-                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-2xs">
-                            <div style={{ width: `${pCompleted}%` }} className="bg-emerald-500 transition-all duration-300" title={`Selesai: ${completed}`} />
-                            <div style={{ width: `${pInProgress}%` }} className="bg-amber-400 transition-all duration-300" title={`Dalam Proses: ${inProgress}`} />
-                            <div style={{ width: `${pPending}%` }} className="bg-slate-300 transition-all duration-300" title={`Belum Dimulai: ${pending}`} />
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Status Pills */}
-                      <td className="py-3 px-4 text-center">
-                        <div className="inline-flex items-center gap-1.5 text-[11px] font-bold">
-                          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md" title="Selesai">
-                            {completed}
-                          </span>
-                          <span className="text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md" title="Dalam Proses">
-                            {inProgress}
-                          </span>
-                          <span className="text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md" title="Belum Dimulai">
-                            {pending}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Tag Kinerja */}
-                      <td className="py-3 px-4 text-center">
-                        {team.completionRate >= 80 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Kinerja Prima
-                          </span>
-                        ) : team.completionRate >= 40 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            <Clock className="w-3 h-3 text-amber-600" />
-                            Aktif Berjalan
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            <Clock className="w-3 h-3 text-slate-500" />
-                            Perlu Atensi
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Detail CTA */}
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#1E6B7B] hover:bg-[#E8F5F7] group-hover:bg-[#1E6B7B] group-hover:text-white transition-all cursor-pointer"
-                        >
-                          <span>Rincian</span>
-                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Display Content: MODE KARTU GRID ADAPTIF */}
-      {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredTeams.map((team) => {
-            const colors = getTeamColors(team.code);
-            const total = team.totalJobs || 0;
-            const completed = team.completedJobs || 0;
-            const inProgress = team.inProgressJobs || 0;
-            const pending = team.pendingJobs || 0;
-            const pCompleted = total > 0 ? Math.round((completed / total) * 100) : 0;
-            const pInProgress = total > 0 ? Math.round((inProgress / total) * 100) : 0;
-            const pPending = total > 0 ? Math.max(0, 100 - pCompleted - pInProgress) : 0;
-
-            return (
+          return (
+            <div
+              key={team.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onTeamClick(team)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onTeamClick(team);
+                }
+              }}
+              className={cn(
+                'group relative rounded-2xl bg-white border border-slate-200 p-4 shadow-2xs transition-all duration-200 text-left cursor-pointer flex flex-col justify-between overflow-hidden',
+                colors.borderHover,
+                colors.cardGlow,
+                'hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/30'
+              )}
+            >
+              {/* Ambient Top Gradient */}
               <div
-                key={team.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onTeamClick(team)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onTeamClick(team);
-                  }
-                }}
                 className={cn(
-                  'group relative rounded-2xl bg-white border border-slate-200 p-4 shadow-2xs transition-all duration-200 text-left cursor-pointer flex flex-col justify-between overflow-hidden',
-                  colors.borderHover,
-                  colors.cardGlow,
-                  'hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/30'
+                  'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b opacity-50 pointer-events-none transition-opacity group-hover:opacity-100',
+                  colors.gradient
                 )}
-              >
-                {/* Ambient Top Gradient */}
-                <div
-                  className={cn(
-                    'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b opacity-50 pointer-events-none transition-opacity group-hover:opacity-100',
-                    colors.gradient
-                  )}
-                />
+              />
 
-                <div className="relative z-10">
-                  {/* Card Header: Icon, Badge, Team Name, Arrow */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center border shadow-2xs transition-transform duration-200 group-hover:scale-105 shrink-0',
-                          colors.lightBg,
-                          'border-slate-200/80'
-                        )}
-                      >
-                        {getTeamIcon(team.code)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className={cn(
-                              'text-[10px] font-bold px-1.5 py-0.2 rounded-md border',
-                              colors.badgeBg
-                            )}
-                          >
-                            TIM {team.code}
-                          </span>
-                          {team.memberCount > 0 && (
-                            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {team.memberCount} staf
-                            </span>
+              <div className="relative z-10">
+                {/* Card Header: Icon, Badge, Team Name, Arrow */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center border shadow-2xs transition-transform duration-200 group-hover:scale-105 shrink-0',
+                        colors.lightBg,
+                        'border-slate-200/80'
+                      )}
+                    >
+                      {getTeamIcon(team.code)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={cn(
+                            'text-[10px] font-bold px-1.5 py-0.2 rounded-md border',
+                            colors.badgeBg
                           )}
-                        </div>
-                        <h3 className="font-bold text-[15px] text-slate-900 group-hover:text-[#1E6B7B] transition-colors truncate mt-0.5" title={team.fullName}>
-                          {team.fullName}
-                        </h3>
+                        >
+                          TIM {team.code}
+                        </span>
+                        {team.memberCount > 0 && (
+                          <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {team.memberCount} staf
+                          </span>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-[#1E6B7B] flex items-center justify-center shrink-0 transition-colors">
-                      <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+                      <h3 className="font-bold text-[15px] text-slate-900 group-hover:text-[#1E6B7B] transition-colors truncate mt-0.5" title={team.fullName}>
+                        {team.fullName}
+                      </h3>
                     </div>
                   </div>
 
-                  {/* Metric: Jumlah Kegiatan */}
-                  <div className="bg-slate-50/90 rounded-xl px-3 py-2 border border-slate-100 mb-3 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-slate-600 text-xs font-medium">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Jumlah Kegiatan</span>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-base font-extrabold text-slate-900 tabular-nums">
-                        {team.meetingCount}
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-[#1E6B7B] flex items-center justify-center shrink-0 transition-colors">
+                    <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+                  </div>
+                </div>
+
+                {/* Metric: Jumlah Kegiatan */}
+                <div className="bg-slate-50/90 rounded-xl px-3 py-2 border border-slate-100 mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-slate-600 text-xs font-medium">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Jumlah Kegiatan</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-base font-extrabold text-slate-900 tabular-nums">
+                      {team.meetingCount}
+                    </span>
+                    <span className="text-[10.5px] font-medium text-slate-400">kegiatan</span>
+                  </div>
+                </div>
+
+                {/* Status 3 Kotak (Menunggu, Proses, Selesai) - Label Ringkas & Anti-Truncate */}
+                <div className="space-y-1.5 mb-3">
+                  <div className="flex items-center justify-between text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <span>Status Tiap Pekerjaan</span>
+                    <span className="text-slate-700 font-bold">{team.totalJobs} Total</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {/* Belum Dimulai */}
+                    <div className="bg-sky-50/60 border border-sky-100 rounded-xl p-2 text-center group-hover:bg-sky-50 transition-colors">
+                      <span className="text-[10px] font-bold text-sky-800 block truncate" title="Belum Dimulai">
+                        Menunggu
                       </span>
-                      <span className="text-[10.5px] font-medium text-slate-400">kegiatan</span>
-                    </div>
-                  </div>
-
-                  {/* Status 3 Kotak (Menunggu, Proses, Selesai) - Label Ringkas & Anti-Truncate */}
-                  <div className="space-y-1.5 mb-3">
-                    <div className="flex items-center justify-between text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
-                      <span>Status Tiap Pekerjaan</span>
-                      <span className="text-slate-700 font-bold">{team.totalJobs} Total</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {/* Belum Dimulai */}
-                      <div className="bg-sky-50/60 border border-sky-100 rounded-xl p-2 text-center group-hover:bg-sky-50 transition-colors">
-                        <span className="text-[10px] font-bold text-sky-800 block truncate" title="Belum Dimulai">
-                          Menunggu
-                        </span>
-                        <span className="text-base font-black text-sky-700 tabular-nums">
-                          {pending}
-                        </span>
-                      </div>
-
-                      {/* Dalam Proses */}
-                      <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-2 text-center group-hover:bg-amber-50 transition-colors">
-                        <span className="text-[10px] font-bold text-amber-800 block truncate" title="Dalam Proses">
-                          Proses
-                        </span>
-                        <span className="text-base font-black text-amber-700 tabular-nums">
-                          {inProgress}
-                        </span>
-                      </div>
-
-                      {/* Selesai */}
-                      <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-2 text-center group-hover:bg-emerald-50 transition-colors">
-                        <span className="text-[10px] font-bold text-emerald-800 block truncate" title="Selesai">
-                          Selesai
-                        </span>
-                        <span className="text-base font-black text-emerald-700 tabular-nums">
-                          {completed}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stacked Progress Bar & Completion Rate */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-600 text-[11px]">Tingkat Penyelesaian</span>
-                      <span className="font-bold text-slate-900 tabular-nums text-xs">
-                        {team.completionRate}%
+                      <span className="text-base font-black text-sky-700 tabular-nums">
+                        {pending}
                       </span>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-2xs">
-                      <div style={{ width: `${pCompleted}%` }} className="bg-emerald-500 transition-all duration-300" title={`Selesai: ${completed}`} />
-                      <div style={{ width: `${pInProgress}%` }} className="bg-amber-400 transition-all duration-300" title={`Dalam Proses: ${inProgress}`} />
-                      <div style={{ width: `${pPending}%` }} className="bg-slate-300 transition-all duration-300" title={`Belum Dimulai: ${pending}`} />
+
+                    {/* Dalam Proses */}
+                    <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-2 text-center group-hover:bg-amber-50 transition-colors">
+                      <span className="text-[10px] font-bold text-amber-800 block truncate" title="Dalam Proses">
+                        Proses
+                      </span>
+                      <span className="text-base font-black text-amber-700 tabular-nums">
+                        {inProgress}
+                      </span>
+                    </div>
+
+                    {/* Selesai */}
+                    <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-2 text-center group-hover:bg-emerald-50 transition-colors">
+                      <span className="text-[10px] font-bold text-emerald-800 block truncate" title="Selesai">
+                        Selesai
+                      </span>
+                      <span className="text-base font-black text-emerald-700 tabular-nums">
+                        {completed}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Card Footer: Detail Link with Chevron */}
-                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-[#1E6B7B] transition-colors">
-                  <span>Lihat Detail Tim &amp; Hasil</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#1E6B7B] group-hover:translate-x-1 transition-all" />
+                {/* Stacked Progress Bar & Completion Rate */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-600 text-[11px]">Tingkat Penyelesaian</span>
+                    <span className="font-bold text-slate-900 tabular-nums text-xs">
+                      {team.completionRate}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-2xs">
+                    <div style={{ width: `${pCompleted}%` }} className="bg-emerald-500 transition-all duration-300" title={`Selesai: ${completed}`} />
+                    <div style={{ width: `${pInProgress}%` }} className="bg-amber-400 transition-all duration-300" title={`Dalam Proses: ${inProgress}`} />
+                    <div style={{ width: `${pPending}%` }} className="bg-slate-300 transition-all duration-300" title={`Belum Dimulai: ${pending}`} />
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+
+              {/* Card Footer: Detail Link with Chevron */}
+              <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-[#1E6B7B] transition-colors">
+                <span>Lihat Detail Tim &amp; Hasil</span>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#1E6B7B] group-hover:translate-x-1 transition-all" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Empty State */}
       {filteredTeams.length === 0 && (
         <div className="text-center py-10 bg-white border border-slate-200 rounded-2xl p-6">
           <ShieldAlert className="w-10 h-10 text-slate-300 mx-auto mb-2" />
           <h3 className="text-sm font-bold text-slate-700">Tidak ada tim yang cocok</h3>
-          <p className="text-xs text-slate-400 mt-1">Coba ubah kata kunci pencarian atau reset filter.</p>
+          <p className="text-xs text-slate-400 mt-1">Coba ubah kata kunci pencarian.</p>
           <button
             type="button"
-            onClick={() => {
-              setSearchQuery('');
-              setFilterStatus('all');
-            }}
+            onClick={() => setSearchQuery('')}
             className="mt-3 text-xs font-bold text-[#1E6B7B] hover:underline cursor-pointer"
           >
-            Reset Filter
+            Hapus Pencarian
           </button>
         </div>
       )}
