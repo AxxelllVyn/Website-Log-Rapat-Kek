@@ -155,7 +155,6 @@ export function UserManagementView({
   // Form Fields
   const defaultTeamId = myTeam?.id || currentUserTeamId || teamsList[0]?.id || 'TIM-001';
   const [formName, setFormName] = useState('');
-  const [formUsername, setFormUsername] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formRole, setFormRole] = useState<UserRole>('STAFF');
@@ -167,7 +166,6 @@ export function UserManagementView({
   const handleOpenCreate = () => {
     setEditingUser(null);
     setFormName('');
-    setFormUsername('');
     setFormEmail('');
     setFormPassword('');
     setFormRole('STAFF');
@@ -188,7 +186,6 @@ export function UserManagementView({
     setEditingUser(user);
     // Bersihkan suffix role agar hanya menyisakan nama & gelar di input teks
     setFormName(stripRoleSuffix(user.name));
-    setFormUsername(user.username || '');
     setFormEmail(user.email);
     setFormPassword('');
     setFormRole(user.role);
@@ -230,7 +227,7 @@ export function UserManagementView({
         const res = await updateUserAction({
           id: editingUser.id,
           name: finalFullName,
-          username: formUsername.trim() || null,
+          username: undefined,
           email: formEmail,
           password: formPassword || null,
           role: formRole,
@@ -253,7 +250,7 @@ export function UserManagementView({
       } else {
         const res = await createUserAction({
           name: finalFullName,
-          username: formUsername.trim() || null,
+          username: undefined,
           email: formEmail,
           password: formPassword,
           role: formRole,
@@ -880,31 +877,6 @@ export function UserManagementView({
                   onChange={(e) => setFormEmail(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] text-slate-900 text-[13px]"
                 />
-              </div>
-
-              {/* Username Login */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block font-bold text-slate-800">
-                    Username Login <span className="text-slate-400 font-normal text-xs">(Opsional)</span>
-                  </label>
-                  <span className="text-[11px] text-[#31889C] font-semibold">
-                    Dapat dibuat sendiri oleh pengguna
-                  </span>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 font-mono text-[13px]">@</span>
-                  <input
-                    type="text"
-                    placeholder="contoh: mayapuspita atau maya123"
-                    value={formUsername}
-                    onChange={(e) => setFormUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
-                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] font-mono text-[13px] text-slate-900"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  ID pengguna untuk login tanpa mengetik email panjang. Pengguna juga dapat membuat atau mengubah username ini kapan saja di menu Pengaturan.
-                </p>
               </div>
 
               {/* Password */}

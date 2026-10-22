@@ -18,7 +18,7 @@ const updateProfileSchema = z.object({
     .optional()
     .nullable(),
   email: z.string().trim().email('Format email dinas tidak valid'),
-  biroId: z.string().min(1, 'Penugasan biro wajib dipilih'),
+  biroId: z.string().optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string().optional(),
   confirmPassword: z.string().optional(),
@@ -96,6 +96,8 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
       return { success: false, error: 'Pengguna tidak ditemukan.' };
     }
 
+    const isStaff = existingUser.role === 'STAFF';
+
     // Check username uniqueness if provided
     const normalizedUsername = username ? username.trim().toLowerCase() : null;
     if (normalizedUsername && normalizedUsername !== existingUser.username?.toLowerCase()) {
@@ -107,9 +109,9 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
       }
     }
 
-    // Check email uniqueness if email changed
+    // Check email uniqueness if email changed and user is not STAFF
     const normalizedEmail = email.toLowerCase();
-    if (normalizedEmail !== existingUser.email.toLowerCase()) {
+    if (!isStaff && normalizedEmail !== existingUser.email.toLowerCase()) {
       const emailConflict = await prisma.user.findUnique({
         where: { email: normalizedEmail },
       });
@@ -118,13 +120,24 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
       }
     }
 
-    // Verify Biro exists
-    const biro = await prisma.biro.findUnique({
-      where: { id: biroId },
-    });
-    if (!biro) {
-      return { success: false, error: 'Biro penugasan tidak valid.' };
+    // Verify Biro if changed
+    const targetBiroId = biroId || existingUser.biroId;
+    if (targetBiroId !== existingUser.biroId) {
+      const biro = await prisma.biro.findUnique({
+        where: { id: targetBiroId },
+      });
+      if (!biro) {
+        return { success: false, error: 'Biro penugasan tidak valid.' };
+      }
     }
+
+    // Staff cannot change their own full name or email address (can only be configured by Super Admin)
+    const finalName = isStaff
+      ? existingUser.name
+      : formatUserFullName(name, existingUser.role);
+    const finalEmail = isStaff
+      ? existingUser.email
+      : normalizedEmail;
 
     // Handle password change if requested
     let updatedPasswordHash: string | undefined = undefined;
@@ -156,10 +169,10 @@ export async function updateCurrentUserProfileAction(input: UpdateProfileInput) 
     const updatedUser = await prisma.user.update({
       where: { id: authUser.id },
       data: {
-        name: formatUserFullName(name, existingUser.role),
+        name: finalName,
         username: normalizedUsername,
-        email: normalizedEmail,
-        biroId,
+        email: finalEmail,
+        biroId: targetBiroId,
         ...(updatedPasswordHash ? { password: updatedPasswordHash } : {}),
       },
       include: {

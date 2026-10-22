@@ -56,8 +56,9 @@ export function PengaturanClient({
   const [name, setName] = useState(stripRoleSuffix(initialUser?.name || ''));
   const [username, setUsername] = useState(initialUser?.username || '');
   const [email, setEmail] = useState(initialUser?.email || '');
-  const [biroId, setBiroId] = useState(initialUser?.biroId || availableBiros[0]?.id || '');
+  const [biroId] = useState(initialUser?.biroId || availableBiros[0]?.id || '');
   const role = initialUser?.role || 'STAFF';
+  const isStaff = role === 'STAFF';
 
   // Password fields
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -74,11 +75,11 @@ export function PengaturanClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
+    if (!isStaff && !name.trim()) {
       toast.warning('Nama lengkap tidak boleh kosong.');
       return;
     }
-    if (!email.trim()) {
+    if (!isStaff && !email.trim()) {
       toast.warning('Email dinas tidak boleh kosong.');
       return;
     }
@@ -100,11 +101,13 @@ export function PengaturanClient({
 
     try {
       setIsSaving(true);
-      const formattedFullName = formatUserFullName(name.trim(), role);
+      const formattedFullName = isStaff
+        ? (initialUser?.name || name)
+        : formatUserFullName(name.trim(), role);
       const res = await updateCurrentUserProfileAction({
         name: formattedFullName,
         username: username.trim() || undefined,
-        email: email.trim(),
+        email: isStaff ? (initialUser?.email || email) : email.trim(),
         biroId,
         ...(showPasswordSection && newPassword
           ? {
@@ -149,7 +152,7 @@ export function PengaturanClient({
             Pengaturan Akun &amp; Sistem
           </h1>
           <p className="text-[13px] text-slate-500 mt-1">
-            Kelola profil dinas, kredensial masuk, unit kerja biro, dan preferensi notifikasi.
+            Kelola profil dinas, kredensial masuk, kata sandi, dan preferensi notifikasi.
           </p>
         </div>
 
@@ -172,51 +175,95 @@ export function PengaturanClient({
             Informasi Profil Pengguna
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Nama Lengkap & Gelar */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block font-semibold text-slate-700">
                   Nama Lengkap &amp; Gelar
                 </label>
-                <span className="text-[11px] text-[#31889C] font-semibold">
-                  Role: ({getRoleSuffix(role)})
-                </span>
+                {isStaff ? (
+                  <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-semibold border border-amber-200">
+                    Hanya Super Admin
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-[#31889C] font-semibold">
+                    Role: ({getRoleSuffix(role)})
+                  </span>
+                )}
               </div>
-              <div className="flex items-stretch rounded-lg border border-slate-200 focus-within:ring-2 focus-within:ring-[#31889C]/25 focus-within:border-[#31889C] overflow-hidden bg-white">
+              <div
+                className={`flex items-stretch rounded-lg border border-slate-200 overflow-hidden ${
+                  isStaff
+                    ? 'bg-slate-50 cursor-not-allowed'
+                    : 'bg-white focus-within:ring-2 focus-within:ring-[#31889C]/25 focus-within:border-[#31889C]'
+                }`}
+              >
                 <input
                   type="text"
                   value={name}
+                  disabled={isStaff}
+                  readOnly={isStaff}
                   onChange={(e) => setName(e.target.value)}
                   onBlur={() => {
                     if (name.trim()) setName(stripRoleSuffix(name));
                   }}
                   placeholder="Contoh: Dr. Ir. Budi Santoso, M.Sc atau Kevin"
-                  className="flex-1 min-w-0 px-3 py-2 border-0 focus:outline-none text-[13px] text-slate-900 bg-transparent"
+                  className={`flex-1 min-w-0 px-3 py-2 border-0 focus:outline-none text-[13px] bg-transparent ${
+                    isStaff ? 'text-slate-500 font-medium cursor-not-allowed' : 'text-slate-900'
+                  }`}
                   required
                 />
-                <div className="flex items-center px-3 py-2 bg-[#F0F9FA] border-l border-[#BCE3EB] text-[#1E6B7B] font-bold text-[12px] shrink-0 select-none">
+                <div
+                  className={`flex items-center px-3 py-2 border-l text-[12px] font-bold shrink-0 select-none ${
+                    isStaff
+                      ? 'bg-slate-100 border-slate-200 text-slate-500'
+                      : 'bg-[#F0F9FA] border-[#BCE3EB] text-[#1E6B7B]'
+                  }`}
+                >
                   ({getRoleSuffix(role)})
                 </div>
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Suffix role otomatis disematkan sesuai peran akun Anda ({getRoleSuffix(role)}).
+                {isStaff
+                  ? 'Nama lengkap akun staf hanya dapat diatur dan diubah oleh Super Administrator.'
+                  : `Suffix role otomatis disematkan sesuai peran akun Anda (${getRoleSuffix(role)}).`}
               </span>
             </div>
+
+            {/* Alamat Email Dinas */}
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Alamat Email Dinas
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-slate-700">
+                  Alamat Email Dinas
+                </label>
+                {isStaff && (
+                  <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-semibold border border-amber-200">
+                    Hanya Super Admin
+                  </span>
+                )}
+              </div>
               <input
                 type="email"
                 value={email}
+                disabled={isStaff}
+                readOnly={isStaff}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@kek.go.id"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C]"
+                className={`w-full px-3 py-2 rounded-lg border border-slate-200 ${
+                  isStaff
+                    ? 'bg-slate-50 text-slate-500 font-medium cursor-not-allowed'
+                    : 'bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C]'
+                }`}
                 required
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Email dinas resmi terdaftar
+                {isStaff
+                  ? 'Alamat email dinas resmi hanya dapat diatur dan diubah oleh Super Administrator.'
+                  : 'Email dinas resmi terdaftar'}
               </span>
             </div>
+
+            {/* Username Login */}
             <div>
               <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
                 <span>Username Login</span>
@@ -233,6 +280,8 @@ export function PengaturanClient({
                 Username unik buatan Anda untuk masuk ke sistem tanpa mengetik email panjang.
               </span>
             </div>
+
+            {/* Peran / Hak Akses Sistem */}
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
                 Peran / Hak Akses Sistem
@@ -246,22 +295,6 @@ export function PengaturanClient({
               <span className="text-[11px] text-slate-400 mt-1 block">
                 Hak akses diatur langsung oleh Super Administrator dewan
               </span>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
-                Unit Kerja / Penugasan Biro
-              </label>
-              <select
-                value={biroId}
-                onChange={(e) => setBiroId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/25 focus:border-[#31889C] bg-white cursor-pointer"
-              >
-                {availableBiros.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.code} — {b.name}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
         </div>
