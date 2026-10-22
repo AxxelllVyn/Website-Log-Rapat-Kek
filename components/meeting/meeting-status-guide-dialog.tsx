@@ -87,7 +87,7 @@ export function MeetingStatusGuideDialog({ isOpen, onClose }: MeetingStatusGuide
                       <span>Belum Dimulai</span>
                     </div>
                     <p className="text-slate-600 leading-relaxed text-[11.5px]">
-                      Kegiatan telah dijadwalkan dalam kalender agenda, surat undangan dan bahan paparan dalam tahap persiapan awal.
+                      Kegiatan telah dijadwalkan dan akan otomatis mulai (beralih ke Dalam Proses) saat tanggal pelaksanaan tiba tanpa perlu aktivasi manual.
                     </p>
                   </div>
 

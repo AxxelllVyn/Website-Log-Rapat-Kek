@@ -211,6 +211,26 @@ export async function getMeetingByIdFromDb(idOrNumber: string) {
           console.error('Error fetching meeting attachments:', attErr);
           (meeting as any).attachments = [];
         }
+
+        // Auto-start check: Jika tanggal kegiatan telah tiba dan masih 'Belum Dimulai'
+        const todayWibStr = getWibTodayDateString();
+        const meetingDateStr = meeting.date.toISOString().slice(0, 10);
+        const isDateArrived = meetingDateStr <= todayWibStr;
+        const rawProg = (meeting as any).progressStatus || 'Start';
+        const isBelumDimulai =
+          rawProg === 'Belum Dimulai' ||
+          rawProg === 'Start' ||
+          rawProg === 'draft' ||
+          (meeting.status === 'DRAFT' && rawProg !== 'Selesai' && rawProg !== 'Dalam Proses');
+
+        if (isDateArrived && isBelumDimulai) {
+          (meeting as any).progressStatus = 'Dalam Proses';
+          meeting.status = 'REVIEW';
+          prisma.meeting.update({
+            where: { id: meeting.id },
+            data: { progressStatus: 'Dalam Proses', status: 'REVIEW' },
+          }).catch(() => {});
+        }
       }
 
       return meeting;
@@ -341,6 +361,53 @@ export async function getActionItemsFromDb(filters?: {
   }
 }
 
+/**
+ * Helper mendapatkan tanggal hari ini dalam format YYYY-MM-DD zona waktu Indonesia Barat (WIB / Asia/Jakarta).
+ */
+export function getWibTodayDateString(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/**
+ * Otomatis memulai kegiatan sesuai tanggal pelaksanaan:
+ * Setiap kegiatan yang tanggal pelaksanaannya telah tiba (date <= hari ini WIB)
+ * dan masih berstatus 'Belum Dimulai' / 'DRAFT', otomatis disinkronkan dan diubah ke 'Dalam Proses' (REVIEW).
+ * Menghilangkan keharusan pengguna untuk menekan tombol "Mulai Kegiatan" secara manual.
+ */
+export async function syncAutoStartedMeetings(): Promise<number> {
+  try {
+    const todayWib = getWibTodayDateString();
+    const endOfTodayWib = new Date(`${todayWib}T23:59:59.999+07:00`);
+
+    const result = await prisma.meeting.updateMany({
+      where: {
+        date: { lte: endOfTodayWib },
+        OR: [
+          { progressStatus: 'Belum Dimulai' },
+          { progressStatus: 'Start' },
+          { progressStatus: 'draft' },
+          { progressStatus: null },
+          { status: 'DRAFT', progressStatus: { notIn: ['Selesai', 'Dalam Proses'] } },
+        ],
+      },
+      data: {
+        progressStatus: 'Dalam Proses',
+        status: 'REVIEW',
+      },
+    });
+
+    return result.count;
+  } catch (error) {
+    console.error('Error auto-starting meetings on date:', error);
+    return 0;
+  }
+}
+
 export async function getMeetingsFromDb(filters?: {
   biroCode?: string | null;
   status?: MeetingStatus | null;
@@ -350,6 +417,9 @@ export async function getMeetingsFromDb(filters?: {
 }): Promise<Meeting[]> {
   try {
     return await withDbRetry(async () => {
+      // Sinkronkan status kegiatan otomatis sesuai tanggal pelaksanaan yang telah tiba
+      await syncAutoStartedMeetings().catch(() => {});
+
       const andConditions: any[] = [];
 
       if (filters?.biroCode) {
@@ -441,11 +511,29 @@ export async function getMeetingsFromDb(filters?: {
                 ? 2
                 : 1;
 
+        const todayWibStr = getWibTodayDateString();
+        const meetingDateStr = m.date.toISOString().slice(0, 10);
+        const isDateArrived = meetingDateStr <= todayWibStr;
+        const rawProg = (m as any).progressStatus || 'Start';
+        const isBelumDimulai =
+          rawProg === 'Belum Dimulai' ||
+          rawProg === 'Start' ||
+          rawProg === 'draft' ||
+          (m.status === 'DRAFT' && rawProg !== 'Selesai' && rawProg !== 'Dalam Proses');
+
+        const effectiveStatus = (isDateArrived && isBelumDimulai)
+          ? ('REVIEW' as MeetingStatus)
+          : (m.status as MeetingStatus);
+
+        const effectiveProgress = (isDateArrived && isBelumDimulai)
+          ? 'Dalam Proses'
+          : rawProg;
+
         return {
           id: m.id,
           code: m.meetingNumber,
           title: m.title,
-          date: m.date.toISOString().slice(0, 10),
+          date: meetingDateStr,
           time: `${m.startTime} - ${m.endTime} WIB`,
           location: m.location,
           biroCode: m.primaryBiro.code as BiroCode,
@@ -454,7 +542,7 @@ export async function getMeetingsFromDb(filters?: {
           primaryTeamCode: m.primaryTeam?.code || null,
           primaryTeamName: m.primaryTeam?.name || null,
           previousMeetingId: m.previousMeetingId || null,
-          status: m.status as MeetingStatus,
+          status: effectiveStatus,
           // Rapat dianggap 'BARU' jika baru dibuat dalam 3 hari terakhir (72 jam)
           isNew: m.createdAt ? (Date.now() - new Date(m.createdAt).getTime()) <= 3 * 24 * 60 * 60 * 1000 : false,
           involvedBiros: involvedBiroNames,
@@ -467,7 +555,7 @@ export async function getMeetingsFromDb(filters?: {
               totalItems > 0
                 ? `${completedItems}/${totalItems} Tindak Lanjut Selesai`
                 : `${fallbackCompleted}/${fallbackTotal} Tindak Lanjut Selesai`,
-            isCompletePercentage: totalItems > 0 ? completedItems === totalItems : m.status === 'FINAL',
+            isCompletePercentage: totalItems > 0 ? completedItems === totalItems : effectiveStatus === 'FINAL',
           },
           attendees,
           agendaSummary: `Diselenggarakan oleh ${m.primaryTeam?.name ? `Tim ${m.primaryTeam.name}` : 'Tim Kerja KEK'}.`,
@@ -480,7 +568,7 @@ export async function getMeetingsFromDb(filters?: {
           postponeReason: (m as any).postponeReason || null,
           meetingKind: (m as any).meetingKind || null,
           picName: (m as any).picName || null,
-          progressStatus: (m as any).progressStatus || 'Start',
+          progressStatus: effectiveProgress,
           categoryDocUrl: (m as any).categoryDocUrl || null,
           categoryDocName: (m as any).categoryDocName || null,
           categoryDocSize: (m as any).categoryDocSize || null,
@@ -506,6 +594,8 @@ export async function getMeetingsFromDb(filters?: {
 export async function getDashboardStats() {
   try {
     return await withDbRetry(async () => {
+      await syncAutoStartedMeetings().catch(() => {});
+
       const [totalMeetings, totalUsers, totalBiros, approvedMeetings, reviewMeetings, draftMeetings] =
         await Promise.all([
           prisma.meeting.count(),

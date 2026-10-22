@@ -232,7 +232,7 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
         meetingKind: undefined,
         picName: picName.trim() || undefined,
         chairpersonId: selectedPicIds[0] || undefined,
-        progressStatus: 'Belum Dimulai',
+        progressStatus: date <= todayStr ? 'Dalam Proses' : 'Belum Dimulai',
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
         sourceOrigin: kategoriKomentar.trim() || undefined,
@@ -403,6 +403,10 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
               onChange={(e) => setDate(e.target.value)}
               className="w-full sm:w-1/2 px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
             />
+            <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5">
+              <span className="text-[#31889C] font-bold">💡</span>
+              <span>Kegiatan otomatis mulai (Dalam Proses) sesuai tanggal yang ditentukan tanpa perlu aktivasi manual.</span>
+            </p>
           </div>
 
           {/* 4. Kategori Kegiatan */}

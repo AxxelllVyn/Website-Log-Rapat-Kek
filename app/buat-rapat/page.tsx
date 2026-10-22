@@ -405,7 +405,7 @@ export default function BuatRapatPage() {
         picName: picName.trim() || undefined,
         participantUserIds: selectedPicIds.length > 0 ? selectedPicIds : undefined,
         chairpersonId: selectedPicIds[0] || undefined,
-        progressStatus: 'Belum Dimulai',
+        progressStatus: date <= todayStr ? 'Dalam Proses' : 'Belum Dimulai',
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
         documentSubCategory:
@@ -720,8 +720,9 @@ export default function BuatRapatPage() {
                   className="w-full px-4 h-[44px] rounded-xl border border-slate-300 bg-white text-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] shadow-2xs"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">
-                Tanggal dilaksanakannya kegiatan atau agenda kerja.
+              <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5">
+                <span className="text-[#1E6B7B] font-bold">💡</span>
+                <span>Kegiatan otomatis dimulai (status Dalam Proses) sesuai tanggal pelaksanaan yang ditentukan tanpa perlu aktivasi manual.</span>
               </p>
             </div>
           </div>

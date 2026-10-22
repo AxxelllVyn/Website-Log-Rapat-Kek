@@ -19,6 +19,7 @@ import {
   Layers,
   ExternalLink,
   Play,
+  Clock,
   ChevronDown,
   Check,
   CheckCircle2,
@@ -1149,22 +1150,38 @@ export function MeetingTable({
                           const isSelesai = curProg === 'Selesai';
                           const isUpdatingThis = updatingStatusId === meeting.id;
 
-                          if (isBelumDimulai && canUpdateStatus) {
+                          if (isBelumDimulai) {
+                            const meetingDateObj = meeting.date ? new Date(meeting.date) : null;
+                            const formattedSchedule = meetingDateObj && !isNaN(meetingDateObj.getTime())
+                              ? meetingDateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+                              : meeting.date;
+
                             return (
-                              <button
-                                type="button"
-                                disabled={isUpdatingThis}
-                                onClick={() => handleStartMeeting(meeting)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#31889C] hover:bg-[#266F80] text-white text-[11px] font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
-                                title="Klik untuk Mulai Kegiatan (Otomatis ubah status ke Dalam Proses)"
-                              >
-                                {isUpdatingThis ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Play className="w-3 h-3 fill-current" />
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <span
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200/80 text-[11px] font-semibold whitespace-nowrap shrink-0 shadow-2xs"
+                                  title={`Kegiatan terjadwal otomatis mulai pada tanggal pelaksanaan (${meeting.date}) tanpa perlu aktivasi manual.`}
+                                >
+                                  <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                  <span>Otomatis Mulai {formattedSchedule}</span>
+                                </span>
+                                {canUpdateStatus && (
+                                  <button
+                                    type="button"
+                                    disabled={isUpdatingThis}
+                                    onClick={() => handleStartMeeting(meeting)}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-[#31889C] text-slate-600 hover:text-white border border-slate-200 text-[10.5px] font-medium cursor-pointer transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
+                                    title="Mulai Lebih Awal (jika kegiatan dimajukan)"
+                                  >
+                                    {isUpdatingThis ? (
+                                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                    ) : (
+                                      <Play className="w-2.5 h-2.5 fill-current" />
+                                    )}
+                                    <span>Mulai Sekarang</span>
+                                  </button>
                                 )}
-                                <span>Mulai Kegiatan</span>
-                              </button>
+                              </div>
                             );
                           }
 

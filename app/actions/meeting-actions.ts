@@ -134,7 +134,12 @@ export async function createMeetingAction(input: CreateMeetingInput) {
     // Date validation: meeting execution date cannot be before today (tidak bisa mundur)
     const todayDateStr = (() => {
       const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
     })();
 
     const inputDateStr = typeof input.date === 'string' && input.date.includes('T')
@@ -197,28 +202,34 @@ export async function createMeetingAction(input: CreateMeetingInput) {
         throw new Error(`Biro ${effectiveBiroCode} tidak ditemukan.`);
       }
 
-      // Map progressStatus to MeetingStatus (Default to 'Belum Dimulai')
-      const effectiveProgStatus = input.progressStatus?.trim() || 'Belum Dimulai';
+      // Otomatis mulai kegiatan sesuai tanggal: jika tanggal kegiatan telah tiba (inputDateStr <= todayDateStr)
+      // maka status kegiatan otomatis 'Dalam Proses' (REVIEW) tanpa perlu aktivasi manual.
+      // Jika tanggal kegiatan di masa depan, status adalah 'Belum Dimulai' (DRAFT) dan akan otomatis mulai saat tanggal tersebut tiba.
+      const isDateArrived = inputDateStr <= todayDateStr;
+      let effectiveProgStatus: string;
       let finalStatus: MeetingStatus = MeetingStatus.DRAFT;
-      const rawProg = effectiveProgStatus.toLowerCase();
-      if (rawProg === 'finish' || rawProg === 'selesai' || rawProg === 'final') {
-        finalStatus = MeetingStatus.FINAL;
-      } else if (
-        rawProg === 'dalam proses' ||
-        rawProg === 'on progres' ||
-        rawProg === 'on progress' ||
-        rawProg === 'review' ||
-        rawProg === 'sedang berlangsung'
-      ) {
+
+      if (input.progressStatus && input.progressStatus !== 'Belum Dimulai' && input.progressStatus !== 'Start') {
+        effectiveProgStatus = input.progressStatus.trim();
+        const rawProg = effectiveProgStatus.toLowerCase();
+        if (rawProg === 'finish' || rawProg === 'selesai' || rawProg === 'final') {
+          finalStatus = MeetingStatus.FINAL;
+        } else if (
+          rawProg === 'dalam proses' ||
+          rawProg === 'on progres' ||
+          rawProg === 'on progress' ||
+          rawProg === 'review' ||
+          rawProg === 'sedang berlangsung'
+        ) {
+          finalStatus = MeetingStatus.REVIEW;
+        } else {
+          finalStatus = MeetingStatus.DRAFT;
+        }
+      } else if (isDateArrived) {
+        effectiveProgStatus = 'Dalam Proses';
         finalStatus = MeetingStatus.REVIEW;
-      } else if (
-        rawProg === 'belum dimulai' ||
-        rawProg === 'belum mulai' ||
-        rawProg === 'start' ||
-        rawProg === 'draft'
-      ) {
-        finalStatus = MeetingStatus.DRAFT;
       } else {
+        effectiveProgStatus = 'Belum Dimulai';
         finalStatus = MeetingStatus.DRAFT;
       }
 
