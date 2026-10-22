@@ -727,15 +727,7 @@ export function ActionItemList({
                       </div>
                     )}
 
-                    {/* Deadline */}
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#31889C]" />
-                      <span>
-                        Deadline: <strong className={isItemOverdue ? 'text-red-600' : 'text-slate-800'}>
-                          {formatIndonesianDate(item.dueDate)}
-                        </strong>
-                      </span>
-                    </div>
+
 
                     {/* Completed At */}
                     {item.completedAt && (

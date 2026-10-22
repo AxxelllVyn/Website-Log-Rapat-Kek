@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, AlertCircle, Save, ExternalLink, Layers, Calendar, Lock, CheckCircle2, UploadCloud, Paperclip, FileCheck, Trash2, Loader2, User } from 'lucide-react';
+import { X, AlertCircle, Save, ExternalLink, Layers, Lock, CheckCircle2, UploadCloud, Paperclip, FileCheck, Trash2, Loader2, User } from 'lucide-react';
 import {
   actionItemSchema,
   ActionItemInput,
@@ -228,15 +228,10 @@ export function ActionItemFormDialog({
     ];
   }, [teamsList]);
 
-  // Synchronize title, PIC, and team automatically from a meeting
+  // Synchronize PIC and team automatically from a meeting (title is typed manually, not auto-linked)
   const applyMeetingDefaults = React.useCallback(
     (m: any, usersToSearch: any[] = effectiveUsers) => {
       if (!m) return;
-
-      // 1. Sinkronisasi nama kegiatan otomatis
-      if (!isEditing) {
-        setTitle(m.title || '');
-      }
 
       // 2. Sync team
       const num = m.meetingNumber?.toUpperCase() || '';
@@ -381,6 +376,7 @@ export function ActionItemFormDialog({
         initialMeetingId = effectiveMeetings[0]?.id || availableMeetings[0]?.id || '';
       }
       setSelectedMeetingId(initialMeetingId);
+      setTitle('');
       setDescription('');
       setDriveLink('');
       setUploadedDoc(null);
@@ -388,7 +384,7 @@ export function ActionItemFormDialog({
       setPriority('MEDIUM');
       setStatus('PENDING');
 
-      // Find initial meeting and automatically set Title, PIC, and Team
+      // Find initial meeting and automatically set PIC and Team (title remains empty for manual input)
       const currMeeting =
         findMeetingById(initialMeetingId) ||
         normalizedCurrentMeeting ||
@@ -398,7 +394,6 @@ export function ActionItemFormDialog({
       if (currMeeting) {
         applyMeetingDefaults(currMeeting, effectiveUsers);
       } else {
-        setTitle('');
         setPicUserId('');
       }
     }
@@ -512,18 +507,20 @@ export function ActionItemFormDialog({
       (birosList.find((b) => b.code.toUpperCase() === 'IKK')?.id) ||
       '';
 
-    const finalTitle = (
-      title.trim() ||
-      currentMeetingObj?.title ||
-      (currentM as any)?.title ||
-      activeTitle ||
-      'Tindak Lanjut Kegiatan'
-    ).slice(0, 255);
+    const finalTitle = title.trim().slice(0, 255);
+    if (!finalTitle) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        title: 'Nama kegiatan tindak lanjut wajib diisi.',
+      }));
+      setErrorMessage('Nama kegiatan wajib diisi.');
+      return;
+    }
 
     let finalDueDate = dueDate;
     if (!finalDueDate) {
-      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      finalDueDate = nextWeek.toISOString().split('T')[0];
+      const defaultDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      finalDueDate = defaultDate.toISOString().split('T')[0];
     }
 
     // Zod client validation
@@ -639,8 +636,8 @@ export function ActionItemFormDialog({
                 })()}
               </div>
 
-              {!isMeetingLocked ? (
-                <div>
+              {!isMeetingLocked && (
+                <div className="mb-2.5">
                   <SearchableMeetingSelect
                     meetings={effectiveMeetings}
                     selectedMeetingId={selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || ''}
@@ -655,7 +652,6 @@ export function ActionItemFormDialog({
                       }
                       const selM = findMeetingById(mId);
                       if (selM) {
-                        setTitle(selM.title);
                         applyMeetingDefaults(selM, effectiveUsers);
                       }
                     }}
@@ -677,17 +673,32 @@ export function ActionItemFormDialog({
                     </p>
                   )}
                 </div>
-              ) : (
-                <div className="p-3 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl flex items-center justify-between gap-3">
-                  <p className="text-[13px] font-semibold text-slate-800 leading-snug break-words flex-1">
-                    {currentMeetingObj?.title || activeTitle || '(Sesuai agenda kegiatan yang dipilih)'}
-                  </p>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
-                    <span>Terhubung Otomatis</span>
-                  </span>
-                </div>
               )}
+
+              <div>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (fieldErrors.title) {
+                      setFieldErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.title;
+                        return next;
+                      });
+                    }
+                  }}
+                  placeholder="Masukkan nama kegiatan tindak lanjut..."
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-slate-800 text-[13px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] transition-all ${
+                    fieldErrors.title ? 'border-red-400 bg-red-50/20' : 'border-slate-200 bg-white'
+                  }`}
+                  required
+                />
+                {fieldErrors.title && (
+                  <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.title}</p>
+                )}
+              </div>
             </div>
 
             {/* 2. PIC */}
@@ -837,43 +848,23 @@ export function ActionItemFormDialog({
               />
             </div>
 
-            {/* Tenggat Waktu & Status Tindak Lanjut */}
-            <div className={isEditing ? "grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100" : "pt-2 border-t border-slate-100"}>
-              {/* Deadline (Required) */}
-              <div className={!isEditing ? "sm:w-1/2" : ""}>
-                <label className="block font-semibold text-slate-700 mb-1 text-[12px] flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Tenggat Waktu / Deadline</span>
+            {/* Status Tindak Lanjut (Hanya tampil saat Edit) */}
+            {isEditing && (
+              <div className="pt-2 border-t border-slate-100">
+                <label className="block font-semibold text-slate-700 mb-1 text-[12px]">
+                  Status Tindak Lanjut
                 </label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white text-slate-800 text-[13px]"
-                />
-                {fieldErrors.dueDate && (
-                  <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.dueDate}</p>
-                )}
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
+                >
+                  <option value="PENDING">Belum Dimulai</option>
+                  <option value="IN_PROGRESS">Dalam Proses</option>
+                  <option value="COMPLETED">Selesai</option>
+                </select>
               </div>
-
-              {/* Status Tindak Lanjut (Hanya tampil saat Edit) */}
-              {isEditing && (
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1 text-[12px]">
-                    Status Tindak Lanjut
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
-                  >
-                    <option value="PENDING">Belum Dimulai</option>
-                    <option value="IN_PROGRESS">Dalam Proses</option>
-                    <option value="COMPLETED">Selesai</option>
-                  </select>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Modal Footer */}

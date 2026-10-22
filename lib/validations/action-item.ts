@@ -25,9 +25,14 @@ export const actionItemSchema = z.object({
   picBiroId: z.string().trim().optional().nullable(),
   picTeamId: z.string().trim().optional().nullable(),
   picUserId: z.string().trim().optional().nullable(),
-  dueDate: z.coerce.date({
-    message: 'Deadline/tenggat waktu harus berupa tanggal yang valid',
-  }),
+  dueDate: z
+    .preprocess(
+      (val) => (val === null || val === undefined || val === '' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : val),
+      z.coerce.date({
+        message: 'Deadline/tenggat waktu harus berupa tanggal yang valid',
+      })
+    )
+    .default(() => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
   priority: actionItemPriorityEnum.default('MEDIUM'),
   status: actionItemStatusEnum.default('PENDING'),
 });
