@@ -696,7 +696,6 @@ export function ActionItemFormDialog({
                 <span className="flex items-center gap-1.5">
                   <User className="w-4 h-4 text-[#31889C]" />
                   <span>2. PIC</span>
-                  <span className="text-slate-400 font-normal text-xs">(Penanggung Jawab Pelaksana - Opsional)</span>
                 </span>
                 {picUserId && (
                   <span className="inline-flex items-center gap-1 text-[10.5px] text-[#1E6B7B] font-bold bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
@@ -738,7 +737,6 @@ export function ActionItemFormDialog({
                 <span className="flex items-center gap-1.5">
                   <Paperclip className="w-3.5 h-3.5 text-[#31889C]" />
                   <span>3. Dokumen terkait</span>
-                  <span className="text-slate-400 font-normal text-xs">(Bahan Acuan / Dokumen Pendukung - Opsional)</span>
                 </span>
               </label>
               {uploadedDoc ? (
@@ -789,7 +787,6 @@ export function ActionItemFormDialog({
               <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5 mb-1">
                 <GoogleDriveIcon className="w-3.5 h-3.5" />
                 <span>4. Link terkait</span>
-                <span className="text-slate-400 font-normal text-xs">(Google Drive / URL Terkait - Opsional)</span>
               </label>
               <div className="relative">
                 <input
@@ -829,7 +826,7 @@ export function ActionItemFormDialog({
             {/* 5. Catatan */}
             <div>
               <label className="block font-bold text-slate-800 mb-1 text-[13px]">
-                5. Catatan <span className="text-slate-400 font-normal text-xs">(Rincian / Arahan Tindak Lanjut - Opsional)</span>
+                5. Catatan
               </label>
               <textarea
                 rows={3}
@@ -841,9 +838,9 @@ export function ActionItemFormDialog({
             </div>
 
             {/* Tenggat Waktu & Status Tindak Lanjut */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div className={isEditing ? "grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100" : "pt-2 border-t border-slate-100"}>
               {/* Deadline (Required) */}
-              <div>
+              <div className={!isEditing ? "sm:w-1/2" : ""}>
                 <label className="block font-semibold text-slate-700 mb-1 text-[12px] flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-500" />
                   <span>Tenggat Waktu / Deadline</span>
@@ -859,12 +856,12 @@ export function ActionItemFormDialog({
                 )}
               </div>
 
-              {/* Status Tindak Lanjut */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1 text-[12px]">
-                  Status Tindak Lanjut
-                </label>
-                {isEditing ? (
+              {/* Status Tindak Lanjut (Hanya tampil saat Edit) */}
+              {isEditing && (
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1 text-[12px]">
+                    Status Tindak Lanjut
+                  </label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
@@ -874,16 +871,8 @@ export function ActionItemFormDialog({
                     <option value="IN_PROGRESS">Dalam Proses</option>
                     <option value="COMPLETED">Selesai</option>
                   </select>
-                ) : (
-                  <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/90 text-amber-800 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                    <div className="text-[11.5px] leading-tight">
-                      <span className="font-bold block">Status Awal: Belum Dimulai</span>
-                      <span className="text-amber-700/80 text-[10.5px]">PIC akan mengupdate progres ke 'Dalam Proses' atau 'Selesai'</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
