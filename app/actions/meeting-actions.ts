@@ -47,6 +47,12 @@ export interface CreateMeetingInput {
   ndConsumptionStatus?: string | null;
   releaseUrl?: string | null;
   releaseTitle?: string | null;
+  attachments?: Array<{
+    fileName: string;
+    fileUrl: string;
+    fileSize?: number | null;
+    fileType?: string | null;
+  }>;
 }
 
 function safeRevalidate(paths: string[]) {
@@ -277,6 +283,27 @@ export async function createMeetingAction(input: CreateMeetingInput) {
           releaseTitle: input.releaseTitle || null,
         },
       });
+
+      // 3b. Store uploaded documents into lampiran_rapat table
+      if (input.attachments && input.attachments.length > 0) {
+        for (const att of input.attachments) {
+          if (!att.fileUrl || !att.fileName) continue;
+          const uniqueId = `ATT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+          const uploader = currentUser.name || currentUser.email || 'Pengunggah';
+          await tx.$executeRawUnsafe(
+            `INSERT INTO lampiran_rapat (id_lampiran, id_rapat, nama_berkas, url_berkas, ukuran_berkas, tipe_berkas, nama_pengunggah, kategori, dibuat_pada)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+            uniqueId,
+            meeting.id,
+            att.fileName,
+            att.fileUrl,
+            att.fileSize || 0,
+            att.fileType || 'application/octet-stream',
+            uploader,
+            'dokumen_acuan'
+          );
+        }
+      }
 
       // 4. Attach involved bureaus (MeetingBiro)
       if (input.involvedBiroCodes && input.involvedBiroCodes.length > 0) {

@@ -188,28 +188,18 @@ export default function BuatRapatPage() {
   const [kategoriKomentar, setKategoriKomentar] = useState<string>('');
   const [sourceOrigin, setSourceOrigin] = useState<string>('');
 
-  // Dokumen Lampiran File Upload
-  const [uploadedDoc, setUploadedDoc] = useState<{
+  // Dokumen Lampiran File Upload (Bisa lebih dari 1 file)
+  const [uploadedDocs, setUploadedDocs] = useState<Array<{
     url: string;
     name: string;
     size: number;
-  } | null>(null);
+    fileType?: string;
+  }>>([]);
   const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
 
   // 5. PIC Kegiatan (Bisa lebih dari 1 orang langsung)
   const [selectedPicIds, setSelectedPicIds] = useState<string[]>([]);
   const [picName, setPicName] = useState<string>('');
-
-  // 6. Dokumen terkait
-  const [dokumenNama, setDokumenNama] = useState<string>('');
-  const [dokumenLink, setDokumenLink] = useState<string>('');
-
-  // Tindak Lanjut fields
-  const [tlNamaKegiatan, setTlNamaKegiatan] = useState<string>('');
-  const [tlPic, setTlPic] = useState<string>('');
-  const [tlDokumen, setTlDokumen] = useState<string>('');
-  const [tlLink, setTlLink] = useState<string>('');
-  const [tlCatatan, setTlCatatan] = useState<string>('');
 
   // Optional: Tautkan kegiatan sebelumnya
   const [previousMeetingId, setPreviousMeetingId] = useState<string>('');
@@ -337,32 +327,50 @@ export default function BuatRapatPage() {
     setPicName('');
   };
 
-  // Handle document file upload (Poin 5 Dokumen)
+  // Handle document file upload (Bisa lebih dari 1 file)
   const handleDocChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
 
     try {
       setIsUploadingDoc(true);
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('type', 'dokumen');
-      const res = await uploadGenericMeetingFileAction(fd);
-      if (res.success && res.data) {
-        setUploadedDoc({
-          url: res.data.url,
-          name: res.data.name,
-          size: res.data.size,
-        });
-        toast.success(`Dokumen "${res.data.name}" berhasil diunggah.`);
-      } else {
-        toast.error(res.error || 'Gagal mengunggah dokumen.');
+      const newlyUploaded: Array<{ url: string; name: string; size: number; fileType?: string }> = [];
+
+      for (const file of files) {
+        if (file.size > 100 * 1024 * 1024) {
+          toast.error(`Berkas "${file.name}" melebihi batas 100MB.`);
+          continue;
+        }
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('type', 'dokumen');
+        const res = await uploadGenericMeetingFileAction(fd);
+        if (res.success && res.data) {
+          newlyUploaded.push({
+            url: res.data.url,
+            name: res.data.name,
+            size: res.data.size,
+            fileType: res.data.fileType,
+          });
+        } else {
+          toast.error(res.error || `Gagal mengunggah berkas ${file.name}.`);
+        }
+      }
+
+      if (newlyUploaded.length > 0) {
+        setUploadedDocs((prev) => [...prev, ...newlyUploaded]);
+        toast.success(`${newlyUploaded.length} berkas berhasil diunggah.`);
       }
     } catch (err: any) {
       toast.error(err?.message || 'Terjadi kesalahan sistem saat unggah dokumen.');
     } finally {
       setIsUploadingDoc(false);
+      e.target.value = '';
     }
+  };
+
+  const handleRemoveDoc = (indexToRemove: number) => {
+    setUploadedDocs((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   // Handle submit form
@@ -415,19 +423,18 @@ export default function BuatRapatPage() {
               ? 'DISPOSISI_KARO'
               : undefined,
         sourceOrigin: (kategoriKomentar.trim() || sourceOrigin.trim()) || undefined,
-        invitationDocUrl: uploadedDoc?.url || (dokumenLink.trim() || undefined),
-        invitationDocName: uploadedDoc?.name || (dokumenNama.trim() || undefined),
-        invitationDocSize: uploadedDoc?.size || undefined,
-        categoryDocUrl: uploadedDoc?.url || (dokumenLink.trim() || undefined),
-        categoryDocName: uploadedDoc?.name || (dokumenNama.trim() || undefined),
-        categoryDocSize: uploadedDoc?.size || undefined,
-        actionPlan: tlNamaKegiatan.trim() || undefined,
-        driveLink: tlLink.trim() || (dokumenLink.trim() || undefined),
-        notes: [
-          tlPic.trim() ? `PIC Tindak Lanjut: ${tlPic.trim()}` : '',
-          tlDokumen.trim() ? `Dokumen TL: ${tlDokumen.trim()}` : '',
-          tlCatatan.trim() ? `Catatan: ${tlCatatan.trim()}` : '',
-        ].filter(Boolean).join('\n') || undefined,
+        invitationDocUrl: uploadedDocs[0]?.url || undefined,
+        invitationDocName: uploadedDocs[0]?.name || undefined,
+        invitationDocSize: uploadedDocs[0]?.size || undefined,
+        categoryDocUrl: uploadedDocs[0]?.url || undefined,
+        categoryDocName: uploadedDocs[0]?.name || undefined,
+        categoryDocSize: uploadedDocs[0]?.size || undefined,
+        attachments: uploadedDocs.map((d) => ({
+          fileName: d.name,
+          fileUrl: d.url,
+          fileSize: d.size,
+          fileType: d.fileType,
+        })),
         previousMeetingId: previousMeetingId || undefined,
       });
 
@@ -811,194 +818,95 @@ export default function BuatRapatPage() {
               />
             </div>
 
-            {/* 6. Dokumen Lampiran & Tautan Kegiatan */}
+            {/* 6. Dokumen Lampiran Kegiatan */}
             <div className="space-y-3">
               <label className="font-bold text-slate-800 flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#1E6B7B] text-white text-xs flex items-center justify-center font-bold shadow-2xs">6</span>
                   <span>Dokumen (Surat Undangan / Bahan Paparan / Berkas Acuan)</span>
                 </span>
-                <span className="text-xs text-slate-400 font-normal">Opsional</span>
+                <span className="text-xs text-slate-400 font-normal">Opsional (Bisa lebih dari 1 berkas)</span>
               </label>
 
-              {uploadedDoc ? (
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                      <FileCheck className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800 truncate">
-                        {uploadedDoc.name}
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        {uploadedDoc.size ? `${(uploadedDoc.size / (1024 * 1024)).toFixed(2)} MB` : 'Berkas siap diarsipkan'}
-                      </p>
-                    </div>
+              {/* Drag and Drop Zone */}
+              <div className="relative border-2 border-dashed border-slate-300 hover:border-[#1E6B7B] rounded-2xl p-5 text-center transition-all bg-slate-50/50 hover:bg-[#F0F8FA]/30">
+                <input
+                  type="file"
+                  id="doc-upload"
+                  multiple
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={handleDocChange}
+                  disabled={isUploadingDoc}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                />
+                <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#1E6B7B] shadow-2xs">
+                    {isUploadingDoc ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-5 h-5" />
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setUploadedDoc(null)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-red-600 hover:text-red-800 font-semibold cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Hapus</span>
-                  </button>
+                  <p className="text-xs font-bold text-slate-700">
+                    {isUploadingDoc ? 'Sedang Mengunggah Berkas...' : 'Klik atau seret berkas dokumen ke sini'}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Format: PDF, Word (DOCX), Bahan Paparan (PPTX), Excel, atau Gambar (Maks. 100MB per berkas • Bisa pilih lebih dari 1 file)
+                  </p>
                 </div>
-              ) : (
-                <div className="relative border-2 border-dashed border-slate-300 hover:border-[#1E6B7B] rounded-2xl p-5 text-center transition-all bg-slate-50/50 hover:bg-[#F0F8FA]/30">
-                  <input
-                    type="file"
-                    id="doc-upload"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"
-                    onChange={handleDocChange}
-                    disabled={isUploadingDoc}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#1E6B7B] shadow-2xs">
-                      {isUploadingDoc ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <UploadCloud className="w-5 h-5" />
-                      )}
-                    </div>
-                    <p className="text-xs font-bold text-slate-700">
-                      {isUploadingDoc ? 'Mengunggah Berkas...' : 'Klik atau seret berkas dokumen ke sini'}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Format: PDF, Word (DOCX), Bahan Paparan (PPTX), Excel, atau Gambar (Maks. 100MB)
-                    </p>
+              </div>
+
+              {/* Uploaded Files List */}
+              {uploadedDocs.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
+                    <span className="flex items-center gap-1.5">
+                      <FileCheck className="w-4 h-4 text-emerald-600" />
+                      <span>{uploadedDocs.length} Berkas Berhasil Dilampirkan:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUploadedDocs([])}
+                      className="text-xs text-red-600 hover:text-red-800 font-medium hover:underline cursor-pointer"
+                    >
+                      Hapus Semua Berkas
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {uploadedDocs.map((doc, idx) => (
+                      <div
+                        key={`${doc.url}-${idx}`}
+                        className="flex items-center justify-between p-3 rounded-xl border border-emerald-200 bg-emerald-50/70 shadow-2xs transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                            {idx + 1}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate" title={doc.name}>
+                              {doc.name}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              {doc.size ? `${(doc.size / (1024 * 1024)).toFixed(2)} MB` : 'Berkas siap diarsipkan'}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDoc(idx)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg font-semibold cursor-pointer shrink-0 transition-colors"
+                          title={`Hapus berkas "${doc.name}"`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-600">Nama Dokumen Tambahan</label>
-                  <input
-                    type="text"
-                    value={dokumenNama}
-                    onChange={(e) => setDokumenNama(e.target.value)}
-                    placeholder="Contoh: Notulen Rapat Koordinasi KEK..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-600">Link Google Drive / Referensi</label>
-                  <input
-                    type="url"
-                    value={dokumenLink}
-                    onChange={(e) => setDokumenLink(e.target.value)}
-                    placeholder="https://drive.google.com/..."
-                    className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
-                  />
-                </div>
-              </div>
             </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* BAGIAN III: TINDAK LANJUT                                                 */}
-        {/* ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden border-t-4 border-t-[#31889C]">
-          <div className="px-6 py-4.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#F0F9FA] border border-[#BCE3EB] flex items-center justify-center text-[#1E6B7B]">
-                <CheckCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Bagian III: Tindak Lanjut Kegiatan
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Rencana tindak lanjut, dokumen, tautan, dan catatan pasca kegiatan (opsional)
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
-              Opsional
-            </span>
-          </div>
-
-          <div className="p-6 sm:p-7 space-y-5">
-
-            {/* TL-1: Nama Kegiatan Tindak Lanjut */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">1</span>
-                Nama Kegiatan Tindak Lanjut
-              </label>
-              <input
-                type="text"
-                value={tlNamaKegiatan}
-                onChange={(e) => setTlNamaKegiatan(e.target.value)}
-                placeholder="Contoh: Rapat Finalisasi Fasilitasi Investasi KEK..."
-                className="w-full px-3.5 h-[42px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C]"
-              />
-            </div>
-
-            {/* TL-2: PIC Tindak Lanjut */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">2</span>
-                PIC Tindak Lanjut
-              </label>
-              <input
-                type="text"
-                value={tlPic}
-                onChange={(e) => setTlPic(e.target.value)}
-                placeholder="Nama penanggung jawab tindak lanjut..."
-                className="w-full px-3.5 h-[42px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C]"
-              />
-            </div>
-
-            {/* TL-3: Dokumen Terkait */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">3</span>
-                Dokumen Terkait
-              </label>
-              <input
-                type="text"
-                value={tlDokumen}
-                onChange={(e) => setTlDokumen(e.target.value)}
-                placeholder="Nama atau nomor dokumen yang akan disiapkan..."
-                className="w-full px-3.5 h-[42px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C]"
-              />
-            </div>
-
-            {/* TL-4: Link Terkait */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">4</span>
-                Link Terkait
-              </label>
-              <input
-                type="url"
-                value={tlLink}
-                onChange={(e) => setTlLink(e.target.value)}
-                placeholder="https://drive.google.com/ atau link referensi lainnya..."
-                className="w-full px-3.5 h-[42px] rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C]"
-              />
-            </div>
-
-            {/* TL-5: Catatan */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] flex items-center justify-center font-bold">5</span>
-                Catatan
-              </label>
-              <textarea
-                rows={3}
-                value={tlCatatan}
-                onChange={(e) => setTlCatatan(e.target.value)}
-                placeholder="Catatan tambahan, arahan pimpinan, atau hal yang perlu diperhatikan..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#31889C]/20 focus:border-[#31889C] resize-none"
-              />
-            </div>
-
           </div>
         </div>
 

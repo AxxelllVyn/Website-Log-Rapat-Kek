@@ -1359,7 +1359,48 @@ export function MeetingDetailView({
             className="hidden"
           />
 
-          {docUrl ? (
+          {Array.isArray((meeting as any).attachments) && (meeting as any).attachments.length > 0 ? (
+            <div className="space-y-2.5">
+              {(meeting as any).attachments.map((att: any, idx: number) => (
+                <div
+                  key={att.id || idx}
+                  className="p-3.5 rounded-xl bg-[#F0F9FA] border border-[#BCE3EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#31889C] text-white flex items-center justify-center font-bold shrink-0 shadow-2xs text-xs">
+                      {idx + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-900 text-[13px] truncate" title={att.fileName || 'Dokumen Acuan'}>
+                          {att.fileName || 'Dokumen Acuan'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-white border border-[#BCE3EB] text-[#215865] text-[10.5px] font-bold">
+                          {att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : 'Berkas Terverifikasi'}
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-slate-500 mt-0.5">
+                        Dokumen Lampiran Resmi Kegiatan
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={att.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#31889C] hover:bg-[#266F80] text-white text-[12px] font-bold shadow-xs transition-all cursor-pointer"
+                      title="Buka atau unduh dokumen di tab baru"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Buka / Unduh</span>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : docUrl ? (
             <div className="p-3.5 rounded-xl bg-[#F0F9FA] border border-[#BCE3EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-[#31889C] text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
