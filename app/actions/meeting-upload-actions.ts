@@ -521,6 +521,9 @@ export async function updateMeetingInvitationDocAction(
         invitationDocUrl: doc?.url || null,
         invitationDocName: doc?.name || null,
         invitationDocSize: doc?.size || null,
+        categoryDocUrl: doc?.url || null,
+        categoryDocName: doc?.name || null,
+        categoryDocSize: doc?.size || null,
       },
     });
 

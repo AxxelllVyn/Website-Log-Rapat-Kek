@@ -14,6 +14,10 @@ import {
   ChevronDown,
   Info,
   Sparkles,
+  Paperclip,
+  FileText,
+  UploadCloud,
+  Trash2,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -24,6 +28,7 @@ import {
   previewNextMeetingNumberAction,
 } from '@/app/actions/meeting-actions';
 import { getTeamsAction } from '@/app/actions/team-actions';
+import { uploadInvitationFileAction } from '@/app/actions/meeting-upload-actions';
 import { cn } from '@/lib/utils';
 import { MultiPicSelector, PicOptionUser } from './pic-selector';
 import { TIM_OPTIONS } from '@/app/buat-rapat/page';
@@ -47,12 +52,17 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
   // Deteksi seluruh tim kerja staf jika login sebagai STAFF (bisa >1 tim)
   const staffTeams = useMemo(() => {
     if (session?.user?.role !== 'STAFF') return [];
-    const sessionTeams = (session?.user as any)?.teams;
+    const sessionTeams =
+      (session?.user as any)?.assignedTeams ||
+      (session?.user as any)?.teams;
     if (Array.isArray(sessionTeams) && sessionTeams.length > 0) {
-      return sessionTeams.map((st: any) => {
-        const found = teamsList.find((t) => t.id === st.id || t.code === st.code);
-        return found || st;
-      });
+      const mapped = sessionTeams
+        .map((st: any) => {
+          const found = teamsList.find((t) => t.id === st.id || t.code === st.code);
+          return found || st;
+        })
+        .filter(Boolean);
+      if (mapped.length > 0) return mapped;
     }
     const staffCode = session?.user?.teamCode?.toUpperCase();
     const staffId = session?.user?.teamId;
@@ -61,7 +71,17 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
         (staffId && t.id === staffId) ||
         (staffCode && t.code.toUpperCase() === staffCode)
     );
-    return match ? [match] : [];
+    if (match) return [match];
+    if (staffId || staffCode) {
+      return [
+        {
+          id: staffId || 'TIM-STAFF',
+          code: staffCode || 'TIM',
+          name: session?.user?.teamName || staffCode || 'Tim Staf',
+        },
+      ];
+    }
+    return [];
   }, [session, teamsList]);
 
   const todayStr = (() => {
@@ -87,6 +107,36 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
   // 6. PIC Kegiatan (Multi-PIC)
   const [selectedPicIds, setSelectedPicIds] = useState<string[]>([]);
   const [picName, setPicName] = useState<string>('');
+
+  // 7. Dokumen Lampiran
+  const [uploadedDoc, setUploadedDoc] = useState<{
+    url: string;
+    name: string;
+    size: number;
+  } | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingDoc(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await uploadInvitationFileAction(fd);
+      if (res.success && res.data) {
+        setUploadedDoc(res.data);
+        toast.success(`Dokumen "${res.data.name}" berhasil diunggah.`);
+      } else {
+        toast.error(res.error || 'Gagal mengunggah dokumen');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan sistem saat unggah');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
 
   // Aux
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
@@ -185,7 +235,24 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
         progressStatus: 'Belum Dimulai',
         meetingNumber: registrationNumber.trim() || undefined,
         documentCategory: kategoriRapat,
+<<<<<<< HEAD
         sourceOrigin: kategoriKomentar.trim() || undefined,
+=======
+        documentSubCategory:
+          kategoriRapat === 'DISPOSISI_Setjen'
+            ? 'DISPOSISI_Setjen'
+            : kategoriRapat === 'DISPOSISI_BIRO'
+              ? 'DISPOSISI_BIRO'
+              : undefined,
+        sourceOrigin: sourceOrigin.trim() || undefined,
+        postponeReason: postponeReason.trim() || undefined,
+        invitationDocUrl: uploadedDoc?.url || undefined,
+        invitationDocName: uploadedDoc?.name || undefined,
+        invitationDocSize: uploadedDoc?.size || undefined,
+        categoryDocUrl: uploadedDoc?.url || undefined,
+        categoryDocName: uploadedDoc?.name || undefined,
+        categoryDocSize: uploadedDoc?.size || undefined,
+>>>>>>> Kepin
       });
 
       if (res.success && res.data) {
@@ -275,7 +342,7 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
                       }}
                       className="w-full px-3 h-[38px] rounded-lg border border-[#31889C] bg-[#E8F5F7] text-[#1E6B7B] text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#31889C]/20"
                     >
-                      {staffTeams.map((t: any) => (
+                      {(staffTeams.length > 0 ? staffTeams : teamsList).map((t: any) => (
                         <option key={t.id} value={t.id}>
                           {t.name} ({t.code})
                         </option>
@@ -354,6 +421,7 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
             <label className="block text-xs font-bold text-slate-800">
               4. Kategori Kegiatan:
             </label>
+<<<<<<< HEAD
             <div className="relative">
               <select
                 value={kategoriRapat}
@@ -376,6 +444,58 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
               }
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B] resize-none"
             />
+=======
+            <select
+              value={kategoriRapat}
+              onChange={(e) => setKategoriRapat(e.target.value)}
+              className="w-full px-3 h-[38px] rounded-lg border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20"
+            >
+              <option value="UNDANGAN_INTERNAL">Undangan Internal</option>
+              <option value="NASKAH_MASUK">Daftar Naskah Masuk</option>
+              <option value="DISPOSISI_Setjen">Disposisi Setjen</option>
+              <option value="DISPOSISI_BIRO">Disposisi Biro</option>
+              <option value="SURAT_DITUNDA">Tunda Kegiatan</option>
+            </select>
+
+            {kategoriRapat === 'SURAT_DITUNDA' && (
+              <textarea
+                required
+                rows={2}
+                value={postponeReason}
+                onChange={(e) => setPostponeReason(e.target.value)}
+                placeholder="Alasan penundaan kegiatan..."
+                className="w-full px-3 py-2 rounded-lg border border-rose-300 text-xs bg-white focus:outline-none"
+              />
+            )}
+          </div>
+
+          {/* 5. Jenis Kegiatan */}
+          <div>
+            <label className="block text-xs font-bold text-slate-800 mb-1">
+              5. Jenis Kegiatan <span className="text-red-500">*</span>:
+            </label>
+            <select
+              value={jenisKegiatan}
+              onChange={(e) => setJenisKegiatan(e.target.value)}
+              className="w-full px-3.5 h-[40px] rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E6B7B]/20 focus:border-[#1E6B7B]"
+            >
+              {JENIS_KEGIATAN_OPTIONS.map((opt: string) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            {jenisKegiatan === 'Other' && (
+              <input
+                type="text"
+                required
+                value={customJenisKegiatan}
+                onChange={(e) => setCustomJenisKegiatan(e.target.value)}
+                placeholder="Ketikkan jenis kegiatan lainnya..."
+                className="w-full mt-2 px-3.5 h-[38px] rounded-xl border border-[#1E6B7B] text-xs bg-white"
+              />
+            )}
+>>>>>>> Kepin
           </div>
 
           {/* 6. PIC Kegiatan (Multi-PIC) */}
@@ -393,6 +513,63 @@ export function CreateMeetingDialog({ isOpen, onClose, onSuccess }: CreateMeetin
               onClearAll={handleClearAllPics}
               required
             />
+          </div>
+
+          {/* 7. Dokumen Acuan Kegiatan (Surat Undangan / Bahan Paparan / Berkas Acuan) */}
+          <div className="space-y-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-800">
+                7. Dokumen Acuan Kegiatan <span className="text-slate-400 font-normal">(Opsional)</span>:
+              </label>
+              <span className="text-[11px] text-slate-400">PDF, Word, Excel, Gambar</span>
+            </div>
+
+            {uploadedDoc ? (
+              <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#1E6B7B] text-white flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">{uploadedDoc.name}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      {(uploadedDoc.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUploadedDoc(null)}
+                  className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  title="Hapus berkas"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="border-2 border-dashed border-slate-200 hover:border-[#1E6B7B] bg-slate-50/50 hover:bg-teal-50/30 rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.png,.jpg,.jpeg,.txt"
+                  onChange={handleDocUpload}
+                  disabled={isUploadingDoc}
+                  className="hidden"
+                />
+                {isUploadingDoc ? (
+                  <div className="flex items-center gap-2 text-xs text-[#1E6B7B] font-semibold py-1">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Mengunggah berkas...</span>
+                  </div>
+                ) : (
+                  <>
+                    <UploadCloud className="w-5 h-5 text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-600">
+                      Klik untuk unggah Surat Undangan / Bahan Paparan / Berkas Acuan
+                    </span>
+                  </>
+                )}
+              </label>
+            )}
           </div>
 
           {/* Info Output Pasca-Kegiatan */}

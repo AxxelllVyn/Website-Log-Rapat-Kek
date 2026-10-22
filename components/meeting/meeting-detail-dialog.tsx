@@ -25,8 +25,6 @@ import {
 import { Meeting, MeetingStatus } from '@/lib/types';
 import { MeetingStatusBadge, MeetingProgressBadge } from './meeting-status-badge';
 import { normalizeProgressStatus, mapStatusToProgress } from '@/lib/meeting-status';
-import { ActionItemProgress } from '../action-items/action-item-progress';
-import { MeetingMinutesSection } from './meeting-minutes/meeting-minutes-section';
 import { ActionItemList } from '../action-items/action-item-list';
 import { getActionItemsAction, getActionItemFormOptionsAction } from '@/app/actions/action-item-actions';
 import { useSession } from 'next-auth/react';
@@ -53,15 +51,38 @@ export function MeetingDetailDialog({
   const router = useRouter();
   const { data: session } = useSession();
   const userRole = session?.user?.role || 'STAFF';
-  const canDeleteMeeting = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'STAFF';
-  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN' || userRole === 'STAFF';
+  const currentTeamCode = session?.user?.teamCode;
+  const currentTeamId = session?.user?.teamId;
+
+  // Cek kepemilikan tim rapat: periksa seluruh kode dan ID tim yang dimiliki pengguna
+  const userAssignedList = (session?.user as any)?.assignedTeams || [];
+  const userTeamCodes = [
+    ...(session?.user?.teamCode ? [session.user.teamCode.toUpperCase()] : []),
+    ...userAssignedList.map((t: any) => (t.code || '').toUpperCase()),
+  ].filter(Boolean);
+  const userTeamIds = [
+    ...(session?.user?.teamId ? [session.user.teamId] : []),
+    ...userAssignedList.map((t: any) => t.id || ''),
+  ].filter(Boolean);
+
+  const isMyTeam =
+    userRole === 'SUPER_ADMIN' ||
+    (userTeamCodes.length > 0 &&
+      (userTeamCodes.includes((meeting?.primaryTeamCode || '').toUpperCase()) ||
+        userTeamCodes.some((tc) => meeting?.code?.toUpperCase().startsWith(`${tc}-`)))) ||
+    (userTeamIds.length > 0 && userTeamIds.includes(meeting?.primaryTeamId || ''));
+
+  const isEffectiveReadOnly = !isMyTeam;
+
+  const canDeleteMeeting = !isEffectiveReadOnly && (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN');
+  const isPrivileged = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
   const isMeetingBiro =
     isPrivileged ||
     (session?.user?.biroCode &&
       meeting?.biroCode &&
       session.user.biroCode.toUpperCase() === meeting.biroCode.toUpperCase());
-  const canChangeStatus = isPrivileged;
-  const canApprove = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'PIMPINAN';
+  const canChangeStatus = !isEffectiveReadOnly && (isPrivileged || (userRole === 'STAFF' && isMyTeam));
+  const canApprove = !isEffectiveReadOnly && isPrivileged;
 
   const [activeTab, setActiveTab] = useState<'info' | 'minutes' | 'actionItems'>('info');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -384,6 +405,12 @@ export function MeetingDetailDialog({
               </span>
             )}
 
+            {isEffectiveReadOnly && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200">
+                <span>Hanya Lihat</span>
+              </span>
+            )}
+
             <Link
               href={`/semua-rapat/${meeting.id}`}
               onClick={onClose}
@@ -405,47 +432,7 @@ export function MeetingDetailDialog({
           </div>
         </div>
 
-        {/* Tab Navigation in Dialog */}
-        <div className="flex items-center gap-2 px-6 border-b border-slate-200 bg-[#F8FAFC]">
-          <button
-            type="button"
-            onClick={() => setActiveTab('info')}
-            className={`flex items-center gap-1.5 py-2.5 px-3 font-bold text-[12px] border-b-2 transition-all cursor-pointer ${
-              activeTab === 'info'
-                ? 'border-[#31889C] text-[#31889C] bg-white rounded-t-md'
-                : 'border-transparent text-slate-600 hover:text-[#31889C]'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Informasi Kegiatan</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('minutes')}
-            className={`flex items-center gap-1.5 py-2.5 px-3 font-bold text-[12px] border-b-2 transition-all cursor-pointer ${
-              activeTab === 'minutes'
-                ? 'border-[#31889C] text-[#31889C] bg-white rounded-t-md'
-                : 'border-transparent text-slate-600 hover:text-[#31889C]'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Notulen / Nota Dinas</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('actionItems')}
-            className={`flex items-center gap-1.5 py-2.5 px-3 font-bold text-[12px] border-b-2 transition-all cursor-pointer ${
-              activeTab === 'actionItems'
-                ? 'border-[#31889C] text-[#31889C] bg-white rounded-t-md'
-                : 'border-transparent text-slate-600 hover:text-[#31889C]'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Tindak Lanjut</span>
-          </button>
-        </div>
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-[13px]">
@@ -473,14 +460,6 @@ export function MeetingDetailDialog({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-[#31889C] shrink-0" />
-                  <div>
-                    <p className="text-[11px] text-slate-400 font-semibold uppercase">Waktu Sesi</p>
-                    <p className="font-bold text-slate-800">{meeting.time}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
                   <Building2 className="w-5 h-5 text-[#31889C] shrink-0" />
                   <div>
                     <p className="text-[11px] text-slate-400 font-semibold uppercase">Tim Kerja Penyelenggara</p>
@@ -493,36 +472,6 @@ export function MeetingDetailDialog({
                     </p>
                   </div>
                 </div>
-
-                {(() => {
-                  const virtual = extractVirtualMeetingDetails(meeting.location);
-                  return (
-                    <div className="flex items-center gap-3">
-                      <MapPin className="w-5 h-5 text-[#31889C] shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-[11px] text-slate-400 font-semibold uppercase">Lokasi / Media</p>
-                        <p className="font-bold text-slate-800 line-clamp-1">
-                          {virtual.cleanPhysicalLocation || meeting.location}
-                        </p>
-                        {virtual.zoomUrl && (
-                          <div className="mt-1 flex items-center gap-1.5">
-                            <a
-                              href={virtual.zoomUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-[#0B5CFF] hover:bg-blue-100 text-[10.5px] font-bold border border-blue-200 transition-colors"
-                              title="Buka Ruang Virtual Zoom"
-                            >
-                              <Video className="w-3 h-3 text-[#0B5CFF]" />
-                              <span>Buka Zoom</span>
-                              <ExternalLink className="w-2.5 h-2.5 text-blue-400" />
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
 
                 {meeting.primaryTeamName && (
                   <div className="flex items-center gap-3 col-span-1 md:col-span-2 p-2.5 rounded-lg bg-amber-50/80 border border-amber-200">
@@ -576,52 +525,6 @@ export function MeetingDetailDialog({
                   </div>
                 )}
 
-                {/* Output & Hasil Kegiatan Biro 3 */}
-                <div className="col-span-1 md:col-span-2 p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span className="font-bold text-[12px] text-slate-800">Hasil &amp; Output Kegiatan</span>
-                    {meeting.actionPlan && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
-                        Rencana Aksi: {meeting.actionPlan}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {meeting.driveLink && (
-                      <a
-                        href={meeting.driveLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Google Drive</span>
-                      </a>
-                    )}
-                    {meeting.releaseUrl && (
-                      <a
-                        href={meeting.releaseUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Rilis Berita</span>
-                      </a>
-                    )}
-                    {meeting.ndConsumptionNumber && (
-                      <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
-                        Nd Konsum: <strong>{meeting.ndConsumptionNumber}</strong> ({meeting.ndConsumptionStatus || 'Diproses'})
-                      </span>
-                    )}
-                  </div>
-                  {meeting.notes && (
-                    <div className="p-3 rounded-lg bg-amber-50/60 border border-amber-200 text-amber-950 text-xs leading-relaxed">
-                      <span className="font-bold text-[10.5px] text-amber-800 uppercase block mb-1">Catatan Hasil:</span>
-                      {meeting.notes}
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* Status Change (CRUD Update) */}
@@ -679,40 +582,25 @@ export function MeetingDetailDialog({
               </div>
 
               {/* Action Items / Follow-up */}
-              <div>
+              <div className="space-y-3">
                 <h4 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#31889C]" />
-                  Progres Tindak Lanjut
+                  Tindak Lanjut Kegiatan
                 </h4>
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
-                  <ActionItemProgress data={meeting.actionItems} />
-                </div>
+                {isLoadingItems ? (
+                  <div className="p-8 text-center text-slate-500">Memuat tindak lanjut kegiatan...</div>
+                ) : (
+                  <ActionItemList
+                    meetingId={meeting.id}
+                    currentMeeting={meeting}
+                    initialItems={actionItems}
+                    availableBiros={availableBiros}
+                    availableUsers={availableUsers}
+                    readOnly={isEffectiveReadOnly}
+                  />
+                )}
               </div>
             </>
-          )}
-
-          {/* TAB 2: NOTULEN & HASIL KEGIATAN */}
-          {activeTab === 'minutes' && (
-            <div className="pt-1">
-              <MeetingMinutesSection meetingId={meeting.id} meeting={meeting} />
-            </div>
-          )}
-
-          {/* TAB 4: TINDAK LANJUT */}
-          {activeTab === 'actionItems' && (
-            <div className="pt-1">
-              {isLoadingItems ? (
-                <div className="p-8 text-center text-slate-500">Memuat tindak lanjut kegiatan...</div>
-              ) : (
-                <ActionItemList
-                  meetingId={meeting.id}
-                  currentMeeting={meeting}
-                  initialItems={actionItems}
-                  availableBiros={availableBiros}
-                  availableUsers={availableUsers}
-                />
-              )}
-            </div>
           )}
         </div>
 

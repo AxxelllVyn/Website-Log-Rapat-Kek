@@ -307,11 +307,11 @@ export async function deleteTeamAction(teamId: string) {
 /**
  * Super Admin or Admin assigns staff to multiple teams
  */
-export async function assignUserTeamsAction(input: { userId: string; teamIds: string[] }) {
+export async function assignUserTeamsAction(input: { userId: string; teamIds: string[]; primaryTeamId?: string }) {
   try {
     await requireRole(['SUPER_ADMIN', 'ADMIN']);
 
-    const { userId, teamIds } = input;
+    const { userId, teamIds, primaryTeamId: customPrimary } = input;
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -319,7 +319,9 @@ export async function assignUserTeamsAction(input: { userId: string; teamIds: st
       return { success: false, error: 'Pengguna tidak ditemukan.' };
     }
 
-    const primaryTeamId = teamIds.length > 0 ? teamIds[0] : null;
+    const primaryTeamId = (customPrimary && teamIds.includes(customPrimary))
+      ? customPrimary
+      : (teamIds.length > 0 ? teamIds[0] : null);
 
     await prisma.$transaction(async (tx) => {
       // 1. Update primary teamId on user

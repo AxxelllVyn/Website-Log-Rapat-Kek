@@ -2,10 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, Plus, Bell, ChevronDown, Menu, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, Plus, ChevronDown, Menu, LogOut, User as UserIcon } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
-import { useNotifications } from '@/components/providers/notification-provider';
 
 interface HeaderProps {
   onOpenMobile?: () => void;
@@ -39,9 +38,7 @@ export function Header({
   onOpenSearch,
 }: HeaderProps) {
   const { data: session } = useSession();
-  const { unreadCount } = useNotifications();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
   const currentUser = session?.user;
   const userName = currentUser?.name || 'Pengguna Sistem';
@@ -87,56 +84,8 @@ export function Header({
         </button>
       </div>
 
-      {/* Right: Actions, Notifications & Profile */}
+      {/* Right: Profile */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-3">
-        {/* Notification Bell */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-            className="p-2 text-slate-500 hover:text-[#31889C] hover:bg-[#F0F9FA] rounded-lg relative transition-colors cursor-pointer"
-            title="Notifikasi"
-          >
-            <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#F99D1C] ring-2 ring-white"></span>
-            )}
-          </button>
-
-          {notifDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200 p-3 z-50 text-[13px]">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span className="font-bold text-slate-900">Notifikasi Kegiatan</span>
-                {unreadCount > 0 ? (
-                  <span className="text-[11px] font-semibold text-[#31889C] bg-[#E8F5F7] px-2 py-0.5 rounded-full">
-                    {unreadCount} Baru
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    Semua Terbaca
-                  </span>
-                )}
-              </div>
-              <div className="divide-y divide-slate-100 mt-2">
-                <div className="py-2">
-                  <p className="font-semibold text-slate-800 text-[12px]">Pusat Notifikasi Aktif</p>
-                  <p className="text-slate-500 text-[11px]">Pantau pembaruan kegiatan dan status pekerjaan Biro 3.</p>
-                </div>
-              </div>
-              <div className="pt-2 border-t border-slate-100 mt-2 text-center">
-                <Link
-                  href="/notifikasi"
-                  onClick={() => setNotifDropdownOpen(false)}
-                  className="text-[12px] font-bold text-[#31889C] hover:text-[#215865] hover:underline"
-                >
-                  Buka Semua Notifikasi &rarr;
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
         {/* Profile Avatar & Info */}
         <div className="relative">

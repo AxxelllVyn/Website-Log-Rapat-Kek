@@ -22,21 +22,23 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
-  History,
   TrendingUp,
   Layers,
   ChevronDown,
   X,
   MoreVertical,
   Download,
+  Paperclip,
 } from 'lucide-react';
 import { ActionItem, ActionItemStatus } from '@/lib/types';
 import { ActionItemStatusBadge, ActionItemPriorityBadge } from './action-item-status-badge';
 import { ActionItemFormDialog } from './action-item-form-dialog';
 import { ActionItemDeleteDialog } from './action-item-delete-dialog';
-import { ActionItemLogDialog } from './action-item-log-dialog';
+import { ActionItemUpdateProgressDialog } from './action-item-update-progress-dialog';
 import {
   GoogleDriveLinkCard,
+  GoogleDriveIcon,
+  normalizeUrl,
   extractDriveLink,
   extractAnyLink,
   extractAllLinks,
@@ -112,13 +114,11 @@ export function ActionItemMatrixView({
   const teamParam = searchParams.get('tim') || 'ALL';
   const priorityParam = searchParams.get('prioritas') || 'ALL';
 
-  const effectiveLockedTeamCode =
-    lockedTeamCode ||
-    (userRole === 'STAFF' && session?.user?.teamCode ? session.user.teamCode.toUpperCase() : undefined);
+  const effectiveLockedTeamCode = lockedTeamCode;
 
   const [items, setItems] = useState<any[]>(initialItems);
   const [search, setSearch] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState<string>(effectiveLockedTeamCode || teamParam);
+  const [selectedTeam, setSelectedTeam] = useState<string>(teamParam || 'ALL');
   const [selectedPriority, setSelectedPriority] = useState<string>(priorityParam);
   const [openDropdown, setOpenDropdown] = useState<'TIM' | 'STATUS' | 'PRIORITAS' | null>(null);
   const filterToolbarRef = useRef<HTMLDivElement>(null);
@@ -141,10 +141,7 @@ export function ActionItemMatrixView({
   );
   const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ActionItem | null>(null);
-  const [loggingItem, setLoggingItem] = useState<ActionItem | null>(null);
-  const [dialogInitialTab, setDialogInitialTab] = useState<'trail' | 'update'>('update');
-  const [dialogDefaultStatus, setDialogDefaultStatus] = useState<ActionItemStatus | undefined>(undefined);
-  const [dialogDefaultProgress, setDialogDefaultProgress] = useState<number | undefined>(undefined);
+  const [updateProgressItem, setUpdateProgressItem] = useState<ActionItem | null>(null);
   const [activeMenuTaskId, setActiveMenuTaskId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -213,24 +210,13 @@ export function ActionItemMatrixView({
     };
   };
 
-  const openUpdateDialog = (task: ActionItem, targetStatus?: ActionItemStatus, targetProgress?: number) => {
-    setLoggingItem(task);
-    setDialogInitialTab('update');
-    setDialogDefaultStatus(targetStatus || task.status);
-    setDialogDefaultProgress(
-      targetProgress !== undefined
-        ? targetProgress
-        : targetStatus === 'COMPLETED'
-          ? 100
-          : task.latestProgress
-    );
-  };
+  const [updateTargetStatus, setUpdateTargetStatus] = useState<ActionItemStatus | undefined>(undefined);
+  const [updateTargetProgress, setUpdateTargetProgress] = useState<number | undefined>(undefined);
 
-  const openAuditTrailDialog = (task: ActionItem) => {
-    setLoggingItem(task);
-    setDialogInitialTab('trail');
-    setDialogDefaultStatus(task.status);
-    setDialogDefaultProgress(task.latestProgress);
+  const openUpdateDialog = (task: ActionItem, targetStatus?: ActionItemStatus, targetProgress?: number) => {
+    setUpdateProgressItem(task);
+    setUpdateTargetStatus(targetStatus);
+    setUpdateTargetProgress(targetProgress);
   };
 
   /**
@@ -1090,7 +1076,11 @@ export function ActionItemMatrixView({
 
                       {/* Butir Tindak Lanjut */}
                       <td className="py-3.5 px-4 align-top">
-                        <p className="font-bold text-slate-900 leading-snug">{task.title}</p>
+                        <p className="font-bold text-slate-900 leading-snug">
+                          {/^https?:\/\//i.test(task.title.trim())
+                            ? (task.meeting?.title ? `Tindak Lanjut: ${task.meeting.title}` : 'Tindak Lanjut Kegiatan')
+                            : task.title}
+                        </p>
                         {(() => {
                           let rawDesc = task.description || '';
                           let explicitLink = '';
@@ -1110,26 +1100,109 @@ export function ActionItemMatrixView({
                               // fallback
                             }
                           }
-                          const allUrls = extractAllLinks(rawDesc);
-                          if (explicitLink && !allUrls.includes(explicitLink)) {
+                          const refDocMatch = rawDesc.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+                          const refDriveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*(\S+)/);
+                          const evidenceDocMatch = rawDesc.match(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/);
+                          const evidenceDriveMatch = rawDesc.match(/📎 (?:Drive Bukti|Tautan Google Drive):\s*(\S+)/);
+
+                          const refDriveUrl = refDriveMatch ? normalizeUrl(refDriveMatch[1]) : '';
+                          const evidenceDriveUrl = evidenceDriveMatch ? normalizeUrl(evidenceDriveMatch[1]) : '';
+
+                          const allUrls = extractAllLinks(rawDesc).filter(
+                            (u) => u !== refDriveUrl && u !== evidenceDriveUrl
+                          );
+                          if (explicitLink && !allUrls.includes(explicitLink) && explicitLink !== refDriveUrl && explicitLink !== evidenceDriveUrl) {
                             allUrls.unshift(explicitLink);
                           }
-                          const cleanDesc = allUrls.length > 0 ? cleanTextWithoutLink(rawDesc) : rawDesc;
+                          let cleanDesc = cleanTextWithoutLink(rawDesc);
+                          cleanDesc = cleanDesc
+                            .replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+                            .replace(/📎 (?:Drive Acuan|Google Drive Acuan|Link Terkait):\s*\S+/g, '')
+                            .replace(/📎 Bukti Pelaksanaan:\s*\[([^\]]+)\]\(([^)]+)\)/g, '')
+                            .replace(/📎 (?:Drive Bukti|Tautan Google Drive):\s*\S+/g, '')
+                            .replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*/g, '')
+                            .trim();
 
                           return (
-                            <div className="space-y-1 mt-0.5">
+                            <div className="space-y-1.5 mt-1">
                               {cleanDesc ? (
-                                <p className="text-[12px] text-slate-500 line-clamp-2">
+                                <p className="text-[12px] text-slate-600 line-clamp-2 leading-relaxed font-normal">
                                   <RenderTextWithLinks text={cleanDesc} />
                                 </p>
                               ) : null}
-                              {(allUrls.length > 0 || explicitFile) ? (
+
+                              {/* 1. Baris Bahan Acuan dari Atasan */}
+                              {(refDocMatch || refDriveUrl) && (
                                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                  <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                                    Acuan Atasan
+                                  </span>
+                                  {refDocMatch && (
+                                    <a
+                                      href={refDocMatch[2]}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition-colors shadow-2xs"
+                                      title={`Dokumen Acuan Penugasan: ${refDocMatch[1]}`}
+                                    >
+                                      <Paperclip className="w-3 h-3 text-[#31889C]" />
+                                      <span className="truncate max-w-[130px]">{refDocMatch[1]}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                                    </a>
+                                  )}
+                                  {refDriveUrl && (
+                                    <a
+                                      href={refDriveUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 transition-colors shadow-2xs"
+                                      title="Google Drive Materi Acuan dari Atasan"
+                                    >
+                                      <GoogleDriveIcon className="w-3 h-3" />
+                                      <span>Link Terkait</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-amber-600" />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* 2. Baris Bukti Pelaksanaan PIC */}
+                              {(evidenceDocMatch || evidenceDriveUrl || allUrls.length > 0 || explicitFile) && (
+                                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                  <span className="text-[9.5px] font-bold uppercase tracking-wider text-[#2C6E20] bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300 shrink-0">
+                                    Bukti PIC
+                                  </span>
+                                  {evidenceDocMatch && (
+                                    <a
+                                      href={evidenceDocMatch[2]}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 transition-colors shadow-2xs"
+                                      title={`Bukti Pelaksanaan PIC: ${evidenceDocMatch[1]}`}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      <span className="truncate max-w-[130px]">{evidenceDocMatch[1]}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-emerald-600" />
+                                    </a>
+                                  )}
+                                  {evidenceDriveUrl && (
+                                    <a
+                                      href={evidenceDriveUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 transition-colors shadow-2xs"
+                                      title="Tautan Google Drive Bukti Hasil PIC"
+                                    >
+                                      <GoogleDriveIcon className="w-3 h-3" />
+                                      <span>Drive Bukti</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-emerald-600" />
+                                    </a>
+                                  )}
                                   {allUrls.map((url, idx) => (
                                     <GoogleDriveLinkCard
                                       key={url + idx}
                                       url={url}
-                                      label={url === explicitLink && explicitLinkTitle ? explicitLinkTitle : (allUrls.length > 1 ? `Output / Bukti ${idx + 1}` : 'Output / Bukti Hasil')}
+                                      label={url === explicitLink && explicitLinkTitle ? explicitLinkTitle : (allUrls.length > 1 ? `Output ${idx + 1}` : 'Bukti Luaran')}
                                       variant="badge"
                                     />
                                   ))}
@@ -1146,7 +1219,7 @@ export function ActionItemMatrixView({
                                     </a>
                                   )}
                                 </div>
-                              ) : null}
+                              )}
                             </div>
                           );
                         })()}
@@ -1256,17 +1329,7 @@ export function ActionItemMatrixView({
                               <TrendingUp className="w-3.5 h-3.5" />
                               <span>{task.status === 'COMPLETED' ? 'Lihat Capaian' : 'Update Progres'}</span>
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openAuditTrailDialog(task)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
-                              title="Lihat riwayat catatan progres"
-                            >
-                              <History className="w-3.5 h-3.5 text-slate-400" />
-                              <span>Riwayat Log</span>
-                            </button>
-                          )}
+                          ) : null}
 
                           {/* 2. Menu Titik Tiga (...) untuk Aksi Tambahan */}
                           <div className="relative">
@@ -1305,26 +1368,6 @@ export function ActionItemMatrixView({
                                     <span>Tandai Selesai Cepat</span>
                                   </button>
                                 )}
-
-                                {/* Riwayat & Catatan Log */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveMenuTaskId(null);
-                                    openAuditTrailDialog(task);
-                                  }}
-                                  className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <History className="w-3.5 h-3.5 text-slate-500" />
-                                    <span>Riwayat &amp; Catatan Log</span>
-                                  </div>
-                                  {Boolean(task.logsCount && task.logsCount > 0) && (
-                                    <span className="px-1.5 py-0.2 rounded-full bg-[#31889C] text-white text-[9px] font-bold">
-                                      {task.logsCount}
-                                    </span>
-                                  )}
-                                </button>
 
                                 {/* Ubah Rincian & Tenggat */}
                                 {canEditTask(task) && (
@@ -1411,20 +1454,24 @@ export function ActionItemMatrixView({
         }}
       />
 
-      {/* Audit Trail & Progress Log Dialog */}
-      <ActionItemLogDialog
-        item={loggingItem}
-        isOpen={Boolean(loggingItem)}
-        initialTab={dialogInitialTab}
-        defaultStatus={dialogDefaultStatus}
-        defaultProgress={dialogDefaultProgress}
-        canEdit={Boolean(loggingItem && canEditTask(loggingItem))}
-        onClose={() => setLoggingItem(null)}
+      {/* Dedicated Modern Update Progress & Evidence Dialog */}
+      <ActionItemUpdateProgressDialog
+        item={updateProgressItem}
+        isOpen={Boolean(updateProgressItem)}
+        defaultStatus={updateTargetStatus}
+        defaultProgress={updateTargetProgress}
+        onClose={() => {
+          setUpdateProgressItem(null);
+          setUpdateTargetStatus(undefined);
+          setUpdateTargetProgress(undefined);
+        }}
         onItemUpdated={(updated) => {
           setItems((prev) =>
             prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it))
           );
-          setLoggingItem(updated);
+          setUpdateProgressItem(null);
+          setUpdateTargetStatus(undefined);
+          setUpdateTargetProgress(undefined);
           router.refresh();
         }}
       />

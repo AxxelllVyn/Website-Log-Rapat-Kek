@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, AlertCircle, Save, ExternalLink, Layers, Calendar, Lock, CheckCircle2 } from 'lucide-react';
+import { X, AlertCircle, Save, ExternalLink, Layers, Calendar, Lock, CheckCircle2, UploadCloud, Paperclip, FileCheck, Trash2, Loader2, User } from 'lucide-react';
 import {
   actionItemSchema,
   ActionItemInput,
@@ -12,6 +12,7 @@ import {
   updateActionItemAction,
   getActionItemFormOptionsAction,
 } from '@/app/actions/action-item-actions';
+import { uploadGenericMeetingFileAction } from '@/app/actions/meeting-upload-actions';
 import { ActionItem, ActionItemPriority, ActionItemStatus } from '@/lib/types';
 import {
   GoogleDriveIcon,
@@ -197,37 +198,53 @@ export function ActionItemFormDialog({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [driveLink, setDriveLink] = useState('');
+  const [uploadedDoc, setUploadedDoc] = useState<{
+    url: string;
+    name: string;
+    size?: number;
+  } | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
   const [picBiroId, setPicBiroId] = useState('');
-  const [picTeamId, setPicTeamId] = useState('TIM-001');
+  const [picTeamId, setPicTeamId] = useState('');
   const [picUserId, setPicUserId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState<ActionItemPriority>('MEDIUM');
   const [status, setStatus] = useState<ActionItemStatus>('PENDING');
 
-  // Tiga Tim Kerja Resmi Tindak Lanjut Sekretariat KEK
-  const displayTeams = React.useMemo(() => [
-    { id: 'TIM-001', code: 'INV', name: 'Tim Investasi', biroId: 'BIRO-IKK' },
-    { id: 'TIM-003', code: 'KS', name: 'Tim Kerja Sama', biroId: 'BIRO-IKK' },
-    { id: 'TIM-002', code: 'KOM', name: 'Tim Komunikasi', biroId: 'BIRO-IKK' },
-  ], []);
+  // Tiga Tim Kerja Resmi Tindak Lanjut Sekretariat KEK (dengan fallback UUID riil database)
+  const displayTeams = React.useMemo(() => {
+    const officialCodes = ['INV', 'KS', 'KOM'];
+    if (teamsList && teamsList.length > 0) {
+      const matched = teamsList.filter((t) => officialCodes.includes(t.code.toUpperCase()));
+      if (matched.length > 0) {
+        return matched;
+      }
+      return teamsList;
+    }
+    return [
+      { id: '1c2512e1-1859-42ca-874a-196848ab7acf', code: 'INV', name: 'Tim Investasi', biroId: 'db859e7e-d77e-4247-abf2-91e48a3d95bf' },
+      { id: '663d7ff9-585a-4800-8840-389a5e322779', code: 'KS', name: 'Tim Kerja Sama', biroId: 'db859e7e-d77e-4247-abf2-91e48a3d95bf' },
+      { id: 'a3b2e91a-566c-46e5-a740-1aa944793290', code: 'KOM', name: 'Tim Komunikasi', biroId: 'db859e7e-d77e-4247-abf2-91e48a3d95bf' },
+    ];
+  }, [teamsList]);
 
   // Synchronize title, PIC, and team automatically from a meeting
   const applyMeetingDefaults = React.useCallback(
     (m: any, usersToSearch: any[] = effectiveUsers) => {
       if (!m) return;
 
-      // 1. Sync title automatically to meeting title
-      if (m.title) {
-        setTitle(m.title);
+      // 1. Sinkronisasi nama kegiatan otomatis
+      if (!isEditing) {
+        setTitle(m.title || '');
       }
 
       // 2. Sync team
       const num = m.meetingNumber?.toUpperCase() || '';
       let targetTeamId = m.primaryTeamId || m.primaryTeam?.id || '';
       if (!targetTeamId) {
-        if (num.startsWith('INV-')) targetTeamId = 'TIM-001';
-        else if (num.startsWith('KS-')) targetTeamId = 'TIM-003';
-        else if (num.startsWith('KOM-')) targetTeamId = 'TIM-002';
+        if (num.startsWith('INV-')) targetTeamId = displayTeams.find((t) => t.code === 'INV')?.id || '';
+        else if (num.startsWith('KS-')) targetTeamId = displayTeams.find((t) => t.code === 'KS')?.id || '';
+        else if (num.startsWith('KOM-')) targetTeamId = displayTeams.find((t) => t.code === 'KOM')?.id || '';
       }
       if (effectiveLockedTeamCode) {
         const teamForCode = displayTeams.find(
@@ -235,9 +252,12 @@ export function ActionItemFormDialog({
         );
         if (teamForCode) targetTeamId = teamForCode.id;
       }
+      if (!targetTeamId && displayTeams.length > 0) {
+        targetTeamId = displayTeams[0].id;
+      }
       if (targetTeamId) {
         setPicTeamId(targetTeamId);
-        const matchedT = displayTeams.find((t) => t.id === targetTeamId);
+        const matchedT = displayTeams.find((t) => t.id === targetTeamId || t.code === targetTeamId);
         if (matchedT?.biroId) {
           setPicBiroId(matchedT.biroId);
         }
@@ -320,16 +340,32 @@ export function ActionItemFormDialog({
 
       setSelectedMeetingId(actionItem.meetingId || meetingId || normalizedCurrentMeeting?.id || '');
       setTitle(actionItem.title || '');
-      const foundDrive = extractDriveLink(actionItem.description);
-      if (foundDrive) {
-        setDriveLink(foundDrive);
-        setDescription(cleanTextWithoutLink(actionItem.description));
+      const rawDesc = actionItem.description || '';
+      const docMatch = rawDesc.match(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/);
+      if (docMatch) {
+        setUploadedDoc({ name: docMatch[1], url: docMatch[2] });
       } else {
-        setDriveLink('');
-        setDescription(actionItem.description || '');
+        setUploadedDoc(null);
       }
-      setPicBiroId(actionItem.picBiroId || 'BIRO-IKK');
-      setPicTeamId(actionItem.picTeamId || 'TIM-001');
+      const driveMatch = rawDesc.match(/📎 (?:Drive Acuan|Google Drive Acuan|Tautan Google Drive|Link Terkait):\s*(\S+)/);
+      if (driveMatch) {
+        setDriveLink(normalizeUrl(driveMatch[1]));
+      } else {
+        const foundDrive = extractDriveLink(rawDesc);
+        if (foundDrive) {
+          setDriveLink(foundDrive);
+        } else {
+          setDriveLink('');
+        }
+      }
+      let cleaned = cleanTextWithoutLink(rawDesc);
+      cleaned = cleaned.replace(/📎 (?:Dokumen Acuan|Dokumen Terkait):\s*\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
+      cleaned = cleaned.replace(/📎 (?:Drive Acuan|Google Drive Acuan|Drive Bukti|Bukti Pelaksanaan|Link Terkait):\s*\[?[^\]\n]+\]?\(?[^\)\n]*\)?/g, '').trim();
+      cleaned = cleaned.replace(/📝 (?:Catatan Capaian|Catatan Progres):\s*[^\n]+/g, '').trim();
+      setDescription(cleaned);
+
+      setPicBiroId(actionItem.picBiroId || displayTeams[0]?.biroId || '');
+      setPicTeamId(actionItem.picTeamId || displayTeams[0]?.id || '');
       setPicUserId(actionItem.picUserId || '');
       setDueDate(`${yyyy}-${mm}-${dd}`);
       setPriority(actionItem.priority || 'MEDIUM');
@@ -347,6 +383,7 @@ export function ActionItemFormDialog({
       setSelectedMeetingId(initialMeetingId);
       setDescription('');
       setDriveLink('');
+      setUploadedDoc(null);
       setDueDate(`${yyyy}-${mm}-${dd}`);
       setPriority('MEDIUM');
       setStatus('PENDING');
@@ -386,6 +423,31 @@ export function ActionItemFormDialog({
 
   const activeTitle = title || currentMeetingObj?.title || normalizedCurrentMeeting?.title || '';
 
+  // Handle document upload for action item
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingDoc(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('type', 'tindak-lanjut');
+      const res = await uploadGenericMeetingFileAction(fd);
+      if (res.success && res.data) {
+        setUploadedDoc({
+          url: res.data.url,
+          name: res.data.name,
+          size: res.data.size,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Upload error:', err);
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -394,49 +456,75 @@ export function ActionItemFormDialog({
     setFieldErrors({});
 
     let finalDescription = description.trim();
+    if (uploadedDoc) {
+      finalDescription = finalDescription
+        ? `${finalDescription}\n\n📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`
+        : `📎 Dokumen Terkait: [${uploadedDoc.name}](${uploadedDoc.url})`;
+    }
     if (driveLink.trim()) {
       const formattedLink = normalizeUrl(driveLink);
       finalDescription = finalDescription
-        ? `${finalDescription}\n\n📎 Tautan Google Drive: ${formattedLink}`
-        : `📎 Tautan Google Drive: ${formattedLink}`;
+        ? `${finalDescription}\n\n📎 Link Terkait: ${formattedLink}`
+        : `📎 Link Terkait: ${formattedLink}`;
     }
 
-    const finalMeetingId = selectedMeetingId || meetingId;
+    const finalMeetingId = selectedMeetingId || meetingId || normalizedCurrentMeeting?.id;
     if (!finalMeetingId) {
       setFieldErrors((prev) => ({
         ...prev,
-        meetingId: 'Silakan pilih kegiatan yang terkoneksi dengan tindak lanjut ini.',
+        meetingId: 'Silakan pilih kegiatan yang relevan dengan tindak lanjut ini.',
       }));
-      setErrorMessage('Kegiatan terkait wajib dipilih.');
+      setErrorMessage('Nama kegiatan wajib dipilih.');
       return;
     }
 
-    const finalPicTeamId = picTeamId && picTeamId.trim() !== '' ? picTeamId.trim() : '';
-    if (!finalPicTeamId) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        picTeamId: 'Tim penanggung jawab wajib dipilih.',
-      }));
-      setErrorMessage('Tim penanggung jawab wajib dipilih.');
-      return;
+    const currentM = findMeetingById(finalMeetingId) || normalizedCurrentMeeting;
+    const selectedUser = effectiveUsers.find((u) => u.id === picUserId);
+
+    // Auto resolve team & biro (tidak lagi wajib diisi manual di form oleh pengguna)
+    let finalPicTeamId =
+      picTeamId ||
+      selectedUser?.teamId ||
+      (currentM as any)?.primaryTeamId ||
+      (currentM as any)?.primaryTeam?.id ||
+      '';
+
+    if (!finalPicTeamId && effectiveLockedTeamCode) {
+      finalPicTeamId =
+        displayTeams.find((t) => t.code.toUpperCase() === effectiveLockedTeamCode.toUpperCase())?.id || '';
+    }
+    if (!finalPicTeamId && displayTeams.length > 0) {
+      finalPicTeamId = displayTeams[0].id;
     }
 
-    const selectedTeamObj = displayTeams.find((t) => t.id === finalPicTeamId);
+    const selectedTeamObj = displayTeams.find((t) => t.id === finalPicTeamId || t.code === finalPicTeamId);
     const finalPicBiroId =
+      selectedUser?.biroId ||
       selectedTeamObj?.biroId ||
       picBiroId ||
+      (currentM as any)?.primaryBiroId ||
+      (currentM as any)?.primaryBiro?.id ||
+      (normalizedCurrentMeeting as any)?.primaryBiroId ||
+      (normalizedCurrentMeeting as any)?.primaryBiro?.id ||
       (effectiveLockedBiroCode
         ? birosList.find((b) => b.code.toUpperCase() === effectiveLockedBiroCode.toUpperCase())?.id
         : '') ||
-      'BIRO-IKK';
+      (birosList.find((b) => b.code.toUpperCase() === 'IKK')?.id) ||
+      '';
 
-    const currentM = findMeetingById(finalMeetingId);
     const finalTitle = (
       title.trim() ||
-      currentM?.title?.trim() ||
-      normalizedCurrentMeeting?.title?.trim() ||
+      currentMeetingObj?.title ||
+      (currentM as any)?.title ||
+      activeTitle ||
       'Tindak Lanjut Kegiatan'
     ).slice(0, 255);
+
+    let finalDueDate = dueDate;
+    if (!finalDueDate) {
+      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      finalDueDate = nextWeek.toISOString().split('T')[0];
+    }
 
     // Zod client validation
     const rawData = {
@@ -446,7 +534,7 @@ export function ActionItemFormDialog({
       picBiroId: finalPicBiroId,
       picTeamId: finalPicTeamId,
       picUserId: picUserId && picUserId.trim() !== '' ? picUserId : null,
-      dueDate,
+      dueDate: finalDueDate,
       priority,
       status,
     };
@@ -505,7 +593,7 @@ export function ActionItemFormDialog({
               {isEditing ? 'Perbarui Matriks' : 'Matriks Tindak Lanjut'}
             </span>
             <h2 className="text-[18px] font-bold text-slate-900">
-              {isEditing ? 'Ubah Butir Tindak Lanjut' : 'Tambah Tindak Lanjut Kegiatan'}
+              {isEditing ? 'Ubah Tindak Lanjut Kegiatan' : 'Tambah Tindak Lanjut Kegiatan'}
             </h2>
           </div>
 
@@ -528,12 +616,12 @@ export function ActionItemFormDialog({
               </div>
             )}
 
-            {/* Kegiatan Terkait / Agenda Sumber */}
+            {/* 1. Nama Kegiatan */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
                   <Layers className="w-4 h-4 text-[#31889C]" />
-                  <span>{isMeetingLocked ? 'Kegiatan Terkait' : 'Kegiatan Terkait / Agenda Sumber'}</span>
+                  <span>1. Nama Kegiatan</span>
                   <span className="text-red-500">*</span>
                 </label>
                 {(() => {
@@ -551,94 +639,158 @@ export function ActionItemFormDialog({
                 })()}
               </div>
 
-              <SearchableMeetingSelect
-                meetings={effectiveMeetings}
-                selectedMeetingId={selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || ''}
-                onSelectMeeting={(mId) => {
-                  if (isMeetingLocked) return;
-                  setSelectedMeetingId(mId);
-                  if (fieldErrors.meetingId) {
-                    setFieldErrors((prev) => {
-                      const next = { ...prev };
-                      delete next.meetingId;
-                      return next;
-                    });
+              {!isMeetingLocked ? (
+                <div>
+                  <SearchableMeetingSelect
+                    meetings={effectiveMeetings}
+                    selectedMeetingId={selectedMeetingId || meetingId || normalizedCurrentMeeting?.id || ''}
+                    onSelectMeeting={(mId) => {
+                      setSelectedMeetingId(mId);
+                      if (fieldErrors.meetingId) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.meetingId;
+                          return next;
+                        });
+                      }
+                      const selM = findMeetingById(mId);
+                      if (selM) {
+                        setTitle(selM.title);
+                        applyMeetingDefaults(selM, effectiveUsers);
+                      }
+                    }}
+                    userBiroCode={effectiveLockedBiroCode}
+                    userTeamCode={effectiveLockedTeamCode || undefined}
+                    isLocked={false}
+                    disabled={false}
+                    isLoading={isLoadingOptions}
+                    error={fieldErrors.meetingId}
+                  />
+                  {effectiveLockedTeamCode ? (
+                    <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
+                      <span>Daftar kegiatan disesuaikan untuk agenda penugasan {displayTeams.find((t) => t.code === effectiveLockedTeamCode)?.name || `Tim ${effectiveLockedTeamCode}`}.</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] text-slate-400">
+                      Pilih agenda kegiatan yang menjadi sumber tindak lanjut ini.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-semibold text-slate-800 leading-snug break-words flex-1">
+                    {currentMeetingObj?.title || activeTitle || '(Sesuai agenda kegiatan yang dipilih)'}
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
+                    <span>Terhubung Otomatis</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* 2. PIC */}
+            <div>
+              <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between text-[13px]">
+                <span className="flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-[#31889C]" />
+                  <span>2. PIC</span>
+                  <span className="text-slate-400 font-normal text-xs">(Penanggung Jawab Pelaksana - Opsional)</span>
+                </span>
+                {picUserId && (
+                  <span className="inline-flex items-center gap-1 text-[10.5px] text-[#1E6B7B] font-bold bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
+                    <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
+                    <span>PIC Terpilih</span>
+                  </span>
+                )}
+              </label>
+              <PicCombobox
+                value={picUserId}
+                onChange={(val) => {
+                  setPicUserId(val);
+                  const u = effectiveUsers.find((x) => x.id === val);
+                  if (u?.teamId) {
+                    setPicTeamId(u.teamId);
                   }
-                  if (!isEditing) {
-                    const selM = findMeetingById(mId);
-                    if (selM) {
-                      applyMeetingDefaults(selM, effectiveUsers);
-                    }
+                  if (u?.biroId) {
+                    setPicBiroId(u.biroId);
                   }
                 }}
-                userBiroCode={effectiveLockedBiroCode}
-                userTeamCode={effectiveLockedTeamCode || undefined}
-                isLocked={isMeetingLocked}
-                disabled={isMeetingLocked}
-                isLoading={isLoadingOptions}
-                error={fieldErrors.meetingId}
+                users={effectiveUsers}
+                biros={birosList}
+                selectedBiroId={
+                  picBiroId ||
+                  displayTeams.find((t) => t.id === picTeamId)?.biroId ||
+                  (effectiveLockedBiroCode
+                    ? birosList.find((b) => b.code.toUpperCase() === effectiveLockedBiroCode.toUpperCase())?.id
+                    : '') ||
+                  'BIRO-IKK'
+                }
+                disabled={isLoadingOptions}
+                placeholder="Pilih Pejabat / PIC Pelaksana..."
               />
-              {isMeetingLocked ? (
-                <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
-                  <span>Tindak lanjut ini otomatis terhubung langsung ke kegiatan ini (tidak perlu memilih kegiatan lain).</span>
-                </p>
-              ) : effectiveLockedTeamCode ? (
-                <p className="mt-1.5 text-[11px] text-[#215865] flex items-center gap-1.5 font-medium bg-[#E8F5F7]/80 px-2.5 py-1.5 rounded-lg border border-[#BCE3EB]/80">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#31889C] shrink-0" />
-                  <span>Daftar kegiatan disesuaikan khusus untuk agenda penugasan {displayTeams.find((t) => t.code === effectiveLockedTeamCode)?.name || `Tim ${effectiveLockedTeamCode}`}.</span>
-                </p>
-              ) : (
-                <p className="mt-1.5 text-[11px] text-slate-400">
-                  Hubungkan tindak lanjut ini dengan agenda kegiatan yang relevan. Gunakan pencarian instan atau filter biro untuk menemukan kegiatan dengan cepat.
-                </p>
-              )}
             </div>
 
-            {/* Judul Tindak Lanjut (Otomatis Sesuai Agenda Kegiatan) */}
-            <div className="p-3.5 bg-gradient-to-r from-slate-50 to-[#F0F8FA] border border-[#BCE3EB]/80 rounded-xl space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#215865] uppercase tracking-wider flex items-center gap-1.5">
-                  <span>Judul Tindak Lanjut</span>
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-[#1E6B7B] bg-white px-2 py-0.5 rounded-full border border-[#BCE3EB] shadow-2xs">
-                  <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
-                  <span>Otomatis Sesuai Agenda Kegiatan</span>
-                </span>
-              </div>
-              <p className="text-[13.5px] font-bold text-slate-800 leading-snug break-words">
-                {activeTitle || '(Mengikuti judul agenda kegiatan yang dipilih)'}
-              </p>
-              {fieldErrors.title && (
-                <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.title}</p>
-              )}
-            </div>
-
-            {/* Deskripsi (Optional) */}
+            {/* 3. Dokumen terkait */}
             <div>
-              <label className="block font-bold text-slate-800 mb-1">
-                Deskripsi / Catatan Tambahan <span className="text-slate-400 font-normal">(Opsional)</span>
+              <label className="block font-bold text-slate-800 mb-1 text-[13px] flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Paperclip className="w-3.5 h-3.5 text-[#31889C]" />
+                  <span>3. Dokumen terkait</span>
+                  <span className="text-slate-400 font-normal text-xs">(Bahan Acuan / Dokumen Pendukung - Opsional)</span>
+                </span>
               </label>
-              <textarea
-                rows={3}
-                placeholder="Rincian ruang lingkup arahan, output dokumen yang diharapkan, atau koordinasi lintas instansi..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] text-slate-800 text-[13px]"
-              />
+              {uploadedDoc ? (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 bg-emerald-50/70">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-semibold text-slate-800 truncate">
+                      {uploadedDoc.name}
+                    </span>
+                    {uploadedDoc.size ? (
+                      <span className="text-[11px] text-slate-400 shrink-0">
+                        ({(uploadedDoc.size / (1024 * 1024)).toFixed(2)} MB)
+                      </span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUploadedDoc(null)}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold cursor-pointer shrink-0"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              ) : (
+                <div className="relative border border-dashed border-slate-300 hover:border-[#31889C] rounded-lg p-3 text-center transition-all bg-slate-50/50 hover:bg-[#F0F8FA]/30">
+                  <input
+                    type="file"
+                    id="action-item-doc-upload"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    onChange={handleDocUpload}
+                    disabled={isUploadingDoc}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <div className="flex items-center justify-center gap-2 text-xs text-slate-600 pointer-events-none">
+                    {isUploadingDoc ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#31889C]" />
+                    ) : (
+                      <UploadCloud className="w-4 h-4 text-[#31889C]" />
+                    )}
+                    <span>{isUploadingDoc ? 'Mengunggah Berkas...' : 'Klik atau seret dokumen terkait di sini (PDF, Word, Excel, Paparan)'}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Tautan Google Drive / Dokumen Rujukan (Optional) */}
+            {/* 4. Link terkait */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
-                  <GoogleDriveIcon className="w-3.5 h-3.5" />
-                  <span>Tautan Google Drive / Dokumen Rujukan <span className="text-slate-400 font-normal">(Opsional)</span></span>
-                </label>
-                <span className="text-[10.5px] text-slate-400">
-                  Folder Drive, Kerangka Acuan, atau Dokumen Terkait
-                </span>
-              </div>
+              <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5 mb-1">
+                <GoogleDriveIcon className="w-3.5 h-3.5" />
+                <span>4. Link terkait</span>
+                <span className="text-slate-400 font-normal text-xs">(Google Drive / URL Terkait - Opsional)</span>
+              </label>
               <div className="relative">
                 <input
                   type="url"
@@ -665,125 +817,36 @@ export function ActionItemFormDialog({
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#31889C] hover:bg-[#266F80] text-white text-[11px] font-bold shrink-0 transition-colors shadow-2xs cursor-pointer"
-                    title="Klik untuk langsung membuka dan menguji tautan di Google Drive"
+                    title="Klik untuk langsung membuka dan menguji tautan"
                   >
-                    <span>Uji / Buka Langsung</span>
+                    <span>Buka Tautan</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
               )}
-              <p className="mt-1 text-[11px] text-slate-400">
-                Tautkan Google Drive bahan rujukan agar tim pelaksana dapat langsung mengakses dokumen pendukung tugas ini.
-              </p>
             </div>
 
-            {/* Tim Kerja Penanggung Jawab & PIC Pelaksana Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Tim Penanggung Jawab (Required, Per Tim Kerja IKK) */}
-              <div>
-                {(() => {
-                  const currentTeam = displayTeams.find((t) => t.id === picTeamId);
-                  return (
-                    <>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block font-bold text-slate-800 text-[13px] flex items-center gap-1.5">
-                          <Layers className="w-4 h-4 text-[#31889C]" />
-                          <span>Tim Penanggung Jawab</span>
-                          <span className="text-red-500">*</span>
-                        </label>
-                        {currentTeam && (
-                          <span className="text-[10px] font-bold text-[#215865] bg-[#E8F5F7] px-2 py-0.5 rounded border border-[#BCE3EB]">
-                            {currentTeam.code}
-                          </span>
-                        )}
-                      </div>
-                      <select
-                        value={picTeamId}
-                        disabled={Boolean(effectiveLockedTeamCode)}
-                        onChange={(e) => {
-                          const newTeamId = e.target.value;
-                          setPicTeamId(newTeamId);
-                          const matched = displayTeams.find((t) => t.id === newTeamId);
-                          if (matched?.biroId) {
-                            setPicBiroId(matched.biroId);
-                          }
-                          if (fieldErrors.picTeamId) {
-                            setFieldErrors((prev) => {
-                              const next = { ...prev };
-                              delete next.picTeamId;
-                              return next;
-                            });
-                          }
-                        }}
-                        className={`w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] font-medium text-slate-800 text-[13px] shadow-2xs ${
-                          effectiveLockedTeamCode ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-white cursor-pointer'
-                        }`}
-                      >
-                        <option value="">
-                          {isLoadingOptions ? '-- Memuat Tim Kerja... --' : '-- Pilih Tim Kerja --'}
-                        </option>
-                        {displayTeams.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                      {fieldErrors.picTeamId && (
-                        <p className="mt-1 text-[11px] text-red-600 font-semibold">{fieldErrors.picTeamId}</p>
-                      )}
-                      {effectiveLockedTeamCode ? (
-                        <p className="mt-1 text-[11px] text-[#215865] font-semibold">
-                          🔒 Tim kerja terkunci sesuai penugasan tim peran Anda ({effectiveLockedTeamCode}).
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          Penanggung jawab operasional tindak lanjut per tim kerja Sekretariat KEK.
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-
-              {/* Pejabat / PIC Pelaksana (Opsional) */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between text-[13px]">
-                  <span>Pejabat / PIC Pelaksana <span className="text-slate-400 font-normal">(Opsional)</span></span>
-                  {picUserId && (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] text-[#1E6B7B] font-bold bg-[#E8F5F7] px-2 py-0.5 rounded-full border border-[#BCE3EB]">
-                      <CheckCircle2 className="w-3 h-3 text-[#31889C]" />
-                      <span>Otomatis Sesuai Kegiatan</span>
-                    </span>
-                  )}
-                </label>
-                <PicCombobox
-                  value={picUserId}
-                  onChange={(val) => setPicUserId(val)}
-                  users={effectiveUsers}
-                  biros={birosList}
-                  selectedBiroId={
-                    picBiroId ||
-                    displayTeams.find((t) => t.id === picTeamId)?.biroId ||
-                    (effectiveLockedBiroCode
-                      ? birosList.find((b) => b.code.toUpperCase() === effectiveLockedBiroCode.toUpperCase())?.id
-                      : '') ||
-                    'BIRO-IKK'
-                  }
-                  disabled={isLoadingOptions}
-                  placeholder="Pilih Pejabat / PIC Pelaksana..."
-                />
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Otomatis terpilih sesuai pimpinan/PIC saat pendaftaran kegiatan. Dapat disesuaikan bila diperlukan.
-                </p>
-              </div>
+            {/* 5. Catatan */}
+            <div>
+              <label className="block font-bold text-slate-800 mb-1 text-[13px]">
+                5. Catatan <span className="text-slate-400 font-normal text-xs">(Rincian / Arahan Tindak Lanjut - Opsional)</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Catatan arahan tindak lanjut, koordinasi, atau rincian pekerjaan yang perlu diselesaikan..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] text-slate-800 text-[13px]"
+              />
             </div>
 
-            {/* Deadline, Prioritas, Status Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Tenggat Waktu & Status Tindak Lanjut */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
               {/* Deadline (Required) */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Tenggat Waktu / Deadline <span className="text-red-500">*</span>
+                <label className="block font-semibold text-slate-700 mb-1 text-[12px] flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Tenggat Waktu / Deadline</span>
                 </label>
                 <input
                   type="date"
@@ -796,38 +859,30 @@ export function ActionItemFormDialog({
                 )}
               </div>
 
-              {/* Prioritas */}
+              {/* Status Tindak Lanjut */}
               <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Tingkat Prioritas
+                <label className="block font-semibold text-slate-700 mb-1 text-[12px]">
+                  Status Tindak Lanjut
                 </label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as ActionItemPriority)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
-                >
-                  <option value="LOW">Rendah (LOW)</option>
-                  <option value="MEDIUM">Sedang (MEDIUM)</option>
-                  <option value="HIGH">Tinggi (HIGH)</option>
-                  <option value="URGENT">Sangat Mendesak (URGENT)</option>
-                </select>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Status Pengerjaan
-                </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
-                >
-                  <option value="PENDING">Belum Dimulai</option>
-                  <option value="IN_PROGRESS">Dalam Proses</option>
-                  <option value="COMPLETED">Selesai</option>
-                  <option value="OVERDUE">Terlambat</option>
-                </select>
+                {isEditing ? (
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#31889C]/30 focus:border-[#31889C] bg-white font-medium text-slate-800 text-[13px] cursor-pointer"
+                  >
+                    <option value="PENDING">Belum Dimulai</option>
+                    <option value="IN_PROGRESS">Dalam Proses</option>
+                    <option value="COMPLETED">Selesai</option>
+                  </select>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/90 text-amber-800 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <div className="text-[11.5px] leading-tight">
+                      <span className="font-bold block">Status Awal: Belum Dimulai</span>
+                      <span className="text-amber-700/80 text-[10.5px]">PIC akan mengupdate progres ke 'Dalam Proses' atau 'Selesai'</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
